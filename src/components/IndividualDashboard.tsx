@@ -1,0 +1,108 @@
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { Package, Plus, MapPin, Ticket } from 'lucide-react';
+
+interface IndividualDashboardProps {
+  theme?: 'light' | 'dark';
+}
+
+export function IndividualDashboard({ theme = 'light' }: IndividualDashboardProps) {
+  const isDark = theme === 'dark';
+  const { user } = useAuth();
+  const { t } = useLanguage();
+
+  const myShipments = [
+    { id: 'SH-2024-201', from: 'Алматы', to: 'Астана', status: 'В пути', date: '20.01.2026', cost: 5000 },
+    { id: 'SH-2024-198', from: 'Шымкент', to: 'Алматы', status: 'Прибыл', date: '19.01.2026', cost: 4500 },
+  ];
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">{t('individualDashboard')}</h1>
+        <p className="text-gray-600">{user?.name}</p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-1">Новая отправка</h3>
+              <p className="text-sm text-blue-100">Отправить багаж</p>
+            </div>
+            <Package className="w-8 h-8 text-blue-200" />
+          </div>
+          <button className="w-full px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium">
+            Создать отправку
+          </button>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-1">Скидка 50% с билетом</h3>
+              <p className="text-sm text-green-100">Проверка Mobius</p>
+            </div>
+            <Ticket className="w-8 h-8 text-green-200" />
+          </div>
+          <button className="w-full px-4 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-medium">
+            Подать заявку
+          </button>
+        </div>
+      </div>
+
+      {/* My Shipments */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Мои отправки</h2>
+        </div>
+        <div className="divide-y divide-gray-200">
+          {myShipments.map((shipment) => (
+            <div key={shipment.id} className="p-6 hover:bg-gray-50">
+              <div className="flex items-start justify-between">
+                <div className="flex gap-4">
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                    shipment.status === 'Прибыл' ? 'bg-green-100' : 'bg-blue-100'
+                  }`}>
+                    <Package className={`w-6 h-6 ${
+                      shipment.status === 'Прибыл' ? 'text-green-600' : 'text-blue-600'
+                    }`} />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm font-medium text-blue-600">{shipment.id}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        shipment.status === 'Прибыл' 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {shipment.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>{shipment.from} → {shipment.to}</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">Дата:</span> {shipment.date}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-lg font-bold text-gray-900">{shipment.cost.toLocaleString()} ₸</p>
+                  <button className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    Подробнее
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
