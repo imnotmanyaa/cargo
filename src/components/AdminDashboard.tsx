@@ -33,7 +33,12 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
       const response = await fetch('/api/admin/employees');
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data);
+        // Map created_at to createdAt
+        const mapped = data.map((emp: any) => ({
+          ...emp,
+          createdAt: emp.created_at
+        }));
+        setEmployees(mapped);
       }
     } catch (error) {
       console.error('Failed to fetch employees:', error);
@@ -148,16 +153,11 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-green-900' : 'bg-green-100'}`}>
               <Shield className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             </div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-green-900' : 'bg-green-100'}`}>
-                <Shield className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
-              </div>
-              <div>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('operators')}</p>
-                <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-                  {employees.filter(e => e.role === 'operator').length}
-                </p>
-              </div>
+            <div>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('operators')}</p>
+              <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                {employees.filter(e => e.role === 'operator').length}
+              </p>
             </div>
           </div>
         </div>
@@ -267,7 +267,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 >
                   <option value="admin">Администратор</option>
                   <option value="manager">Руководитель (Manager)</option>
-                  <option value="operator">{t('operatorRole')}</option>
+                  <option value="operator">{t('operator')}</option>
                   <option value="receiver">{t('receiver')}</option>
                 </select>
               </div>
@@ -359,18 +359,15 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                     <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{employee.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.role === 'operator'
-                        ? 'bg-blue-100 text-blue-800'
-                        : employee.role === 'receiver'
-                          ? 'bg-orange-100 text-orange-800'
-                          : employee.role === 'admin'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-green-100 text-green-800' // manager
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.role === 'operator' ? 'bg-blue-100 text-blue-800' :
+                        employee.role === 'receiver' ? 'bg-orange-100 text-orange-800' :
+                          employee.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                            'bg-green-100 text-green-800'
                       }`}>
-                      {employee.role === 'operator' ? t('operatorRole')
-                        : employee.role === 'receiver' ? t('receiver')
-                          : employee.role === 'admin' ? 'Администратор'
-                            : 'Руководитель'}
+                      {employee.role === 'operator' ? t('operator') :
+                        employee.role === 'receiver' ? t('receiver') :
+                          employee.role === 'admin' ? 'Администратор' :
+                            'Руководитель'}
                     </span>
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>

@@ -10,12 +10,13 @@ interface User {
   company?: string;
   depositBalance?: number;
   contractNumber?: string;
+  phone?: string;
   station?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: UserRole) => void;
+  login: (email: string, password: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
   register: (data: RegisterData) => void;
@@ -48,9 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(error.error || 'Login failed');
       }
 
-      const userData = await response.json();
-      // Transform snake_case from DB to camelCase if needed, though auth route handles some
-      setUser(userData);
+      const data = await response.json();
+      // Map backend snake_case to frontend camelCase
+      const user: User = {
+        ...data,
+        depositBalance: data.deposit_balance,
+        contractNumber: data.contract_number
+      };
+
+      setUser(user);
     } catch (error: any) {
       console.error('Login error:', error);
       alert(error.message);

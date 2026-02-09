@@ -1,18 +1,25 @@
 import { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ClientInfo } from './shipment-steps/ClientInfo';
 import { CargoDetails } from './shipment-steps/CargoDetails';
 import { Payment } from './shipment-steps/Payment';
+import { QRCodeSVG } from 'qrcode.react';
 
 type Step = 'client' | 'cargo' | 'payment' | 'documents';
 
+import { ArrowLeft } from 'lucide-react';
+
 interface NewShipmentProps {
   theme?: 'light' | 'dark';
+  onBack?: () => void;
 }
 
-export function NewShipment({ theme = 'light' }: NewShipmentProps) {
+export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<Step>('client');
+  const [createdShipmentId, setCreatedShipmentId] = useState<string | null>(null);
   const [shipmentData, setShipmentData] = useState({
     clientType: 'individual',
     clientName: '',
@@ -39,33 +46,53 @@ export function NewShipment({ theme = 'light' }: NewShipmentProps) {
     setShipmentData({ ...shipmentData, ...data });
   };
 
-  // Import useAuth at the top if not present, but for now assuming user context is available or just mocking ID
-  const handlePaymentNext = async () => {
+  const calculateCost = () => {
+    let basePrice = 5000;
+    const weight = parseFloat(shipmentData.weight) || 0;
+    if (weight > 20) {
+      basePrice += (weight - 20) * 150;
+    }
+    if (shipmentData.isFragile) basePrice += 1000;
+    if (shipmentData.isOversized) basePrice += 2500;
+    if (shipmentData.hasTicket) {
+      basePrice = basePrice * 0.5;
+    }
+    return Math.round(basePrice);
+  };
+
+  const handleCreateShipment = async () => {
     try {
+      const cost = calculateCost();
       const response = await fetch('/api/shipments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_id: '1', // TODO: Get from auth context
+          client_id: user?.id || '',
+          client_name: shipmentData.clientName,
+          client_email: user?.email || '',
           from_station: shipmentData.fromStation,
           to_station: shipmentData.toStation,
+          departure_date: shipmentData.departureDate,
           weight: shipmentData.weight,
           dimensions: shipmentData.dimensions,
           description: shipmentData.description,
-          value: shipmentData.value
-        }),
+          value: shipmentData.value,
+          cost: cost
+        })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create shipment');
-      }
 
-      setCurrentStep('documents');
+      if (response.ok) {
+        const data = await response.json();
+        setCreatedShipmentId(data.id);
+        setCurrentStep('documents');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to create shipment');
+      }
     } catch (error) {
-      console.error('Error creating shipment:', error);
-      alert('Ошибка при создании отправления');
+      console.error('Failed to create shipment:', error);
+      alert('Failed to connect to server');
     }
   };
 
@@ -94,7 +121,7 @@ export function NewShipment({ theme = 'light' }: NewShipmentProps) {
           <Payment
             data={shipmentData}
             onUpdate={updateShipmentData}
-            onNext={handlePaymentNext}
+            onNext={handleCreateShipment}
             onBack={() => setCurrentStep('cargo')}
           />
         );
@@ -109,6 +136,20 @@ export function NewShipment({ theme = 'light' }: NewShipmentProps) {
               </div>
               <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t('shipmentCreated')}</h2>
               <p className="text-gray-600 mb-6">{t('documentsReady')}</p>
+
+              {createdShipmentId && (
+                <div className="mb-6 flex flex-col items-center">
+                  <p className="text-sm text-gray-500 mb-2">QR-код для отслеживания:</p>
+                  <div className="p-2 bg-white border rounded-lg shadow-sm">
+                    <QRCodeSVG
+                      value={`${window.location.origin}/tracking/${createdShipmentId}`}
+                      size={160}
+                      level={"H"}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
                 <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   {t('printDocuments')}
@@ -116,6 +157,7 @@ export function NewShipment({ theme = 'light' }: NewShipmentProps) {
                 <button
                   onClick={() => {
                     setCurrentStep('client');
+                    setCreatedShipmentId(null);
                     setShipmentData({
                       clientType: 'individual',
                       clientName: '',
@@ -153,9 +195,21 @@ export function NewShipment({ theme = 'light' }: NewShipmentProps) {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className={`text-2xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{t('newShipmentTitle')}</h1>
-        <p className="text-gray-600">{t('newShipmentDesc')}</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {currentStep === 'client' && onBack && (
+            <button
+              onClick={onBack}
+              className={`p-2 rounded-full hover:bg-gray-100 ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-600'}`}
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+          )}
+          <div>
+            <h1 className={`text-2xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{t('newShipmentTitle')}</h1>
+            <p className="text-gray-600">{t('newShipmentDesc')}</p>
+          </div>
+        </div>
       </div>
 
       {currentStep !== 'documents' && (
@@ -167,8 +221,8 @@ export function NewShipment({ theme = 'light' }: NewShipmentProps) {
                 1
               </div>
               <span className={`ml-2 text-sm font-medium ${currentStep === 'client'
-                  ? (theme === 'dark' ? 'text-white' : 'text-gray-900')
-                  : (theme === 'dark' ? 'text-gray-400' : 'text-gray-500')
+                ? (theme === 'dark' ? 'text-white' : 'text-gray-900')
+                : (theme === 'dark' ? 'text-gray-400' : 'text-gray-500')
                 }`}>
                 {t('clientInfo')}
               </span>

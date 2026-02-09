@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
+import { PublicTracking } from './components/PublicTracking';
 import { TopBar } from './components/TopBar';
 import { LeftSidebar } from './components/LeftSidebar';
 import { RightSidebar } from './components/RightSidebar';
@@ -26,6 +28,22 @@ function AppContent() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [individualPage, setIndividualPage] = useState<'dashboard' | 'new-shipment'>('dashboard');
+
+  // Check for public tracking URL
+  const [trackingId, setTrackingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/^\/tracking\/(.+)$/);
+    if (match) {
+      setTrackingId(match[1]);
+    }
+  }, []);
+
+  if (trackingId) {
+    return <PublicTracking shipmentId={trackingId} />;
+  }
 
   if (!isAuthenticated) {
     return <Login />;
@@ -35,8 +53,8 @@ function AppContent() {
   if (user?.role === 'admin') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <TopBar 
-          theme={theme} 
+        <TopBar
+          theme={theme}
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
@@ -56,8 +74,8 @@ function AppContent() {
   if (user?.role === 'manager') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <TopBar 
-          theme={theme} 
+        <TopBar
+          theme={theme}
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
@@ -77,8 +95,8 @@ function AppContent() {
   if (user?.role === 'corporate') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <TopBar 
-          theme={theme} 
+        <TopBar
+          theme={theme}
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
@@ -97,8 +115,8 @@ function AppContent() {
   if (user?.role === 'individual') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <TopBar 
-          theme={theme} 
+        <TopBar
+          theme={theme}
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
@@ -106,7 +124,17 @@ function AppContent() {
         <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
             <div className="p-4 md:p-8">
-              <IndividualDashboard theme={theme} />
+              {individualPage === 'dashboard' ? (
+                <IndividualDashboard
+                  theme={theme}
+                  onCreateShipment={() => setIndividualPage('new-shipment')}
+                />
+              ) : (
+                <NewShipment
+                  theme={theme}
+                  onBack={() => setIndividualPage('dashboard')}
+                />
+              )}
             </div>
           </main>
         </div>
@@ -117,8 +145,8 @@ function AppContent() {
   if (user?.role === 'receiver') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <TopBar 
-          theme={theme} 
+        <TopBar
+          theme={theme}
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
@@ -159,28 +187,28 @@ function AppContent() {
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      <TopBar 
-        theme={theme} 
+      <TopBar
+        theme={theme}
         onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
         onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
         onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
       />
-      
+
       <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
         {/* Backdrop для закрытия левого сайдбара на мобильных (невидимый) */}
         {leftSidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 z-30 lg:hidden"
             style={{ top: '64px' }}
             onClick={() => setLeftSidebarOpen(false)}
           />
         )}
-        
+
         {/* Левый сайдбар - показываем только когда открыт ИЛИ на десктопе */}
         {leftSidebarOpen && (
           <div className="fixed lg:static z-40 lg:z-0 h-full">
-            <LeftSidebar 
-              currentPage={currentPage} 
+            <LeftSidebar
+              currentPage={currentPage}
               onNavigate={(page) => {
                 setCurrentPage(page);
                 // Закрываем сайдбар на мобильных после выбора
@@ -192,22 +220,22 @@ function AppContent() {
             />
           </div>
         )}
-        
+
         <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
           <div className="p-4 md:p-6 lg:p-8 min-w-0">
             {renderPage()}
           </div>
         </main>
-        
+
         {/* Backdrop для закрытия правого сайдбара на мобильных (невидимй) */}
         {rightSidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 z-30 lg:hidden"
             style={{ top: '64px' }}
             onClick={() => setRightSidebarOpen(false)}
           />
         )}
-        
+
         {/* Правый сайдбар - показываем только когда открыт ИЛИ на десктопе */}
         {rightSidebarOpen && (
           <div className="fixed lg:static z-40 lg:z-0 right-0 h-full">
@@ -221,10 +249,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <AppContent />
-      </LanguageProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <LanguageProvider>
+          <AppContent />
+        </LanguageProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

@@ -1,11 +1,14 @@
-import { Search, Filter, QrCode } from 'lucide-react';
+import { Search, Filter, MapPin, Package, Clock, QrCode, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { ShipmentDetailsModal } from './ShipmentDetailsModal';
+import { io } from 'socket.io-client';
 
-export function ActiveShipments({ theme }: { theme?: 'light' | 'dark' }) {
+export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const { t, language } = useLanguage();
+  const [shipments, setShipments] = useState<any[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   const getStatus = (status: string) => {
     if (language === 'en') {
@@ -27,30 +30,6 @@ export function ActiveShipments({ theme }: { theme?: 'light' | 'dark' }) {
     return status;
   };
 
-  const [shipments, setShipments] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetch('/api/shipments')
-      .then(res => res.json())
-      .then(data => {
-        // Map backend snake_case to frontend expectation if needed, or adjust UI
-        // Data from backend: { id, client_id, from_station ... }
-        // UI expects: { id, client, from, to, status ... }
-        const mapped = data.map((item: any) => ({
-          id: item.id,
-          client: item.client_id, // This is just ID for now, ideally join with users
-          from: item.from_station,
-          to: item.to_station,
-          status: item.status,
-          date: new Date(item.created_at).toLocaleDateString(),
-          weight: item.weight,
-          statusColor: getStatusColor(item.status)
-        }));
-        setShipments(mapped);
-      })
-      .catch(err => console.error('Failed to load shipments', err));
-  }, []);
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'В пути': return 'bg-blue-100 text-blue-700';
@@ -60,11 +39,77 @@ export function ActiveShipments({ theme }: { theme?: 'light' | 'dark' }) {
     }
   };
 
+  const mapShipment = (s: any) => ({
+    ...s,
+    id: s.id,
+    client: s.client_name || 'Неизвестный',
+    from: s.from_station,
+    to: s.to_station,
+    status: s.status,
+    statusColor: getStatusColor(s.status),
+    date: new Date(s.departure_date).toLocaleDateString(),
+    weight: s.weight + ' кг',
+  });
+
+  const fetchShipments = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/shipments');
+      if (response.ok) {
+        const data = await response.json();
+        const mapped = data.map(mapShipment);
+        setShipments(mapped);
+      }
+    } catch (error) {
+      console.error('Failed to fetch shipments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchShipments();
+
+    const socket = io();
+
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket (ActiveShipments)');
+    });
+
+    socket.on('new-shipment', (shipment: any) => {
+      console.log('New shipment received via WebSocket (ActiveShipments):', shipment);
+      setShipments(prev => {
+        if (prev.find(s => s.id === shipment.id)) return prev;
+        return [mapShipment(shipment), ...prev];
+      });
+    });
+
+    socket.on('shipment-updated', (updated: any) => {
+      console.log('Shipment updated via WebSocket (ActiveShipments):', updated);
+      setShipments(prev => prev.map(s =>
+        s.id === updated.id ? mapShipment(updated) : s
+      ));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   return (
     <div>
-      <div className="mb-8">
-        <h1 className={`text-2xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{t('activeShipmentsTitle')}</h1>
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>{t('activeShipmentsDesc')}</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className={`text-2xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{t('activeShipmentsTitle')}</h1>
+          <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>{t('activeShipmentsDesc')}</p>
+        </div>
+        <button
+          onClick={fetchShipments}
+          className={`p-2 rounded-lg ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+          title="Обновить"
+        >
+          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       <div className={`rounded-lg shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -92,61 +137,61 @@ export function ActiveShipments({ theme }: { theme?: 'light' | 'dark' }) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className={`border-b ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+          <table className="w-full text-left border-collapse">
+            <thead className={theme === 'dark' ? 'bg-gray-900/50' : 'bg-gray-50'}>
               <tr>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('number')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('client')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('routeColumn')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('weightColumn')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('date')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('status')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('actions')}
-                </th>
+                <th className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{t('waybill')}</th>
+                <th className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{t('client')}</th>
+                <th className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{t('route')}</th>
+                <th className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{t('status')}</th>
+                <th className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{t('date')}</th>
+                <th className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{t('weight')}</th>
+                <th className="px-6 py-4"></th>
               </tr>
             </thead>
             <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
               {shipments.map((shipment) => (
-                <tr key={shipment.id} className={theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-blue-600">{shipment.id}</span>
+                <tr
+                  key={shipment.id}
+                  onClick={() => setSelectedShipment(shipment)}
+                  className={`cursor-pointer transition-colors ${theme === 'dark' ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+                        <Package className={`w-5 h-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
+                      </div>
+                      <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.id}</span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.client}</span>
+                  <td className={`px-6 py-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.client}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-gray-400" />
+                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.from}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-blue-500" />
+                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.to}</span>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{shipment.from} → {shipment.to}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{shipment.weight}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{shipment.date}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${shipment.statusColor}`}>
                       {getStatus(shipment.status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => setSelectedShipment(shipment)}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                    >
-                      {t('details')}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Clock className="w-4 h-4" />
+                      <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{shipment.date}</span>
+                    </div>
+                  </td>
+                  <td className={`px-6 py-4 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.weight}</td>
+                  <td className="px-6 py-4 text-right">
+                    <button className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+                      <QrCode className="w-5 h-5" />
                     </button>
                   </td>
                 </tr>
@@ -158,11 +203,9 @@ export function ActiveShipments({ theme }: { theme?: 'light' | 'dark' }) {
 
       {selectedShipment && (
         <ShipmentDetailsModal
-          shipment={{
-            ...selectedShipment,
-            status: getStatus(selectedShipment.status)
-          }}
+          shipment={selectedShipment}
           onClose={() => setSelectedShipment(null)}
+          theme={theme}
         />
       )}
     </div>

@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role, company } = req.body;
+        const { name, email, password, role, company, phone } = req.body;
         const db = await getClientsDb();
 
         const existingUser = await db.get('SELECT * FROM users WHERE email = ?', [email]);
@@ -18,11 +18,11 @@ router.post('/register', async (req, res) => {
         const id = Date.now().toString(); // Simple ID generation
 
         await db.run(
-            'INSERT INTO users (id, name, email, password, role, company) VALUES (?, ?, ?, ?, ?, ?)',
-            [id, name, email, hashedPassword, role || 'individual', company]
+            'INSERT INTO users (id, name, email, password, role, company, phone) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [id, name, email, hashedPassword, role || 'individual', company, phone]
         );
 
-        const user = await db.get('SELECT id, name, email, role, company FROM users WHERE id = ?', [id]);
+        const user = await db.get('SELECT id, name, email, role, company, phone FROM users WHERE id = ?', [id]);
         res.json(user);
     } catch (error) {
         console.error('Registration error:', error);

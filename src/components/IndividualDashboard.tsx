@@ -1,21 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Package, Plus, MapPin, Ticket } from 'lucide-react';
 
-interface IndividualDashboardProps {
-  theme?: 'light' | 'dark';
+interface Shipment {
+  id: string;
+  from_station: string;
+  to_station: string;
+  status: string;
+  created_at: string;
+  cost: number;
 }
 
-export function IndividualDashboard({ theme = 'light' }: IndividualDashboardProps) {
+interface IndividualDashboardProps {
+  theme?: 'light' | 'dark';
+  onCreateShipment?: () => void;
+}
+
+export function IndividualDashboard({ theme = 'light', onCreateShipment }: IndividualDashboardProps) {
   const isDark = theme === 'dark';
   const { user } = useAuth();
   const { t } = useLanguage();
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const myShipments = [
-    { id: 'SH-2024-201', from: 'Алматы', to: 'Астана', status: 'В пути', date: '20.01.2026', cost: 5000 },
-    { id: 'SH-2024-198', from: 'Шымкент', to: 'Алматы', status: 'Прибыл', date: '19.01.2026', cost: 4500 },
-  ];
+  useEffect(() => {
+    const fetchShipments = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await fetch(`/api/shipments?client_id=${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setShipments(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch shipments', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchShipments();
+  }, [user?.id]);
+
+  const handleDetails = (id: string) => {
+    // Open tracking page in new tab or navigate
+    window.open(`/tracking/${id}`, '_blank');
+  };
 
   return (
     <div>
@@ -34,7 +64,7 @@ export function IndividualDashboard({ theme = 'light' }: IndividualDashboardProp
             </div>
             <Package className="w-8 h-8 text-blue-200" />
           </div>
-          <button className="w-full px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium">
+          <button className="w-full px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium" onClick={onCreateShipment}>
             Создать отправку
           </button>
         </div>
@@ -59,48 +89,54 @@ export function IndividualDashboard({ theme = 'light' }: IndividualDashboardProp
           <h2 className="text-lg font-semibold text-gray-900">Мои отправки</h2>
         </div>
         <div className="divide-y divide-gray-200">
-          {myShipments.map((shipment) => (
-            <div key={shipment.id} className="p-6 hover:bg-gray-50">
-              <div className="flex items-start justify-between">
-                <div className="flex gap-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                    shipment.status === 'Прибыл' ? 'bg-green-100' : 'bg-blue-100'
-                  }`}>
-                    <Package className={`w-6 h-6 ${
-                      shipment.status === 'Прибыл' ? 'text-green-600' : 'text-blue-600'
-                    }`} />
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-sm font-medium text-blue-600">{shipment.id}</span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        shipment.status === 'Прибыл' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-blue-100 text-blue-700'
+          {loading ? (
+            <div className="p-8 text-center text-gray-500">Загрузка...</div>
+          ) : shipments.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">У вас пока нет отправлений</div>
+          ) : (
+            shipments.map((shipment) => (
+              <div key={shipment.id} className="p-6 hover:bg-gray-50">
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-4">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${shipment.status === 'Прибыл' ? 'bg-green-100' : 'bg-blue-100'
                       }`}>
-                        {shipment.status}
-                      </span>
+                      <Package className={`w-6 h-6 ${shipment.status === 'Прибыл' ? 'text-green-600' : 'text-blue-600'
+                        }`} />
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>{shipment.from} → {shipment.to}</span>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">Дата:</span> {shipment.date}
+
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-sm font-medium text-blue-600">{shipment.id}</span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${shipment.status === 'Прибыл'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-blue-100 text-blue-700'
+                          }`}>
+                          {shipment.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                        <MapPin className="w-4 h-4" />
+                        <span>{shipment.from_station} → {shipment.to_station}</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Дата:</span> {new Date(shipment.created_at).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900">{shipment.cost.toLocaleString()} ₸</p>
-                  <button className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    Подробнее
-                  </button>
+                  <div className="text-right">
+                    {/* Assuming 'value' is stored as money or similar, adjust display if needed */}
+                    <p className="text-lg font-bold text-gray-900">{shipment.cost?.toLocaleString() || 0} ₸</p>
+                    <button
+                      onClick={() => handleDetails(shipment.id)}
+                      className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Подробнее
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )))}
         </div>
       </div>
     </div>
