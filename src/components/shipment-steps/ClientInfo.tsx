@@ -1,6 +1,6 @@
 import { ArrowRight, Users } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ClientInfoProps {
@@ -33,6 +33,14 @@ export function ClientInfo({
   const isDark = theme === 'dark';
   const { t } = useLanguage();
   const { user } = useAuth();
+  const [isReceiverDifferent, setIsReceiverDifferent] = useState(() => !!data.receiverName || !!data.receiverPhone);
+
+  // Update local state if data changes externally (e.g. going back/forward)
+  useEffect(() => {
+    if (data.receiverName || data.receiverPhone) {
+      setIsReceiverDifferent(true);
+    }
+  }, [data.receiverName, data.receiverPhone]);
 
   // Автоматически заполняем данные для физического лица при монтировании
   useEffect(() => {
@@ -42,6 +50,12 @@ export function ClientInfo({
         clientName: user.name,
         clientPhone: user.phone || '',
         clientSource: 'direct'
+      });
+    } else if (user?.role === 'corporate') {
+      onUpdate({
+        clientType: 'legal',
+        clientName: user.company || user.name,
+        contractNumber: user.contractNumber || ''
       });
     }
   }, [user]);
@@ -218,22 +232,28 @@ export function ClientInfo({
         )}
 
         {data.clientType === 'individual' && data.clientSource && (
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              {t('contractNumber')}
-            </label>
-            <input
-              type="text"
-              value={data.contractNumber}
-              onChange={(e) => onUpdate({ contractNumber: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
-                ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
-                : 'border-gray-300'
-                }`}
-              placeholder="№"
-              readOnly={isAggregatorSource && data.aggregatorClientId}
-            />
-          </div>
+          // Only show for Operator/Admin, NOT for individual user
+          // AND only if it's NOT a direct contact (or maybe we show it for direct?)
+          // Requirement: "remove parameter specify contract in individual cabinet"
+          // So we hide it if user.role === 'individual'
+          user?.role !== 'individual' && (
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                {t('contractNumber')}
+              </label>
+              <input
+                type="text"
+                value={data.contractNumber}
+                onChange={(e) => onUpdate({ contractNumber: e.target.value })}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
+                  ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+                  : 'border-gray-300'
+                  }`}
+                placeholder="№"
+                readOnly={isAggregatorSource && data.aggregatorClientId}
+              />
+            </div>
+          )
         )}
 
         {data.clientType === 'legal' && (
@@ -249,6 +269,66 @@ export function ClientInfo({
             </label>
           </div>
         )}
+
+        {/* Separator */}
+        <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} my-4`}></div>
+
+        {/* Receiver Section */}
+        <div>
+          <label className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              checked={isReceiverDifferent}
+              onChange={(e) => {
+                setIsReceiverDifferent(e.target.checked);
+                if (!e.target.checked) {
+                  onUpdate({ receiverName: '', receiverPhone: '' });
+                }
+              }}
+              className="w-4 h-4 text-blue-600 rounded"
+            />
+            <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+              {t('recipientIsAnotherPerson')}
+            </span>
+          </label>
+
+          {isReceiverDifferent && (
+            <div className={`p-4 rounded-lg border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="grid gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {t('receiverName')}
+                  </label>
+                  <input
+                    type="text"
+                    value={data.receiverName}
+                    onChange={(e) => onUpdate({ receiverName: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
+                      ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+                      : 'border-gray-300'
+                      }`}
+                    placeholder={t('enterReceiverName')}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {t('receiverPhone')}
+                  </label>
+                  <input
+                    type="tel"
+                    value={data.receiverPhone}
+                    onChange={(e) => onUpdate({ receiverPhone: e.target.value })}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
+                      ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+                      : 'border-gray-300'
+                      }`}
+                    placeholder="+7 ___ ___ ____"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className={`pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('route')}</h3>
@@ -311,12 +391,55 @@ export function ClientInfo({
                 }`}
             />
           </div>
+
+          {data.departureDate && (
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Время поезда
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${data.trainTime === '15:00'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : isDark
+                    ? 'border-gray-600 hover:bg-gray-700 text-gray-200'
+                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                  }`}>
+                  <input
+                    type="radio"
+                    name="trainTime"
+                    value="15:00"
+                    checked={data.trainTime === '15:00'}
+                    onChange={(e) => onUpdate({ trainTime: e.target.value })}
+                    className="sr-only"
+                  />
+                  <span>15:00</span>
+                </label>
+
+                <label className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${data.trainTime === '23:00'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : isDark
+                    ? 'border-gray-600 hover:bg-gray-700 text-gray-200'
+                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                  }`}>
+                  <input
+                    type="radio"
+                    name="trainTime"
+                    value="23:00"
+                    checked={data.trainTime === '23:00'}
+                    onChange={(e) => onUpdate({ trainTime: e.target.value })}
+                    className="sr-only"
+                  />
+                  <span>23:00</span>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end pt-4">
           <button
             onClick={onNext}
-            disabled={!data.clientName || !data.fromStation || !data.toStation || !data.departureDate}
+            disabled={!data.clientName || !data.fromStation || !data.toStation || !data.departureDate || !data.trainTime}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}

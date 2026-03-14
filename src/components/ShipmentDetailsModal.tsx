@@ -1,5 +1,6 @@
-import { X, Package, MapPin, Calendar, Weight, User, Phone, Banknote } from 'lucide-react';
+import { X, Package, MapPin, Calendar, Weight, User, Phone, Printer } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface ShipmentDetailsModalProps {
   shipment: {
@@ -15,8 +16,12 @@ interface ShipmentDetailsModalProps {
     description?: string;
     value?: string;
     departure_date?: string;
+    receiver_name?: string;
+    receiver_phone?: string;
+    train_time?: string;
   };
   onClose: () => void;
+  theme?: 'light' | 'dark';
 }
 
 export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModalProps) {
@@ -37,6 +42,97 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
     }
   };
 
+  const handlePrint = () => {
+    const qrContainer = document.getElementById('qr-code-container');
+    const qrSvg = qrContainer?.innerHTML || '';
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Печать ${shipment.id}</title>
+            <style>
+              body {
+                font-family: 'Courier New', monospace;
+                width: 58mm;
+                margin: 0;
+                padding: 5px;
+                color: black;
+                background: white;
+              }
+              .header {
+                text-align: center;
+                font-weight: bold;
+                font-size: 20px;
+                margin-bottom: 5px;
+                text-transform: uppercase;
+              }
+              .shipment-id {
+                text-align: center;
+                font-size: 22px;
+                font-weight: bold;
+                margin: 5px 0;
+              }
+              .qr-container {
+                display: flex;
+                justify-content: center;
+                margin: 10px 0;
+              }
+              .qr-container svg {
+                width: 45mm !important;
+                height: 45mm !important;
+              }
+              .info {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+              .row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+              }
+              @media print {
+                @page { margin: 0; size: 58mm auto; }
+                body { margin: 0; padding: 5px; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">CargoTrans</div>
+            
+            <div class="shipment-id">${shipment.id}</div>
+            
+            <div class="qr-container">${qrSvg}</div>
+            
+            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
+              ${shipment.from} -> ${shipment.to}
+            </div>
+            
+            <div class="row info">
+              <span>Вес:</span>
+              <span>${shipment.weight} кг</span>
+            </div>
+            
+            ${shipment.dimensions ? `
+            <div class="row info">
+              <span>Габариты:</span>
+              <span>${shipment.dimensions}</span>
+            </div>` : ''}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -54,10 +150,10 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
           {/* Status Badge */}
           <div className="flex items-center justify-between">
             <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${shipment.status === 'В пути' || shipment.status === 'In Transit' || shipment.status === 'Жолда'
-                ? 'bg-blue-100 text-blue-700'
-                : shipment.status === 'Погружен' || shipment.status === 'Loaded' || shipment.status === 'Тиелген'
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'bg-green-100 text-green-700'
+              ? 'bg-blue-100 text-blue-700'
+              : shipment.status === 'Погружен' || shipment.status === 'Loaded' || shipment.status === 'Тиелген'
+                ? 'bg-purple-100 text-purple-700'
+                : 'bg-green-100 text-green-700'
               }`}>
               {shipment.status}
             </span>
@@ -82,6 +178,29 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
               )}
             </div>
           </div>
+
+          {/* Receiver Information */}
+          {(shipment.receiver_name || shipment.receiver_phone) && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Информация о получателе</h3>
+              <div className="space-y-2">
+                {shipment.receiver_name && (
+                  <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Получатель:</span>
+                    <span className="text-sm font-medium text-gray-900">{shipment.receiver_name}</span>
+                  </div>
+                )}
+                {shipment.receiver_phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Телефон:</span>
+                    <span className="text-sm font-medium text-gray-900">{shipment.receiver_phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Route Information */}
           <div className="bg-gray-50 rounded-lg p-4">
@@ -149,22 +268,28 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
           {/* QR Code */}
           <div className="bg-gray-50 rounded-lg p-4 flex flex-col items-center">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">QR-код отправки</h3>
-            <div className="w-48 h-48 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center">
-              <svg className="w-40 h-40" viewBox="0 0 100 100">
-                <rect x="0" y="0" width="100" height="100" fill="white" />
-                <path d="M10,10 h10 v10 h-10 z M25,10 h5 v5 h-5 z M35,10 h5 v5 h-5 z M45,10 h10 v10 h-10 z M60,10 h5 v5 h-5 z M70,10 h10 v10 h-10 z M85,10 h5 v5 h-5 z" fill="black" />
-                <path d="M10,25 h5 v5 h-5 z M20,25 h5 v5 h-5 z M30,25 h10 v10 h-10 z M45,25 h5 v5 h-5 z M55,25 h5 v5 h-5 z M65,25 h5 v5 h-5 z M75,25 h5 v5 h-5 z M85,25 h5 v5 h-5 z" fill="black" />
-                <path d="M10,40 h10 v10 h-10 z M25,40 h5 v5 h-5 z M35,40 h5 v5 h-5 z M45,40 h10 v10 h-10 z M60,40 h5 v5 h-5 z M70,40 h10 v10 h-10 z M85,40 h5 v5 h-5 z" fill="black" />
-              </svg>
+            <div id="qr-code-container" className="p-2 bg-white border-2 border-gray-300 rounded-lg shadow-sm">
+              <QRCodeSVG
+                value={`${window.location.origin}/shipment/${shipment.id}`}
+                size={160}
+                level={"H"}
+              />
             </div>
             <p className="text-xs text-gray-500 mt-2">{shipment.id}</p>
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+        <div className="p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0 flex gap-4">
+          <button
+            onClick={handlePrint}
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Printer className="w-4 h-4" />
+            Распечатать чек
+          </button>
           <button
             onClick={onClose}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             {t('close')}
           </button>

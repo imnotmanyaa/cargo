@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ClientInfo } from './shipment-steps/ClientInfo';
 import { CargoDetails } from './shipment-steps/CargoDetails';
 import { Payment } from './shipment-steps/Payment';
+import { ShipmentLabel } from './ShipmentLabel';
 import { QRCodeSVG } from 'qrcode.react';
 
 type Step = 'client' | 'cargo' | 'payment' | 'documents';
@@ -31,6 +32,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     fromStation: '',
     toStation: '',
     departureDate: '',
+    trainTime: '',
     weight: '',
     dimensions: '',
     isFragile: false,
@@ -39,7 +41,9 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     value: '',
     description: '',
     hasTicket: false,
-    ticketNumber: ''
+    ticketNumber: '',
+    receiverName: '',
+    receiverPhone: ''
   });
 
   const updateShipmentData = (data: Partial<typeof shipmentData>) => {
@@ -77,7 +81,10 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           dimensions: shipmentData.dimensions,
           description: shipmentData.description,
           value: shipmentData.value,
-          cost: cost
+          cost: cost,
+          receiver_name: shipmentData.receiverName,
+          receiver_phone: shipmentData.receiverPhone,
+          train_time: shipmentData.trainTime
         })
       });
 
@@ -142,7 +149,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                   <p className="text-sm text-gray-500 mb-2">QR-код для отслеживания:</p>
                   <div className="p-2 bg-white border rounded-lg shadow-sm">
                     <QRCodeSVG
-                      value={`${window.location.origin}/tracking/${createdShipmentId}`}
+                      value={`${window.location.origin}/shipment/${createdShipmentId}`}
                       size={160}
                       level={"H"}
                     />
@@ -151,7 +158,10 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               )}
 
               <div className="space-y-3">
-                <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button
+                  onClick={() => window.print()}
+                  className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
                   {t('printDocuments')}
                 </button>
                 <button
@@ -169,6 +179,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       fromStation: '',
                       toStation: '',
                       departureDate: '',
+                      trainTime: '',
                       weight: '',
                       dimensions: '',
                       isFragile: false,
@@ -177,13 +188,27 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       value: '',
                       description: '',
                       hasTicket: false,
-                      ticketNumber: ''
+                      ticketNumber: '',
+                      receiverName: '',
+                      receiverPhone: ''
                     });
                   }}
                   className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   {t('newShipmentButton')}
                 </button>
+              </div>
+
+              {/* Hidden label for printing */}
+              <div className="print-only">
+                <ShipmentLabel
+                  data={{
+                    ...shipmentData,
+                    id: createdShipmentId,
+                    date: new Date().toISOString()
+                  }}
+                  t={t}
+                />
               </div>
             </div>
           </div>

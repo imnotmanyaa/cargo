@@ -49,6 +49,9 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
     statusColor: getStatusColor(s.status),
     date: new Date(s.departure_date).toLocaleDateString(),
     weight: s.weight + ' кг',
+    receiver_name: s.receiver_name,
+    receiver_phone: s.receiver_phone,
+    train_time: s.train_time
   });
 
   const fetchShipments = async () => {

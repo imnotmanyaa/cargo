@@ -18,6 +18,67 @@ function calculateRoute(from, to) {
     }
 }
 
+
+// Get shipment action context (for QR code scanning)
+router.get('/:id/action-context', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Reconstruct user from headers (temporary auth solution)
+        let user = req.user;
+        if (!user && req.headers['x-user-id']) {
+            user = {
+                id: req.headers['x-user-id'],
+                role: req.headers['x-user-role'],
+                station: decodeURIComponent(req.headers['x-user-station'] || '')
+            };
+        }
+
+        const db = await getShipmentsDb();
+        const shipment = await db.get('SELECT * FROM shipments WHERE id = ?', [id]);
+
+        if (!shipment) {
+            return res.status(404).json({ error: 'Shipment not found' });
+        }
+
+        // Determine user role and allowed actions
+        let userRole = 'none';
+        let allowedActions = [];
+
+        if (user) {
+            // Check if user is the sender/client
+            if (user.id === shipment.client_id) {
+                userRole = 'sender';
+                allowedActions = ['view'];
+            }
+            // Check if user is receiver at origin station
+            else if (user.role === 'receiver' && user.station === shipment.from_station) {
+                userRole = 'origin-receiver';
+                allowedActions = ['view', 'mark-loaded'];
+            }
+            // Check if user is receiver at destination station
+            else if (user.role === 'receiver' && user.station === shipment.to_station) {
+                userRole = 'destination-receiver';
+                allowedActions = ['view', 'mark-arrived'];
+            }
+        } else {
+            // Guest user
+            userRole = 'guest';
+            allowedActions = ['view'];
+        }
+
+        res.json({
+            shipment,
+            userRole,
+            allowedActions,
+            requiresAuth: false // Allow public access to view details
+        });
+    } catch (error) {
+        console.error('Get action context error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Get single shipment by ID (public/tracking)
 router.get('/:id', async (req, res) => {
     try {
@@ -152,6 +213,37 @@ router.post('/:id/transit', async (req, res) => {
             }
         }
 
+        if (status === 'Прибыл') {
+            // Notify receiver if they exist in the system
+            const receiverPhone = shipment.receiver_phone;
+
+            if (receiverPhone) {
+                // Find user by phone
+                const { getClientsDb } = await import('../db.js');
+                const clientsDb = await getClientsDb();
+                const receiverUser = await clientsDb.get('SELECT * FROM users WHERE phone = ?', [receiverPhone]);
+
+                if (receiverUser) {
+                    // Create notification
+                    await db.run(
+                        'INSERT INTO notifications (user_id, message, type, related_id) VALUES (?, ?, ?, ?)',
+                        [receiverUser.id, `Ваш груз ${id} прибыл в пункт назначения ${current_station}`, 'shipment_arrival', id]
+                    );
+
+                    // Emit to user
+                    const io = req.app.get('io');
+                    if (io) {
+                        io.to(`user:${receiverUser.id}`).emit('notification:new', {
+                            message: `Ваш груз ${id} прибыл в пункт назначения ${current_station}`,
+                            type: 'shipment_arrival',
+                            related_id: id,
+                            created_at: new Date().toISOString()
+                        });
+                    }
+                }
+            }
+        }
+
         res.json(updatedShipment);
     } catch (error) {
         console.error('Transit update error:', error);
@@ -195,7 +287,7 @@ router.post('/', async (req, res) => {
     try {
         const {
             client_id, client_name, client_email, from_station, to_station,
-            weight, dimensions, description, value, departure_date, cost
+            weight, dimensions, description, value, departure_date, cost, train_time
         } = req.body;
         const db = await getShipmentsDb();
 
@@ -208,12 +300,14 @@ router.post('/', async (req, res) => {
             `INSERT INTO shipments (
                 id, client_id, client_name, client_email, from_station, to_station, 
                 current_station, next_station, route,
-                status, weight, dimensions, description, value, departure_date, cost
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                status, weight, dimensions, description, value, departure_date, cost,
+                receiver_name, receiver_phone, train_time
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 id, client_id, client_name, client_email, from_station, to_station,
                 current_station, next_station, JSON.stringify(route),
-                'Принят', weight, dimensions, description, value, departure_date || new Date().toISOString(), cost
+                'Принят', weight, dimensions, description, value, departure_date || new Date().toISOString(), cost,
+                req.body.receiver_name, req.body.receiver_phone, train_time
             ]
         );
 

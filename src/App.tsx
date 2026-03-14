@@ -20,6 +20,7 @@ import { IndividualDashboard } from './components/IndividualDashboard';
 import { ReceiverDashboard } from './components/ReceiverDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ManagerDashboard } from './components/ManagerDashboard';
+import { ShipmentActionPage } from './components/ShipmentActionPage';
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
@@ -32,17 +33,26 @@ function AppContent() {
 
   // Check for public tracking URL
   const [trackingId, setTrackingId] = useState<string | null>(null);
+  const [shipmentActionId, setShipmentActionId] = useState<string | null>(null);
 
   useEffect(() => {
     const path = window.location.pathname;
-    const match = path.match(/^\/tracking\/(.+)$/);
-    if (match) {
-      setTrackingId(match[1]);
+    const trackingMatch = path.match(/^\/tracking\/(.+)$/);
+    const shipmentMatch = path.match(/^\/shipment\/(.+)$/);
+
+    if (trackingMatch) {
+      setTrackingId(trackingMatch[1]);
+    } else if (shipmentMatch) {
+      setShipmentActionId(shipmentMatch[1]);
     }
   }, []);
 
   if (trackingId) {
     return <PublicTracking shipmentId={trackingId} />;
+  }
+
+  if (shipmentActionId) {
+    return <ShipmentActionPage />;
   }
 
   if (!isAuthenticated) {

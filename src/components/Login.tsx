@@ -15,25 +15,39 @@ export function Login() {
   const [showRegister, setShowRegister] = useState(false);
 
   const roles = [
-    { id: 'operator' as UserRole, name: 'Оператор', icon: User, demo: 'operator@mail.kz' },
+    { id: 'operator' as UserRole, name: 'Менеджер', icon: User, demo: 'operator@mail.kz' },
     { id: 'receiver' as UserRole, name: 'Приёмосдатчик', icon: Package, demo: 'receiver@mail.kz' },
-    { id: 'admin' as UserRole, name: 'Администратор', icon: Shield, demo: 'admin@mail.kz' },
     { id: 'manager' as UserRole, name: 'Руководитель', icon: BarChart3, demo: 'manager@mail.kz' },
+    { id: 'admin' as UserRole, name: 'Администратор', icon: Shield, demo: 'admin@mail.kz' },
   ];
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Logging in with:', email, password, selectedRole);
-    login(email, password, selectedRole);
+    await login(email, password, selectedRole);
+
+    // Check for redirect param and navigate if present
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    if (redirect) {
+      window.location.href = redirect;
+    }
   };
 
-  const handleDemoLogin = (demoEmail: string, role: UserRole) => {
+  const handleDemoLogin = async (demoEmail: string, role: UserRole) => {
     console.log('Demo login:', demoEmail, role);
     setEmail(demoEmail);
     setPassword('demo');
     setSelectedRole(role);
     // Немедленно входим
-    login(demoEmail, 'demo', role);
+    await login(demoEmail, 'demo', role);
+
+    // Check for redirect param and navigate if present
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    if (redirect) {
+      window.location.href = redirect;
+    }
   };
 
   if (showRegister) {
@@ -92,11 +106,10 @@ export function Login() {
                   const Icon = role.icon;
                   return (
                     <div key={role.id}>
-                      <label className={`flex items-center justify-between p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                        selectedRole === role.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
+                      <label className={`flex items-center justify-between p-3 border-2 rounded-lg cursor-pointer transition-all ${selectedRole === role.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}>
                         <div className="flex items-center gap-3">
                           <input
                             type="radio"

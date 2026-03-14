@@ -20,6 +20,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   register: (data: RegisterData) => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 interface RegisterData {
@@ -34,7 +35,10 @@ interface RegisterData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
   const login = async (email: string, password: string) => {
     try {
@@ -45,8 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Login failed');
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const error = await response.json();
+          throw new Error(error.error || 'Login failed');
+        } else {
+          console.error("Non-JSON error response from server", await response.text());
+          throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+        }
       }
 
       const data = await response.json();
@@ -57,10 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         contractNumber: data.contract_number
       };
 
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
       setUser(user);
+      localStorage.setItem('user', JSON.stringify(user));
     } catch (error: any) {
-      console.error('Login error:', error);
-      alert(error.message);
+      console.error('Login error details:', error);
+      console.error('Error stack:', error.stack);
+      alert(`${error.name}: ${error.message}`);
     }
   };
 
@@ -73,12 +89,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Registration failed');
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const error = await response.json();
+          throw new Error(error.error || 'Registration failed');
+        } else {
+          console.error("Non-JSON error response from server", await response.text());
+          throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+        }
       }
 
       const userData = await response.json();
+
+      if (userData.token) {
+        localStorage.setItem('token', userData.token);
+      }
+
       setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
       alert(`Регистрация успешна! Добро пожаловать, ${userData.name}`);
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -88,6 +116,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+  };
+
+  const updateUser = (updates: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
   };
 
   const isAuthenticated = !!user;
@@ -95,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   console.log('Auth context state:', { user, isAuthenticated });
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, register }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

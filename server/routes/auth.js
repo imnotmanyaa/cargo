@@ -1,8 +1,11 @@
 import express from 'express';
 import { getClientsDb, getStaffDb } from '../db.js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 router.post('/register', async (req, res) => {
     try {
@@ -23,7 +26,15 @@ router.post('/register', async (req, res) => {
         );
 
         const user = await db.get('SELECT id, name, email, role, company, phone FROM users WHERE id = ?', [id]);
-        res.json(user);
+
+        // Generate Token
+        const token = jwt.sign(
+            { id: user.id, role: user.role, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({ ...user, token });
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -42,7 +53,12 @@ router.post('/login', async (req, res) => {
             const isValid = await bcrypt.compare(password, staffUser.password);
             if (isValid) {
                 const { password: _, ...userWithoutPassword } = staffUser;
-                return res.json(userWithoutPassword);
+                const token = jwt.sign(
+                    { id: staffUser.id, role: staffUser.role, station: staffUser.station, email: staffUser.email },
+                    JWT_SECRET,
+                    { expiresIn: '24h' }
+                );
+                return res.json({ ...userWithoutPassword, token });
             }
         }
 
@@ -54,7 +70,12 @@ router.post('/login', async (req, res) => {
             const isValid = await bcrypt.compare(password, clientUser.password);
             if (isValid) {
                 const { password: _, ...userWithoutPassword } = clientUser;
-                return res.json(userWithoutPassword);
+                const token = jwt.sign(
+                    { id: clientUser.id, role: clientUser.role, email: clientUser.email },
+                    JWT_SECRET,
+                    { expiresIn: '24h' }
+                );
+                return res.json({ ...userWithoutPassword, token });
             }
         }
 

@@ -13,8 +13,8 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const translations = {
   ru: {
     // Top Bar
-    station: 'Станция Алматы-1',
-    operator: 'Оператор: Айдана',
+    headerStation: 'Станция Алматы-1',
+    headerOperator: 'Менеджер: Айдана',
     search: 'Поиск',
 
     // Sidebar
@@ -56,6 +56,10 @@ const translations = {
     transportCost: 'Стоимость перевозки',
     next: 'Далее',
     back: 'Назад',
+    receiverName: 'ФИО Получателя',
+    enterReceiverName: 'Введите имя получателя',
+    receiverPhone: 'Телефон Получателя',
+    recipientIsAnotherPerson: 'Получатель — другое лицо',
 
     // Cargo Details
     cargoDetailsTitle: 'Детали груза',
@@ -238,7 +242,7 @@ const translations = {
     totalRevenue: 'Общая выручка',
     wagonsByStatus: 'Вагоны по статусу',
     wagons: 'вагонов',
-    financialReport: 'Финансовый отчёт',
+
     plannedActual: 'Плановые и фактические показатели',
     positiveTrend: 'Положительная динамика',
     halfYearPlan: 'План на полугодие',
@@ -253,7 +257,7 @@ const translations = {
     employeeManagementDesc: 'Создание и управление учётными записями',
     totalEmployees: 'Всего сотрудников',
     activeEmployees: 'Активных',
-    operators: 'Операторы',
+    operators: 'Менеджеры',
     receivers: 'Приёмщики',
     createEmployee: 'Создать сотрудника',
     name: 'Имя',
@@ -269,9 +273,9 @@ const translations = {
     enterEmail: 'Введите email',
     password: 'Пароль',
     enterPassword: 'Введите пароль',
-    operator: 'Оператор',
+    operator: 'Менеджер',
     receiver: 'Приёмщик',
-    selectStation: 'Выберите станцию',
+
     createButton: 'Создать',
     searchByNameEmail: 'Поиск по имени, email или станции...',
     newEmployee: 'Новый сотрудник',
@@ -287,7 +291,7 @@ const translations = {
     corporateDashboard: 'Корпоративная панель',
     myShipments: 'Мои отправки',
     myShipmentsDesc: 'Управление корпоративными перевозками',
-    activeShipments: 'Активные отправки',
+
     pendingPickup: 'Ожидают забора',
     totalThisMonth: 'Всего за месяц',
     avgDeliveryTime: 'Среднее время доставки',
@@ -296,12 +300,12 @@ const translations = {
     recentShipments: 'Недавние отправки',
     viewAll: 'Посмотреть все',
     deposit: 'Депозит',
-    thisMonth: 'За месяц',
+    thisMonthLabel: 'За месяц',
     documents: 'Документы',
     generateDocuments: 'Сформировать документы',
     invoice: 'Счёт-фактура',
     actOfWork: 'Акт выполненных работ',
-    shipmentsReport: 'Отчёт по отправкам',
+
     waybillRegistry: 'Реестр накладных',
 
     // Individual Dashboard
@@ -335,8 +339,8 @@ const translations = {
 
   en: {
     // Top Bar
-    station: 'Almaty-1 Station',
-    operator: 'Operator: Aidana',
+    headerStation: 'Almaty-1 Station',
+    headerOperator: 'Manager: Aidana',
     search: 'Search',
 
     // Sidebar
@@ -378,6 +382,10 @@ const translations = {
     transportCost: 'Transport Cost',
     next: 'Next',
     back: 'Back',
+    receiverName: 'Receiver Name',
+    enterReceiverName: 'Enter receiver name',
+    receiverPhone: 'Receiver Phone',
+    recipientIsAnotherPerson: 'Recipient is another person',
 
     // Cargo Details
     cargoDetailsTitle: 'Cargo Details',
@@ -560,7 +568,7 @@ const translations = {
     totalRevenue: 'Total revenue',
     wagonsByStatus: 'Wagons by status',
     wagons: 'wagons',
-    financialReport: 'Financial report',
+
     plannedActual: 'Planned and actual metrics',
     positiveTrend: 'Positive trend',
     halfYearPlan: 'Half-year plan',
@@ -575,7 +583,7 @@ const translations = {
     employeeManagementDesc: 'Create and manage user accounts',
     totalEmployees: 'Total employees',
     activeEmployees: 'Active',
-    operators: 'Operators',
+    operators: 'Managers',
     receivers: 'Receivers',
     createEmployee: 'Create employee',
     name: 'Name',
@@ -591,9 +599,9 @@ const translations = {
     enterEmail: 'Enter email',
     password: 'Password',
     enterPassword: 'Enter password',
-    operator: 'Operator',
+    operator: 'Manager',
     receiver: 'Receiver',
-    selectStation: 'Select station',
+
     createButton: 'Create',
     searchByNameEmail: 'Search by name, email or station...',
     newEmployee: 'New employee',
@@ -609,7 +617,7 @@ const translations = {
     corporateDashboard: 'Corporate Dashboard',
     myShipments: 'My Shipments',
     myShipmentsDesc: 'Manage corporate shipments',
-    activeShipments: 'Active shipments',
+
     pendingPickup: 'Pending pickup',
     totalThisMonth: 'Total this month',
     avgDeliveryTime: 'Average delivery time',
@@ -618,12 +626,12 @@ const translations = {
     recentShipments: 'Recent shipments',
     viewAll: 'View all',
     deposit: 'Deposit',
-    thisMonth: 'For the month',
+    thisMonthLabel: 'For the month',
     documents: 'Documents',
     generateDocuments: 'Generate documents',
     invoice: 'Invoice',
     actOfWork: 'Act of work performed',
-    shipmentsReport: 'Shipments report',
+
     waybillRegistry: 'Waybill registry',
 
     // Individual Dashboard
@@ -657,15 +665,15 @@ const translations = {
 
   kk: {
     // Top Bar
-    station: 'Алматы-1 станциясы',
-    operator: 'Оператор: Айдана',
+    headerStation: 'Алматы-1 станциясы',
+    headerOperator: 'Менеджер: Айдана',
     search: 'Іздеу',
 
     // Sidebar
     dashboard: 'Басқару панелі',
     pages: 'Беттер',
     newShipment: 'Жаңа жөнелту',
-    activeShipments: 'Белсенді жөнелтулер',
+
     transit: 'Транзит',
     arrival: 'Келу',
     reports: 'Есептер',
@@ -700,6 +708,10 @@ const translations = {
     transportCost: 'Тасымалдау құны',
     next: 'Әрі қарай',
     back: 'Артқа',
+    receiverName: 'Алушының аты-жөні',
+    enterReceiverName: 'Алушының атын енгізіңіз',
+    receiverPhone: 'Алушының телефоны',
+    recipientIsAnotherPerson: 'Алушы - басқа тұлға',
 
     // Cargo Details
     cargoDetailsTitle: 'Жүк туралы мәліметтер',
@@ -809,7 +821,7 @@ const translations = {
     occupied: 'Толық',
     maintenance: 'Қызмет көрсету',
     selfService: 'Өзін-өзі қызмет көрсету',
-    selfServiceDesc: 'Операторсыз багаж тапсыру',
+    selfServiceDesc: 'Менеджерсіз багаж тапсыру',
     scanDocument: 'Құжатты сканерлеу',
     scanDocumentDesc: 'Бастау үшін төлқұжатты немесе QR-кодты сканерлеңіз',
     placeInCell: 'Ұяшыққа салыңыз',
@@ -876,13 +888,13 @@ const translations = {
     expenses: 'Шығу',
     profit: 'Жылдамдық',
     currentMonth: 'Ағымдағы ай',
-    thisMonth: 'Бұл ай',
+    thisMonthLabel: 'Бұл ай',
     thisQuarter: 'Бұл қыртышақ',
     revenueByRoute: 'Бағыттар бойынша келісім',
     totalRevenue: 'Жалпы келісім',
     wagonsByStatus: 'Вагондардың күйі бойынша',
     wagons: 'вагондар',
-    financialReport: 'Финансалық есеп',
+
     plannedActual: 'Пландағы және фактическі мәліметтер',
     positiveTrend: 'Позитивті тенденция',
     halfYearPlan: 'Жарым жылдық план',
@@ -897,7 +909,7 @@ const translations = {
     employeeManagementDesc: 'Қызметкерлерді тіркеу және басқару',
     totalEmployees: 'Барлық қызметкерлер',
     activeEmployees: 'Активті',
-    operators: 'Операторлар',
+    operators: 'Менеджерлер',
     receivers: 'Қабылдаушылар',
     createEmployee: 'Қызметкер тіркемесін жасау',
     name: 'Аты',
@@ -913,9 +925,9 @@ const translations = {
     enterEmail: 'Email-ді енгізіңіз',
     password: 'Құпия сөз',
     enterPassword: 'Құпия сөзді енгізіңіз',
-    operator: 'Оператор',
+    operator: 'Менеджер',
     receiver: 'Қабылдаушы',
-    selectStation: 'Станцияны таңдаңыз',
+
     createButton: 'Жасау',
     searchByNameEmail: 'Аты, email немесе станция бойынша іздеу...',
     newEmployee: 'Жаңа қызметкер',
@@ -945,7 +957,7 @@ const translations = {
     generateDocuments: 'Сформировать документы',
     invoice: 'Счёт-фактура',
     actOfWork: 'Акт выполненных работ',
-    shipmentsReport: 'Отчёт по отправкам',
+
     waybillRegistry: 'Реестр накладных',
 
     // Individual Dashboard

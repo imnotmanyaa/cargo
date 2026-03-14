@@ -89,6 +89,7 @@ export async function getShipmentsDb() {
       dimensions TEXT,
       description TEXT,
       value TEXT,
+      train_time TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 

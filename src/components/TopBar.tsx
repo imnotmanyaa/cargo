@@ -1,6 +1,8 @@
-import { Sun, Moon, Menu, Search, Globe, LogOut } from 'lucide-react';
+import { Sun, Moon, Menu, Search, Globe, LogOut, Bell } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 
 interface TopBarProps {
   theme: 'light' | 'dark';
@@ -9,11 +11,79 @@ interface TopBarProps {
   onToggleRightSidebar: () => void;
 }
 
+interface Notification {
+  id: number;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
 export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRightSidebar }: TopBarProps) {
   const isDark = theme === 'dark';
   const { t, language, setLanguage } = useLanguage();
   const { user, logout } = useAuth();
   const currentTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications();
+
+      // Setup socket listener
+      const socket = io();
+      socket.on('connect', () => {
+        socket.emit('join-user', user.id); // Check if server supports this room
+      });
+
+      // Actually, our server emits to `user:${receiverUser.id}` but client joins `station:${station}` usually.
+      // We need to make sure the user joins their own personal room.
+      // Let's modify server/index.js to join user room or just listen for now.
+      // Wait, I haven't added `join-user` to server/index.js yet. 
+      // I'll add a simple client-side filter or add the join logic here if server supports it.
+      // For now, let's just listen to the event `notification:new` which is emitted to `user:${id}`.
+      // Socket.io client automatically listens to events sent to its socket id, but for user-specific rooms we need to join.
+      // Let's add the join logic in a separate useEffect or assume we will fix server side.
+      // Actually, the server/routes/shipments.js emits to `user:${id}`. 
+      // So we need to join that room.
+      socket.emit('join-user', user.id);
+
+      socket.on('notification:new', (notification) => {
+        setNotifications(prev => [notification, ...prev]);
+        setUnreadCount(prev => prev + 1);
+        // Play sound?
+        const audio = new Audio('/notification.mp3'); // Optional
+        // audio.play().catch(e => console.log('Audio play failed', e));
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch(`/api/notifications?userId=${user?.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+        setUnreadCount(data.filter((n: Notification) => !n.read).length);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const markAsRead = async (id: number) => {
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const getLanguageCode = () => {
     switch (language) {
@@ -30,13 +100,13 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   return (
     <div className={`h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-3 md:px-6`}>
       <div className="flex items-center gap-2 md:gap-4">
-        <button 
+        <button
           onClick={onToggleLeftSidebar}
           className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
         >
           <Menu className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
         </button>
-        
+
         <div className="flex items-center gap-2 md:gap-3">
           <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg ${isDark ? 'bg-blue-600' : 'bg-blue-600'} flex items-center justify-center`}>
             <span className="text-white font-semibold text-base md:text-lg">CT</span>
@@ -44,7 +114,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           {showStationInfo ? (
             <div className="hidden sm:block">
               <div className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                {t('station')}
+                {t('headerStation')}
               </div>
               <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 {user?.name} • {currentTime}
@@ -70,12 +140,42 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           <input
             type="text"
             placeholder={t('search')}
-            className={`pl-10 pr-4 py-2 rounded-lg border w-32 lg:w-auto ${
-              isDark 
-                ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
-                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500'
-            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            className={`pl-10 pr-4 py-2 rounded-lg border w-32 lg:w-auto ${isDark
+              ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+              : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500'
+              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
           />
+        </div>
+
+        <div className="relative group">
+          <button
+            className={`p-2 rounded-lg relative ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+          >
+            <Bell className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            )}
+          </button>
+
+          <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`p-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h3 className={`font-semibold ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('notifications')}</h3>
+            </div>
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-gray-500 text-sm">Нет новых уведомлений</div>
+            ) : (
+              notifications.map(n => (
+                <div
+                  key={n.id}
+                  className={`p-3 border-b last:border-0 hover:bg-opacity-50 ${!n.read ? (isDark ? 'bg-blue-900/20' : 'bg-blue-50') : ''} ${isDark ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'}`}
+                  onClick={() => markAsRead(n.id)}
+                >
+                  <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{n.message}</p>
+                  <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="relative group">
@@ -85,38 +185,34 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
             <Globe className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
             <span className={`text-xs md:text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{getLanguageCode()}</span>
           </button>
-          
-          <div className={`absolute right-0 mt-2 w-40 rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${
-            isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-          }`}>
+
+          <div className={`absolute right-0 mt-2 w-40 rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
             <div className="py-1">
-              <button 
+              <button
                 onClick={() => setLanguage('ru')}
-                className={`w-full px-4 py-2 text-left text-sm ${
-                  language === 'ru' 
-                    ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                    : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                }`}
+                className={`w-full px-4 py-2 text-left text-sm ${language === 'ru'
+                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
+                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
+                  }`}
               >
                 Русский
               </button>
-              <button 
+              <button
                 onClick={() => setLanguage('en')}
-                className={`w-full px-4 py-2 text-left text-sm ${
-                  language === 'en' 
-                    ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                    : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                }`}
+                className={`w-full px-4 py-2 text-left text-sm ${language === 'en'
+                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
+                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
+                  }`}
               >
                 English
               </button>
-              <button 
+              <button
                 onClick={() => setLanguage('kk')}
-                className={`w-full px-4 py-2 text-left text-sm ${
-                  language === 'kk' 
-                    ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                    : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                }`}
+                className={`w-full px-4 py-2 text-left text-sm ${language === 'kk'
+                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
+                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
+                  }`}
               >
                 Қазақша
               </button>

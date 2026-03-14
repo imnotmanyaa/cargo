@@ -14,7 +14,9 @@ interface Shipment {
   dimensions: string;
   description: string;
   departure_date: string;
+  train_time?: string;
   loaded?: boolean;
+  created_at?: string;
 }
 
 interface ReceiverDashboardProps {
@@ -150,9 +152,11 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     }
   };
 
-  // Group shipments by destination for "train" grouping
-  const groupedByDestination = shipments.reduce((acc, shipment) => {
-    const key = shipment.to_station;
+  // Group shipments by destination, date AND train time for accurate "train" grouping
+  const groupedByDestinationAndTime = shipments.reduce((acc, shipment) => {
+    // Format date as YYYY-MM-DD for consistent grouping
+    const departureDate = shipment.departure_date ? new Date(shipment.departure_date).toISOString().split('T')[0] : 'no-date';
+    const key = `${shipment.to_station}|${departureDate}|${shipment.train_time || 'no-time'}`;
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -160,14 +164,50 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     return acc;
   }, {} as Record<string, Shipment[]>);
 
-  const tasks = Object.entries(groupedByDestination).map(([destination, items], index) => ({
-    id: `T-${String(index + 1).padStart(3, '0')}`,
-    trainNumber: `№ ${15 + index}`,
-    carNumber: String(5 + index),
-    shipments: items,
-    route: `${user?.station || ''} → ${destination}`,
-    departureTime: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-  }));
+  // Convert time string (HH:MM) to minutes for comparison
+  const timeToMinutes = (timeStr: string) => {
+    if (!timeStr || timeStr === 'no-time') return 9999; // Push 'no-time' to end
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const tasks = Object.entries(groupedByDestinationAndTime)
+    .map(([key, items], index) => {
+      const [destination, departureDate, trainTime] = key.split('|');
+
+      // Sort shipments within train by created_at (FIFO - first in, first out)
+      const sortedItems = [...items].sort((a, b) => {
+        const dateA = new Date(a.created_at || a.departure_date || 0).getTime();
+        const dateB = new Date(b.created_at || b.departure_date || 0).getTime();
+        return dateA - dateB;
+      });
+
+      // Format date for display
+      const formattedDate = departureDate !== 'no-date'
+        ? new Date(departureDate).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+        : '';
+
+      return {
+        id: `T-${String(index + 1).padStart(3, '0')}`,
+        trainNumber: `№ ${15 + index}`,
+        carNumber: String(5 + index),
+        shipments: sortedItems,
+        route: `${user?.station || ''} → ${destination}`,
+        departureTime: trainTime !== 'no-time' ? trainTime : new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        trainTime: trainTime, // Keep for sorting
+        departureDate: departureDate, // Keep for sorting
+        formattedDate: formattedDate, // For display
+      };
+    })
+    // Sort trains by departure date first, then by time
+    .sort((a, b) => {
+      // Compare dates first
+      if (a.departureDate !== b.departureDate) {
+        return a.departureDate.localeCompare(b.departureDate);
+      }
+      // If same date, compare times
+      return timeToMinutes(a.trainTime) - timeToMinutes(b.trainTime);
+    });
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -182,8 +222,8 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
           <button
             onClick={() => setActiveTab('loading')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'loading'
-                ? 'bg-blue-600 text-white'
-                : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
+              ? 'bg-blue-600 text-white'
+              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
               }`}
           >
             Погрузка
@@ -191,8 +231,8 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
           <button
             onClick={() => setActiveTab('arrival')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'arrival'
-                ? 'bg-blue-600 text-white'
-                : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
+              ? 'bg-blue-600 text-white'
+              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
               }`}
           >
             Прибытие
@@ -233,17 +273,17 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
               return (
                 <div key={task.id} className={`rounded-lg border overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                   {/* Task Header */}
-                  <div className="bg-blue-600 p-4 text-white">
+                  <div className="bg-green-600 p-4 text-white">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Train className="w-5 h-5" />
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold">Поезд {task.trainNumber}</span>
-                            <span className="text-blue-200">•</span>
+                            <span className="text-green-200">•</span>
                             <span className="text-sm">Вагон {task.carNumber}</span>
                           </div>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-blue-100">
+                          <div className="flex items-center gap-2 mt-1 text-xs text-green-100">
                             <MapPin className="w-3 h-3" />
                             {task.route}
                           </div>
@@ -251,8 +291,11 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                       </div>
 
                       <div className="text-right">
-                        <div className="text-xs text-blue-100">Отправление</div>
-                        <div className="text-lg font-bold">{task.departureTime}</div>
+                        <div className="text-xs text-green-100">Отправление</div>
+                        <div className="text-lg font-bold">
+                          {task.formattedDate && <span className="mr-2">{task.formattedDate}</span>}
+                          {task.departureTime}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -313,8 +356,10 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                                 <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.to_station}</div>
                               </div>
                               <div>
-                                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Вес</div>
-                                <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.weight} кг</div>
+                                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Отправление</div>
+                                <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                                  {new Date(shipment.departure_date).toLocaleDateString()} {shipment.train_time}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -325,7 +370,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                               ? (isDark
                                 ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300')
-                              : 'bg-green-600 text-white hover:bg-green-700'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
                               }`}
                           >
                             {shipment.loaded ? 'Отменить' : 'Погружено'}

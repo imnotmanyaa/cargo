@@ -7,6 +7,9 @@ import authRoutes from './routes/auth.js';
 import shipmentRoutes from './routes/shipments.js';
 import adminRoutes from './routes/admin.js';
 import reportsRouter from './routes/reports.js';
+import clientsRoutes from './routes/clients.js';
+import paymentsRoutes from './routes/payments.js';
+import notificationRoutes from './routes/notification.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +46,12 @@ io.on('connection', (socket) => {
         console.log(`Socket ${socket.id} joined station: ${station}`);
     });
 
+    // Join user specific room (for notifications)
+    socket.on('join-user', (userId) => {
+        socket.join(`user:${userId}`);
+        console.log(`Socket ${socket.id} joined user room: ${userId}`);
+    });
+
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
     });
@@ -53,6 +62,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reports', reportsRouter);
+app.use('/api/clients', clientsRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Background job: Auto-transit 'Погружен' -> 'В пути' after 1 minute
 import { getShipmentsDb } from './db.js';
