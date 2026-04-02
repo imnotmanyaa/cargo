@@ -2,7 +2,6 @@ import { Search, Filter, MapPin, Package, Clock, QrCode, RefreshCw } from 'lucid
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { ShipmentDetailsModal } from './ShipmentDetailsModal';
-import { io } from 'socket.io-client';
 
 export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const { t, language } = useLanguage();
@@ -73,29 +72,33 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
   useEffect(() => {
     fetchShipments();
 
-    const socket = io();
+    const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socket = new WebSocket(socketProtocol + '//' + window.location.host + '/ws');
 
-    socket.on('connect', () => {
+    socket.onopen = () => {
       console.log('Connected to WebSocket (ActiveShipments)');
-    });
+    };
 
-    socket.on('new-shipment', (shipment: any) => {
-      console.log('New shipment received via WebSocket (ActiveShipments):', shipment);
-      setShipments(prev => {
-        if (prev.find(s => s.id === shipment.id)) return prev;
-        return [mapShipment(shipment), ...prev];
-      });
-    });
-
-    socket.on('shipment-updated', (updated: any) => {
-      console.log('Shipment updated via WebSocket (ActiveShipments):', updated);
-      setShipments(prev => prev.map(s =>
-        s.id === updated.id ? mapShipment(updated) : s
-      ));
-    });
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.event === 'new-shipment') {
+        const shipment = msg.data;
+        console.log('New shipment received via WebSocket (ActiveShipments):', shipment);
+        setShipments(prev => {
+          if (prev.find(s => s.id === shipment.id)) return prev;
+          return [mapShipment(shipment), ...prev];
+        });
+      } else if (msg.event === 'shipment-updated') {
+        const updated = msg.data;
+        console.log('Shipment updated via WebSocket (ActiveShipments):', updated);
+        setShipments(prev => prev.map(s =>
+          s.id === updated.id ? mapShipment(updated) : s
+        ));
+      }
+    };
 
     return () => {
-      socket.disconnect();
+      socket.close();
     };
   }, []);
 

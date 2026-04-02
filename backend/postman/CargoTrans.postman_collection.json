@@ -1,0 +1,728 @@
+{
+  "info": {
+    "_postman_id": "f5049fea-9f7b-40f6-8d73-d7195d8b7a86",
+    "name": "CargoTrans Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "adminEmail", "value": "admin@example.com" },
+    { "key": "adminPassword", "value": "secret123" },
+    { "key": "clientEmail", "value": "client@example.com" },
+    { "key": "clientPassword", "value": "secret123" },
+    { "key": "operatorEmail", "value": "operator@example.com" },
+    { "key": "operatorPassword", "value": "secret123" },
+    { "key": "loadingEmail", "value": "loading@example.com" },
+    { "key": "loadingPassword", "value": "secret123" },
+    { "key": "transitEmail", "value": "transit@example.com" },
+    { "key": "transitPassword", "value": "secret123" },
+    { "key": "receiverEmail", "value": "receiver@example.com" },
+    { "key": "receiverPassword", "value": "secret123" },
+    { "key": "issueEmail", "value": "issue@example.com" },
+    { "key": "issuePassword", "value": "secret123" },
+    { "key": "accountingEmail", "value": "accounting@example.com" },
+    { "key": "accountingPassword", "value": "secret123" },
+    { "key": "originStation", "value": "Алматы-1" },
+    { "key": "transitStation", "value": "Қарағанды" },
+    { "key": "destinationStation", "value": "Ақтөбе" },
+    { "key": "receiverName", "value": "Receiver User" },
+    { "key": "receiverPhone", "value": "+77010000000" },
+    { "key": "clientId", "value": "" },
+    { "key": "shipmentId", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "trackingCode", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "clientToken", "value": "" },
+    { "key": "operatorToken", "value": "" },
+    { "key": "loadingToken", "value": "" },
+    { "key": "transitToken", "value": "" },
+    { "key": "receiverToken", "value": "" },
+    { "key": "issueToken", "value": "" },
+    { "key": "accountingToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bootstrap",
+      "item": [
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.token) pm.collectionVariables.set('adminToken', data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"System Admin\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.token) pm.collectionVariables.set('adminToken', data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Register Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set('clientId', data.id);",
+                  "  if (data.token) pm.collectionVariables.set('clientToken', data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Client User\",\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{clientPassword}}\",\n  \"role\": \"individual\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Create Operator",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Origin Operator\",\n  \"email\": \"{{operatorEmail}}\",\n  \"password\": \"{{operatorPassword}}\",\n  \"role\": \"operator\",\n  \"station\": \"{{originStation}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Create Loading Operator",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Loading Operator\",\n  \"email\": \"{{loadingEmail}}\",\n  \"password\": \"{{loadingPassword}}\",\n  \"role\": \"loading_operator\",\n  \"station\": \"{{originStation}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Create Transit Operator",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Transit Operator\",\n  \"email\": \"{{transitEmail}}\",\n  \"password\": \"{{transitPassword}}\",\n  \"role\": \"transit_operator\",\n  \"station\": \"{{transitStation}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Create Receiver",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Arrival Receiver\",\n  \"email\": \"{{receiverEmail}}\",\n  \"password\": \"{{receiverPassword}}\",\n  \"role\": \"receiver\",\n  \"station\": \"{{destinationStation}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Create Issue Operator",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Issue Operator\",\n  \"email\": \"{{issueEmail}}\",\n  \"password\": \"{{issuePassword}}\",\n  \"role\": \"issue_operator\",\n  \"station\": \"{{destinationStation}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Create Accounting",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Accounting User\",\n  \"email\": \"{{accountingEmail}}\",\n  \"password\": \"{{accountingPassword}}\",\n  \"role\": \"accounting\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Login Operator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.token) pm.collectionVariables.set('operatorToken', data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{operatorEmail}}\",\n  \"password\": \"{{operatorPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login Loading Operator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set('loadingToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{loadingEmail}}\",\n  \"password\": \"{{loadingPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login Transit Operator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set('transitToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{transitEmail}}\",\n  \"password\": \"{{transitPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login Receiver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set('receiverToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{receiverEmail}}\",\n  \"password\": \"{{receiverPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login Issue Operator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set('issueToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{issueEmail}}\",\n  \"password\": \"{{issuePassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login Accounting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) pm.collectionVariables.set('accountingToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{accountingEmail}}\",\n  \"password\": \"{{accountingPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reference",
+      "item": [
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/roles"
+          }
+        },
+        {
+          "name": "List Stations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pilot Flow Test Order",
+      "item": [
+        {
+          "name": "01 Create Shipment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set('shipmentId', data.id);",
+                  "  if (data.shipment_number) pm.collectionVariables.set('trackingCode', data.shipment_number);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{operatorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{clientId}}\",\n  \"client_name\": \"Client User\",\n  \"client_email\": \"{{clientEmail}}\",\n  \"from_station\": \"{{originStation}}\",\n  \"to_station\": \"{{destinationStation}}\",\n  \"departure_date\": \"2026-03-15T10:00:00Z\",\n  \"weight\": \"20\",\n  \"dimensions\": \"30x30x40\",\n  \"description\": \"Cargo box\",\n  \"value\": \"50000\",\n  \"cost\": 7000,\n  \"quantity_places\": 1,\n  \"receiver_name\": \"{{receiverName}}\",\n  \"receiver_phone\": \"{{receiverPhone}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/shipments"
+          }
+        },
+        {
+          "name": "02 Calculate Tariff",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{operatorToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/calculate-tariff"
+          }
+        },
+        {
+          "name": "03 Send To Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{operatorToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/send-to-payment"
+          }
+        },
+        {
+          "name": "04 Create Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set('paymentId', data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{operatorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipment_id\": \"{{shipmentId}}\",\n  \"amount\": 7000,\n  \"payment_method\": \"POS\",\n  \"pos_terminal_reference\": \"POS-001\"\n}"
+            },
+            "url": "{{baseUrl}}/api/payments"
+          }
+        },
+        {
+          "name": "05 Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{operatorToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/payments/{{paymentId}}/confirm"
+          }
+        },
+        {
+          "name": "06 Generate QR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.shipment && data.shipment.tracking_code) pm.collectionVariables.set('trackingCode', data.shipment.tracking_code);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{operatorToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/generate-qr"
+          }
+        },
+        {
+          "name": "07 Load Shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{loadingToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_station\": \"{{originStation}}\",\n  \"transport_unit_id\": \"wagon-12\"\n}"
+            },
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/load"
+          }
+        },
+        {
+          "name": "08 Dispatch Shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{loadingToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_station\": \"{{originStation}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/dispatch"
+          }
+        },
+        {
+          "name": "09 Mark Transit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{transitToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_station\": \"{{transitStation}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/mark-transit"
+          }
+        },
+        {
+          "name": "10 Arrive Shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{receiverToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_station\": \"{{destinationStation}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/arrive"
+          }
+        },
+        {
+          "name": "11 Ready For Issue",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receiverToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/ready-for-issue"
+          }
+        },
+        {
+          "name": "12 Issue Scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{issueToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipment_id\": \"{{shipmentId}}\",\n  \"event_type\": \"ISSUE_SCAN\",\n  \"station_id\": \"{{destinationStation}}\",\n  \"comment\": \"receiver verified at issue desk\"\n}"
+            },
+            "url": "{{baseUrl}}/api/scan"
+          }
+        },
+        {
+          "name": "13 Issue Shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{issueToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiver_name\": \"{{receiverName}}\",\n  \"receiver_phone\": \"{{receiverPhone}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/issue"
+          }
+        },
+        {
+          "name": "14 Close Shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{issueToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/close"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tracking And Reports",
+      "item": [
+        {
+          "name": "Track Shipment",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/track/{{trackingCode}}"
+          }
+        },
+        {
+          "name": "Scan Events By Shipment",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/scan-events"
+          }
+        },
+        {
+          "name": "Tracking History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/shipments/{{shipmentId}}/tracking-history"
+          }
+        },
+        {
+          "name": "Transit Incoming",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/transit/incoming?station={{destinationStation}}"
+          }
+        },
+        {
+          "name": "Transit Outgoing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/transit/outgoing?station={{originStation}}"
+          }
+        },
+        {
+          "name": "Arrivals Pending",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/arrivals/pending?station={{destinationStation}}"
+          }
+        },
+        {
+          "name": "Dashboard Report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/reports/dashboard"
+          }
+        },
+        {
+          "name": "Finance Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accountingToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/reports/finance"
+          }
+        },
+        {
+          "name": "Status Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accountingToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/reports/status-summary"
+          }
+        },
+        {
+          "name": "Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/audit/logs"
+          }
+        },
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications?userId={{clientId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

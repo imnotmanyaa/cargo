@@ -31,7 +31,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
         const res = await fetch(`/api/shipments?client_id=${user.id}`);
         if (res.ok) {
           const data = await res.json();
-          setShipments(data);
+          setShipments(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         console.error('Failed to fetch shipments', error);

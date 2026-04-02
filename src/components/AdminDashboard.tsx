@@ -30,7 +30,12 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('/api/admin/employees');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/employees', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         // Map created_at to createdAt
@@ -61,9 +66,13 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     e.preventDefault();
 
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/admin/employees', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(formData)
       });
 
@@ -91,8 +100,12 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   const handleDeleteEmployee = async (id: string) => {
     if (confirm(t('deleteEmployeeConfirm'))) {
       try {
+        const token = localStorage.getItem('token');
         const response = await fetch(`/api/admin/employees/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
 
         if (response.ok) {

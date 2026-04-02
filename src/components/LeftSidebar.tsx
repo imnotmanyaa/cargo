@@ -16,13 +16,11 @@ export function LeftSidebar({ currentPage, onNavigate, theme }: LeftSidebarProps
     { id: 'active-shipments', label: t('activeShipments'), icon: List },
     { id: 'transit', label: t('transit'), icon: Truck },
     { id: 'arrival', label: t('arrival'), icon: MapPin },
-    { id: 'wms', label: t('wms'), icon: Warehouse },
     { id: 'reports', label: t('reports'), icon: FileText },
   ];
 
   const pages = [
     { id: 'settings', label: t('settings'), icon: SettingsIcon },
-    { id: 'user-profile', label: t('userProfile'), icon: User },
     { id: 'corporate', label: t('corporate'), icon: Building2 },
   ];
 

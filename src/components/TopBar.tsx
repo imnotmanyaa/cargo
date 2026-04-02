@@ -2,7 +2,6 @@ import { Sun, Moon, Menu, Search, Globe, LogOut, Bell } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
 
 interface TopBarProps {
   theme: 'light' | 'dark';
@@ -31,33 +30,25 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       fetchNotifications();
 
       // Setup socket listener
-      const socket = io();
-      socket.on('connect', () => {
-        socket.emit('join-user', user.id); // Check if server supports this room
-      });
+      const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socket = new WebSocket(socketProtocol + '//' + window.location.host + '/ws');
+      socket.onopen = () => {
+        socket.send(JSON.stringify({ action: 'join-user', room: user.id.toString() }));
+      };
 
-      // Actually, our server emits to `user:${receiverUser.id}` but client joins `station:${station}` usually.
-      // We need to make sure the user joins their own personal room.
-      // Let's modify server/index.js to join user room or just listen for now.
-      // Wait, I haven't added `join-user` to server/index.js yet. 
-      // I'll add a simple client-side filter or add the join logic here if server supports it.
-      // For now, let's just listen to the event `notification:new` which is emitted to `user:${id}`.
-      // Socket.io client automatically listens to events sent to its socket id, but for user-specific rooms we need to join.
-      // Let's add the join logic in a separate useEffect or assume we will fix server side.
-      // Actually, the server/routes/shipments.js emits to `user:${id}`. 
-      // So we need to join that room.
-      socket.emit('join-user', user.id);
-
-      socket.on('notification:new', (notification) => {
-        setNotifications(prev => [notification, ...prev]);
-        setUnreadCount(prev => prev + 1);
-        // Play sound?
-        const audio = new Audio('/notification.mp3'); // Optional
-        // audio.play().catch(e => console.log('Audio play failed', e));
-      });
+      socket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.event === 'notification:new') {
+          const notification = msg.data;
+          setNotifications(prev => [notification, ...prev]);
+          setUnreadCount(prev => prev + 1);
+          // const audio = new Audio('/notification.mp3'); // Optional
+          // audio.play().catch(e => console.log('Audio play failed', e));
+        }
+      };
 
       return () => {
-        socket.disconnect();
+        socket.close();
       };
     }
   }, [user]);
@@ -67,8 +58,9 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       const res = await fetch(`/api/notifications?userId=${user?.id}`);
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data);
-        setUnreadCount(data.filter((n: Notification) => !n.read).length);
+        const list = Array.isArray(data) ? data : [];
+        setNotifications(list);
+        setUnreadCount(list.filter((n: Notification) => !n.read).length);
       }
     } catch (e) {
       console.error(e);

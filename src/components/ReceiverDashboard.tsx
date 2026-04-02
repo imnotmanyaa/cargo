@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Package, Train, CheckCircle, MapPin, RefreshCw, QrCode, Scan } from 'lucide-react';
-import { io } from 'socket.io-client';
 
 interface Shipment {
   id: string;
@@ -61,33 +60,36 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     // Setup Socket.IO connection
     if (!user?.station) return;
 
-    const socket = io();
+    const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socket = new WebSocket(socketProtocol + '//' + window.location.host + '/ws');
 
-    socket.on('connect', () => {
+    socket.onopen = () => {
       console.log('Connected to WebSocket');
-      socket.emit('join-station', user.station);
-    });
+      socket.send(JSON.stringify({ action: 'join-station', room: user.station }));
+    };
 
-    socket.on('new-shipment', (shipment: Shipment) => {
-      console.log('New shipment received via WebSocket:', shipment);
-      setShipments(prev => {
-        // Avoid duplicates
-        if (prev.find(s => s.id === shipment.id)) return prev;
-        return [{ ...shipment, loaded: shipment.status === 'Погружен' }, ...prev];
-      });
-    });
-
-    socket.on('shipment-updated', (updatedShipment: Shipment) => {
-      console.log('Shipment updated via WebSocket:', updatedShipment);
-      setShipments(prev => prev.map(s =>
-        s.id === updatedShipment.id
-          ? { ...updatedShipment, loaded: updatedShipment.status === 'Погружен' }
-          : s
-      ));
-    });
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.event === 'new-shipment') {
+        const shipment = msg.data;
+        console.log('New shipment received via WebSocket:', shipment);
+        setShipments(prev => {
+          if (prev.find(s => s.id === shipment.id)) return prev;
+          return [{ ...shipment, loaded: shipment.status === 'Погружен' }, ...prev];
+        });
+      } else if (msg.event === 'shipment-updated') {
+        const updatedShipment = msg.data;
+        console.log('Shipment updated via WebSocket:', updatedShipment);
+        setShipments(prev => prev.map(s =>
+          s.id === updatedShipment.id
+            ? { ...updatedShipment, loaded: updatedShipment.status === 'Погружен' }
+            : s
+        ));
+      }
+    };
 
     return () => {
-      socket.disconnect();
+      socket.close();
     };
   }, [user?.station]);
 
