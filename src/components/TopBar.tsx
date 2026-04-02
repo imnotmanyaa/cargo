@@ -106,7 +106,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           {showStationInfo ? (
             <div className="hidden sm:block">
               <div className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                {t('headerStation')}
+                {user?.station ? `Станция ${user.station}` : t('headerStation')}
               </div>
               <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 {user?.name} • {currentTime}
