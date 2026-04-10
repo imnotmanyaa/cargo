@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
 import { Package, Truck, CheckCircle, RefreshCw } from 'lucide-react';
 
 interface Shipment {

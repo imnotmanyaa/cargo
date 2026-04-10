@@ -54,6 +54,21 @@ func (s *PaymentService) Confirm(ctx context.Context, id string, confirmedBy str
 	if err != nil {
 		return model.Payment{}, model.Shipment{}, err
 	}
+
+	if payment.PaymentMethod == "deposit" {
+		clientUser, err := s.repo.GetUserByID(ctx, shipment.ClientID)
+		if err != nil {
+			return model.Payment{}, model.Shipment{}, err
+		}
+		if clientUser.DepositBalance < payment.Amount {
+			return model.Payment{}, model.Shipment{}, ErrInsufficientFunds
+		}
+		_, err = s.repo.TopUpDeposit(ctx, shipment.ClientID, -payment.Amount)
+		if err != nil {
+			return model.Payment{}, model.Shipment{}, err
+		}
+	}
+
 	old := shipment.ShipmentStatus
 	shipment.PaymentStatus = model.PaymentConfirmed
 	shipment.ShipmentStatus = model.ShipmentPaid

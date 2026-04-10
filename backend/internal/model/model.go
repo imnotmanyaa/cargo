@@ -9,6 +9,8 @@ const (
 	RoleManager    Role = "manager"
 	RoleOperator   Role = "operator"
 	RoleReceiver   Role = "receiver"
+	RoleAuditor     Role = "auditor"      // Ревизор: проверка без изменения статуса (ТЗ п.4, п.7)
+	RoleMobileGroup Role = "mobile_group" // Мобильная инспекционная группа: выездная проверка груза
 	RoleLoading    Role = "loading_operator"
 	RoleTransit    Role = "transit_operator"
 	RoleIssue      Role = "issue_operator"
@@ -226,6 +228,38 @@ type ShipmentFilter struct {
 	Station  string
 	ClientID string
 	Query    string
+}
+
+type WagonStatus string
+
+const (
+	WagonEmpty     WagonStatus = "EMPTY"
+	WagonLoading   WagonStatus = "LOADING"
+	WagonLoaded    WagonStatus = "LOADED"
+	WagonInTransit WagonStatus = "IN_TRANSIT"
+	WagonArrived   WagonStatus = "ARRIVED"
+	WagonUnloading WagonStatus = "UNLOADING"
+	WagonCompleted WagonStatus = "COMPLETED"
+)
+
+type Wagon struct {
+	ID            string      `json:"id"`
+	WagonNumber   string      `json:"wagon_number"`
+	Status        WagonStatus `json:"status"`
+	CurrentStation string      `json:"current_station"`
+	Destination   string      `json:"destination"`
+	DepartureDate time.Time   `json:"departure_date"`
+	Capacity      int         `json:"capacity"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+}
+
+type WagonShipment struct {
+	ID         string    `json:"id"`
+	WagonID    string    `json:"wagon_id"`
+	ShipmentID string    `json:"shipment_id"`
+	Status     string    `json:"status"` // E.g., "PENDING", "LOADED", "MISSING"
+	ScannedAt  *time.Time `json:"scanned_at,omitempty"`
 }
 
 type ActionContext struct {

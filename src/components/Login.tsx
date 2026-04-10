@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useLanguage } from '../contexts/LanguageContext';
-import { LogIn, User, Building2, Package, Shield, BarChart3, UserPlus } from 'lucide-react';
+import { LogIn, User, Package, Shield, BarChart3, UserPlus } from 'lucide-react';
 import { Register } from './Register';
 
 type UserRole = 'operator' | 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager';
 
 export function Login() {
   const { login } = useAuth();
-  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole>('operator');
@@ -23,7 +21,6 @@ export function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Logging in with:', email, password, selectedRole);
     await login(email, password, selectedRole);
 
     // Check for redirect param and navigate if present
@@ -35,7 +32,6 @@ export function Login() {
   };
 
   const handleDemoLogin = async (demoEmail: string, role: UserRole) => {
-    console.log('Demo login:', demoEmail, role);
     setEmail(demoEmail);
     setPassword('demo');
     setSelectedRole(role);

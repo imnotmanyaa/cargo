@@ -6,7 +6,7 @@ interface Employee {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'operator' | 'receiver';
+  role: 'admin' | 'manager' | 'operator' | 'receiver' | 'auditor' | 'mobile_group';
   station: string;
   createdAt: string;
   status: 'active' | 'inactive';
@@ -21,8 +21,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   const { t } = useLanguage();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchEmployees();
@@ -54,11 +53,17 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    role: 'operator' as Employee['role'],
+    station: ''
+  });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'operator' as 'admin' | 'manager' | 'operator' | 'receiver',
+    role: 'operator' as 'admin' | 'manager' | 'operator' | 'receiver' | 'auditor' | 'mobile_group',
     station: ''
   });
 
@@ -73,7 +78,10 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          station: formData.station || null
+        })
       });
 
       if (response.ok) {
@@ -83,7 +91,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
           name: '',
           email: '',
           password: '',
-          role: 'operator',
+          role: 'operator' as 'admin' | 'manager' | 'operator' | 'receiver' | 'auditor' | 'mobile_group',
           station: ''
         });
         alert(t('employeeCreatedSuccess'));
@@ -94,6 +102,48 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     } catch (error) {
       console.error('Failed to create employee:', error);
       alert('Failed to create employee');
+    }
+  };
+
+  const handleOpenEdit = (emp: Employee) => {
+    setEditEmployee(emp);
+    setEditFormData({
+      name: emp.name,
+      role: emp.role,
+      station: emp.station || ''
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editEmployee) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/users/${editEmployee.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          id: editEmployee.id,
+          name: editFormData.name,
+          email: editEmployee.email,
+          role: editFormData.role,
+          station: editFormData.station || null,
+          is_active: true
+        })
+      });
+      if (response.ok) {
+        await fetchEmployees();
+        setEditEmployee(null);
+        alert('Сотрудник обновлён');
+      } else {
+        const err = await response.json();
+        alert(err.error || 'Ошибка при сохранении');
+      }
+    } catch {
+      alert('Ошибка сети');
     }
   };
 
@@ -129,7 +179,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.station.toLowerCase().includes(searchQuery.toLowerCase())
+    (emp.station && emp.station.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const stations = [
@@ -137,11 +187,13 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     'Астана Нұрлы Жол',
     'Шымкент',
     'Ақтөбе',
-    'Қарағанды'
+    'Қарағанды',
+    'Атырау'
   ];
 
   return (
-    <div>
+    <>
+      <div>
       <div className="mb-6">
         <h1 className={`text-xl md:text-2xl font-semibold mb-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('employeeManagement')}</h1>
         <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('employeeManagementDesc')}</p>
@@ -273,21 +325,27 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 </label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'operator' | 'receiver' })}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'operator' | 'receiver' | 'auditor' | 'mobile_group' })}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'
                     }`}
                   required
                 >
-                  <option value="admin">Администратор</option>
-                  <option value="manager">Руководитель (Manager)</option>
+                  <option value="admin">{t('roleAdmin')}</option>
+                  <option value="manager">{t('roleManager')}</option>
                   <option value="operator">{t('operator')}</option>
                   <option value="receiver">{t('receiver')}</option>
+                  <option value="auditor">{t('roleAuditor')}</option>
+                  <option value="mobile_group">{t('roleMobileGroup')}</option>
                 </select>
               </div>
 
+              {/* Станция — обязательна для мобильной группы и ревизора */}
               <div className="md:col-span-2">
                 <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   {t('station')}
+                  {(formData.role === 'mobile_group' || formData.role === 'auditor') && (
+                    <span className="ml-2 text-xs text-orange-500 font-normal">⚠️ Обязательно для этой роли</span>
+                  )}
                 </label>
                 <select
                   value={formData.station}
@@ -372,15 +430,20 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                     <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{employee.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.role === 'operator' ? 'bg-blue-100 text-blue-800' :
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        employee.role === 'operator' ? 'bg-blue-100 text-blue-800' :
                         employee.role === 'receiver' ? 'bg-orange-100 text-orange-800' :
-                          employee.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                            'bg-green-100 text-green-800'
+                        employee.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                        employee.role === 'auditor' ? 'bg-teal-100 text-teal-800' :
+                        employee.role === 'mobile_group' ? 'bg-amber-100 text-amber-800' :
+                        'bg-green-100 text-green-800'
                       }`}>
                       {employee.role === 'operator' ? t('operator') :
                         employee.role === 'receiver' ? t('receiver') :
-                          employee.role === 'admin' ? 'Администратор' :
-                            'Руководитель'}
+                        employee.role === 'admin' ? t('roleAdmin') :
+                        employee.role === 'auditor' ? t('roleAuditor') :
+                        employee.role === 'mobile_group' ? t('roleMobileGroup') :
+                        t('roleManager')}
                     </span>
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
@@ -403,6 +466,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
                       <button
+                        onClick={() => handleOpenEdit(employee)}
                         className={isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-900'}
                         title="Редактировать"
                       >
@@ -431,5 +495,79 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
         )}
       </div>
     </div>
+
+      {/* Модальное окно редактирования сотрудника */}
+      {editEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className={`w-full max-w-md rounded-xl shadow-2xl p-6 ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+            <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+              ✏️ Редактировать сотрудника
+            </h3>
+            <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{editEmployee.email}</p>
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('fullName')}</label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
+                  required
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('role')}</label>
+                <select
+                  value={editFormData.role}
+                  onChange={e => setEditFormData({ ...editFormData, role: e.target.value as Employee['role'] })}
+                  required
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'}`}
+                >
+                  <option value="admin">{t('roleAdmin')}</option>
+                  <option value="manager">{t('roleManager')}</option>
+                  <option value="operator">{t('operator')}</option>
+                  <option value="receiver">{t('receiver')}</option>
+                  <option value="auditor">{t('roleAuditor')}</option>
+                  <option value="mobile_group">{t('roleMobileGroup')}</option>
+                </select>
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {t('station')}
+                  {(editFormData.role === 'mobile_group' || editFormData.role === 'auditor') && (
+                    <span className="ml-2 text-xs text-orange-500 font-normal">⚠️ Обязательно</span>
+                  )}
+                </label>
+                <select
+                  value={editFormData.station}
+                  onChange={e => setEditFormData({ ...editFormData, station: e.target.value })}
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'}`}
+                >
+                  <option value="">{t('selectStation')}</option>
+                  {['Алматы-1', 'Астана Нұрлы Жол', 'Шымкент', 'Ақтөбе', 'Қарағанды', 'Атырау'].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  {t('save')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditEmployee(null)}
+                  className={`flex-1 py-2 border rounded-lg font-medium ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                >
+                  {t('cancel')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

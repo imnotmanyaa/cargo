@@ -57,4 +57,17 @@ type Repository interface {
 	GetDashboardReport(ctx context.Context) (model.DashboardReport, error)
 	GetFinanceReport(ctx context.Context) (model.FinanceReport, error)
 	GetStatusSummary(ctx context.Context) ([]model.StatusSummaryItem, error)
+
+	// Wagon methods
+	CreateWagon(ctx context.Context, wagon model.Wagon) (model.Wagon, error)
+	GetWagonByID(ctx context.Context, id string) (model.Wagon, error)
+	GetWagonByNumber(ctx context.Context, number string) (model.Wagon, error)
+	UpdateWagon(ctx context.Context, wagon model.Wagon) (model.Wagon, error)
+	ListWagons(ctx context.Context, station string, status *model.WagonStatus) ([]model.Wagon, error)
+	
+	// WagonShipment (Checklist) methods
+	AssignShipmentToWagon(ctx context.Context, wagonID, shipmentID string) error
+	RemoveShipmentFromWagon(ctx context.Context, wagonID, shipmentID string) error
+	GetWagonShipments(ctx context.Context, wagonID string) ([]model.WagonShipment, error)
+	UpdateWagonShipmentStatus(ctx context.Context, wagonID, shipmentID, status string) error
 }

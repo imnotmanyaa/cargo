@@ -343,7 +343,7 @@ func (s *ShipmentService) CorrectAfterPayment(ctx context.Context, id string, op
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	if shipment.PaymentStatus != model.PaymentConfirmed && shipment.ShipmentStatus != model.ShipmentPaid && shipment.ShipmentStatus != model.ShipmentReadyForLoading {
+	if shipment.PaymentStatus != model.PaymentConfirmed || (shipment.ShipmentStatus != model.ShipmentPaid && shipment.ShipmentStatus != model.ShipmentReadyForLoading) {
 		return model.Shipment{}, fmt.Errorf("%w: post-payment correction is allowed only after payment", ErrInvalidState)
 	}
 	oldStatus := shipment.ShipmentStatus
@@ -534,6 +534,8 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 		model.ShipmentReadyForIssue:   {model.ShipmentIssued},
 		model.ShipmentIssued:          {model.ShipmentClosed},
 		model.ShipmentOnHold:          {model.ShipmentReadyForLoading, model.ShipmentInTransit, model.ShipmentArrived},
+		model.ShipmentDamaged:         {model.ShipmentOnHold, model.ShipmentClosed},
+		model.ShipmentCancelled:       {model.ShipmentDraft},
 	}
 	for _, item := range allowed[current] {
 		if item == next {

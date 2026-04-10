@@ -39,6 +39,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     isOversized: false,
     packaging: '',
     value: '',
+    quantityPlaces: 1,
     description: '',
     hasTicket: false,
     ticketNumber: '',
@@ -51,13 +52,33 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   };
 
   const calculateCost = () => {
-    let basePrice = 5000;
-    const weight = parseFloat(shipmentData.weight) || 0;
-    if (weight > 20) {
-      basePrice += (weight - 20) * 150;
+    if (!shipmentData.fromStation || !shipmentData.toStation || !shipmentData.weight) {
+      return 0;
     }
+
+    const rates: Record<string, number> = {
+      'алматы-1-астана нұрлы жол': 976,
+      'астана нұрлы жол-алматы-1': 976,
+      'алматы-1-қарағанды': 825,
+      'қарағанды-алматы-1': 825,
+      'алматы-1-атырау': 1145,
+      'атырау-алматы-1': 1145,
+      'алматы-1-шымкент': 590,
+      'шымкент-алматы-1': 590,
+      'алматы-1-ақтөбе': 1114,
+      'ақтөбе-алматы-1': 1114,
+    };
+
+    const route = `${shipmentData.fromStation.toLowerCase()}-${shipmentData.toStation.toLowerCase()}`;
+    const baseRate = rates[route] || 5000; // Default fallback rate
+
+    const weight = parseFloat(shipmentData.weight) || 0;
+    // Calculation is exactly proportional: (weight / 10) * baseRate
+    let basePrice = (weight / 10) * baseRate;
+
     if (shipmentData.isFragile) basePrice += 1000;
-    if (shipmentData.isOversized) basePrice += 2500;
+    if (shipmentData.isOversized) basePrice += 1000;
+    
     if (shipmentData.hasTicket) {
       basePrice = basePrice * 0.5;
     }
@@ -65,41 +86,106 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   };
 
   const handleCreateShipment = async () => {
+    const token = localStorage.getItem('token');
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
     try {
-      const cost = calculateCost();
-      const response = await fetch('/api/shipments', {
+      const createRes = await fetch('/api/shipments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
-          client_id: user?.id || '',
+          client_id: shipmentData.clientType === 'legal' && shipmentData.corporateClientId ? shipmentData.corporateClientId : (user?.id || ''),
           client_name: shipmentData.clientName,
           client_email: user?.email || '',
           from_station: shipmentData.fromStation,
           to_station: shipmentData.toStation,
-          departure_date: shipmentData.departureDate,
+          departure_date: shipmentData.departureDate ? new Date(shipmentData.departureDate).toISOString() : new Date().toISOString(),
           weight: shipmentData.weight,
           dimensions: shipmentData.dimensions,
           description: shipmentData.description,
           value: shipmentData.value,
-          cost: cost,
-          receiver_name: shipmentData.receiverName,
-          receiver_phone: shipmentData.receiverPhone,
-          train_time: shipmentData.trainTime
+          cost: 0, // will be recalculated on backend
+          quantity_places: shipmentData.quantityPlaces || 1,
+          receiver_name: shipmentData.receiverName || null,
+          receiver_phone: shipmentData.receiverPhone || null,
+          train_time: shipmentData.trainTime || null
         })
       });
 
-
-      if (response.ok) {
-        const data = await response.json();
-        setCreatedShipmentId(data.id);
-        setCurrentStep('documents');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to create shipment');
+      if (!createRes.ok) {
+        const err = await createRes.json().catch(() => ({}));
+        alert(err.error || 'Ошибка при создании отправки');
+        return;
       }
+      const shipment = await createRes.json();
+      const shipmentId = shipment.id;
+
+      // Step 2: Calculate tariff
+      const tariffRes = await fetch(`/api/shipments/${shipmentId}/calculate-tariff`, {
+        method: 'POST',
+        headers
+      });
+      if (!tariffRes.ok) {
+        const err = await tariffRes.json().catch(() => ({}));
+        alert(err.error || 'Ошибка при расчёте тарифа');
+        return;
+      }
+      const withTariff = await tariffRes.json();
+      const calculatedCost = withTariff.cost || calculateCost();
+
+      // Step 3: Send to payment
+      const sendRes = await fetch(`/api/shipments/${shipmentId}/send-to-payment`, {
+        method: 'POST',
+        headers
+      });
+      if (!sendRes.ok) {
+        const err = await sendRes.json().catch(() => ({}));
+        alert(err.error || 'Ошибка при переводе в статус оплаты');
+        return;
+      }
+
+      // Step 4: Create payment record
+      const payRes = await fetch('/api/payments', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          shipment_id: shipmentId,
+          amount: calculatedCost,
+          payment_method: shipmentData.clientType === 'legal' && shipmentData.hasDeposit ? 'deposit' : 'cash'
+        })
+      });
+      if (!payRes.ok) {
+        const err = await payRes.json().catch(() => ({}));
+        alert(err.error || 'Ошибка при создании платежа');
+        return;
+      }
+      const payment = await payRes.json();
+
+      // Step 5: Confirm payment
+      const confirmRes = await fetch(`/api/payments/${payment.id}/confirm`, {
+        method: 'POST',
+        headers
+      });
+      if (!confirmRes.ok) {
+        const err = await confirmRes.json().catch(() => ({}));
+        alert(err.error || 'Ошибка при подтверждении оплаты');
+        return;
+      }
+
+      // Step 6: Generate QR code
+      await fetch(`/api/shipments/${shipmentId}/generate-qr`, {
+        method: 'POST',
+        headers
+      });
+
+      setCreatedShipmentId(shipmentId);
+      setCurrentStep('documents');
     } catch (error) {
       console.error('Failed to create shipment:', error);
-      alert('Failed to connect to server');
+      alert('Ошибка соединения с сервером');
     }
   };
 
@@ -175,6 +261,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       clientPhone: '',
                       aggregatorClientId: '',
                       contractNumber: '',
+                      corporateClientId: '',
                       hasDeposit: false,
                       fromStation: '',
                       toStation: '',
@@ -186,6 +273,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       isOversized: false,
                       packaging: '',
                       value: '',
+                      quantityPlaces: 1,
                       description: '',
                       hasTicket: false,
                       ticketNumber: '',

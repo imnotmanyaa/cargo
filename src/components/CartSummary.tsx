@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { Truck, Shield, CreditCard, Tag, X, Check } from "lucide-react";
 
 interface CartSummaryProps {

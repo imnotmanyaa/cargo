@@ -8,6 +8,7 @@ interface TopBarProps {
   onToggleTheme: () => void;
   onToggleLeftSidebar: () => void;
   onToggleRightSidebar: () => void;
+  hideSidebarButtons?: boolean;
 }
 
 interface Notification {
@@ -17,7 +18,7 @@ interface Notification {
   created_at: string;
 }
 
-export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRightSidebar }: TopBarProps) {
+export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRightSidebar, hideSidebarButtons = false }: TopBarProps) {
   const isDark = theme === 'dark';
   const { t, language, setLanguage } = useLanguage();
   const { user, logout } = useAuth();
@@ -92,12 +93,14 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   return (
     <div className={`h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-3 md:px-6`}>
       <div className="flex items-center gap-2 md:gap-4">
-        <button
-          onClick={onToggleLeftSidebar}
-          className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-        >
-          <Menu className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
-        </button>
+        {!hideSidebarButtons && (
+          <button
+            onClick={onToggleLeftSidebar}
+            className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+          >
+            <Menu className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
+          </button>
+        )}
 
         <div className="flex items-center gap-2 md:gap-3">
           <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg ${isDark ? 'bg-blue-600' : 'bg-blue-600'} flex items-center justify-center`}>
@@ -106,7 +109,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           {showStationInfo ? (
             <div className="hidden sm:block">
               <div className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                {t('headerStation')}
+                {user?.station ? `Станция ${user.station}` : t('headerStation')}
               </div>
               <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 {user?.name} • {currentTime}
@@ -231,12 +234,14 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           <LogOut className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
         </button>
 
-        <button
-          onClick={onToggleRightSidebar}
-          className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-        >
-          <Menu className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
-        </button>
+        {!hideSidebarButtons && (
+          <button
+            onClick={onToggleRightSidebar}
+            className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+          >
+            <Menu className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
+          </button>
+        )}
       </div>
     </div>
   );

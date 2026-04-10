@@ -21,10 +21,19 @@ import { ReceiverDashboard } from './components/ReceiverDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ManagerDashboard } from './components/ManagerDashboard';
 import { ShipmentActionPage } from './components/ShipmentActionPage';
+import { ScannerTerminal } from './components/ScannerTerminal';
+import { DailySheet } from './components/DailySheet';
+import { InspectorDashboard } from './components/InspectorDashboard';
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
-  const [currentPage, setCurrentPage] = useState('new-shipment');
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('currentPage');
+      if (saved) return saved;
+    }
+    return user?.role === 'manager' || user?.role === 'admin' ? 'dashboard' : 'new-shipment';
+  });
   // На мобильных закрыты по умолчанию, на десктопе открыты (оба на lg - 1024px)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
@@ -55,6 +64,18 @@ function AppContent() {
     return <ShipmentActionPage />;
   }
 
+  // Standalone scanner terminal — available for scanning roles
+  const path = window.location.pathname;
+  if (path === '/scanner' && isAuthenticated) {
+    return <ScannerTerminal />;
+  }
+  if (path === '/daily-sheet' && isAuthenticated) {
+    return <DailySheet />;
+  }
+  if (path === '/auditor' && isAuthenticated) {
+    return <InspectorDashboard theme={theme} />;
+  }
+
   if (!isAuthenticated) {
     return <Login />;
   }
@@ -68,6 +89,7 @@ function AppContent() {
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+          hideSidebarButtons={true}
         />
         <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -80,8 +102,8 @@ function AppContent() {
     );
   }
 
-  // Manager Dashboard
-  if (user?.role === 'manager') {
+  // Inspector/Auditor Dashboard (ревизор — проверка легитимности груза)
+  if (user?.role === 'auditor') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <TopBar
@@ -89,17 +111,42 @@ function AppContent() {
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+          hideSidebarButtons={true}
         />
         <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
             <div className="p-4 md:p-6">
-              <ManagerDashboard theme={theme} />
+              <InspectorDashboard theme={theme} />
             </div>
           </main>
         </div>
       </div>
     );
   }
+
+  // Mobile Group Dashboard (мобильная инспекционная группа — такой же интерфейс как у ревизора)
+  if (user?.role === 'mobile_group') {
+    return (
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <TopBar
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+          onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+          hideSidebarButtons={true}
+        />
+        <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
+          <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <div className="p-4 md:p-6">
+              <InspectorDashboard theme={theme} />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+
 
   // Different dashboards for different roles
   if (user?.role === 'corporate') {
@@ -110,6 +157,7 @@ function AppContent() {
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+          hideSidebarButtons={true}
         />
         <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -160,6 +208,7 @@ function AppContent() {
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+          hideSidebarButtons={true}
         />
         <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -176,6 +225,8 @@ function AppContent() {
     switch (currentPage) {
       case 'new-shipment':
         return <NewShipment theme={theme} />;
+      case 'dashboard':
+        return <ManagerDashboard theme={theme} />;
       case 'active-shipments':
         return <ActiveShipments theme={theme} />;
       case 'transit':
@@ -191,7 +242,7 @@ function AppContent() {
       case 'corporate':
         return <CorporateClients theme={theme} />;
       default:
-        return <NewShipment />;
+        return <NewShipment theme={theme} />;
     }
   };
 
@@ -219,6 +270,7 @@ function AppContent() {
           <div className="fixed lg:static z-40 lg:z-0 h-full">
             <LeftSidebar
               currentPage={currentPage}
+              userRole={user?.role}
               onNavigate={(page) => {
                 setCurrentPage(page);
                 // Закрываем сайдбар на мобильных после выбора

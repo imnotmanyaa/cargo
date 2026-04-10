@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react@0.487.0";
-import { DayPicker } from "react-day-picker@8.10.1";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
 
 import { cn } from "./utils";
 import { buttonVariants } from "./button";
@@ -60,12 +60,14 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ className, ...props }) => (
-          <ChevronLeft className={cn("size-4", className)} {...props} />
-        ),
-        IconRight: ({ className, ...props }) => (
-          <ChevronRight className={cn("size-4", className)} {...props} />
-        ),
+        // react-day-picker v8: Chevron is the single navigation icon component
+        // It receives an `orientation` prop to differentiate prev/next
+        Chevron: ({ orientation, ...iconProps }: { orientation?: string; className?: string }) =>
+          orientation === "left" ? (
+            <ChevronLeft className={cn("size-4", iconProps.className)} />
+          ) : (
+            <ChevronRight className={cn("size-4", iconProps.className)} />
+          ),
       }}
       {...props}
     />

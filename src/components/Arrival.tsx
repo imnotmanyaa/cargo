@@ -14,7 +14,10 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/shipments?type=arrived&station=${user.station}`);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/shipments?type=arrived&station=${user.station}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       setArrivals(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -35,14 +38,13 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     if (!confirm(t('confirmIssue'))) return;
 
     try {
-      const res = await fetch(`/api/shipments/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'Выдан',
-          operator_id: user?.id,
-          operator_name: user?.name
-        })
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/shipments/${id}/ready-for-issue`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (res.ok) {
@@ -50,7 +52,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
         fetchArrivals();
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to issue shipment');
+        alert(err.error || 'Failed to mark shipment for issue');
       }
     } catch (error) {
       console.error('Issue error:', error);

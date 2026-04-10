@@ -168,6 +168,14 @@ func (s *Server) handleCloseShipment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLegacyStatusPatch(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleOperator, model.RoleReceiver, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
 	var req struct {
 		Status       string  `json:"status"`
 		OperatorID   *string `json:"operator_id"`
@@ -176,6 +184,9 @@ func (s *Server) handleLegacyStatusPatch(w http.ResponseWriter, r *http.Request)
 	if !decodeJSON(w, r, &req) {
 		return
 	}
+	// Use authenticated user's identity, not client-supplied operator fields
+	req.OperatorID = &user.ID
+	req.OperatorName = &user.Name
 	var shipment model.Shipment
 	var err error
 	switch req.Status {

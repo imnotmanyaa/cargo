@@ -1,0 +1,13 @@
+
+> cargo-project@0.0.0 dev
+> vite --host
+
+
+  VITE v5.4.21  ready in 210 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.8.92:5173/
+  ➜  press h + enter to show help
+(node:24891) ExperimentalWarning: CommonJS module /Users/daurenurzakanov/projects/cargo/node_modules/tailwindcss/lib/lib/load-config.js is loading ES Module /Users/daurenurzakanov/projects/cargo/tailwind.config.js using require().
+Support for loading ES Module in require() is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

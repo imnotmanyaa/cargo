@@ -12,20 +12,31 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
   const { t } = useLanguage();
 
   const calculatePrice = () => {
-    if (!data.fromStation || !data.toStation || !data.weight || !data.dimensions) {
+    if (!data.fromStation || !data.toStation || !data.weight) {
       return null;
     }
     
-    let basePrice = 5000; // базовая цена в тенге
-    
-    // Расчет по весу
-    const weight = parseFloat(data.weight);
-    if (weight > 20) {
-      basePrice += (weight - 20) * 150;
-    }
+    const rates: Record<string, number> = {
+      'алматы-1-астана нұрлы жол': 976,
+      'астана нұрлы жол-алматы-1': 976,
+      'алматы-1-қарағанды': 825,
+      'қарағанды-алматы-1': 825,
+      'алматы-1-атырау': 1145,
+      'атырау-алматы-1': 1145,
+      'алматы-1-шымкент': 590,
+      'шымкент-алматы-1': 590,
+      'алматы-1-ақтөбе': 1114,
+      'ақтөбе-алматы-1': 1114,
+    };
+
+    const route = `${data.fromStation.toLowerCase()}-${data.toStation.toLowerCase()}`;
+    const baseRate = rates[route] || 5000;
+
+    const weight = parseFloat(data.weight) || 0;
+    let basePrice = (weight / 10) * baseRate;
     
     if (data.isFragile) basePrice += 1000;
-    if (data.isOversized) basePrice += 2500;
+    if (data.isOversized) basePrice += 1000;
     
     if (data.hasTicket) {
       basePrice = basePrice * 0.5;
@@ -102,6 +113,8 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
             />
           </div>
         </div>
+
+
 
         {price !== null && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

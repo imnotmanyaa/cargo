@@ -53,9 +53,13 @@ export function Transit({ theme = 'light' }: TransitProps) {
 
     setProcessing(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/shipments/${scanInput}/transit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           current_station: user.station,
           operator_id: user.id,

@@ -51,6 +51,9 @@ func (s *Server) handleCreatePayment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetPayment(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	payment, err := s.services.Payments.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)
@@ -91,6 +94,14 @@ func (s *Server) handleConfirmPayment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTopUp(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleAdmin, model.RoleManager, model.RoleAccounting, model.RoleOperator, model.RoleCorporate); err != nil {
+		handleServiceError(w, err)
+		return
+	}
 	var req struct {
 		UserID string  `json:"userId"`
 		Amount float64 `json:"amount"`

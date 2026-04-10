@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Package, Train, CheckCircle, MapPin, RefreshCw, QrCode, Scan } from 'lucide-react';
+import { Package, Train, CheckCircle, MapPin, RefreshCw, QrCode, Scan, Clock, ClipboardList } from 'lucide-react';
 
 interface Shipment {
   id: string;
@@ -28,7 +28,8 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const { user } = useAuth();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'loading' | 'arrival'>('loading');
+  const [activeTab, setActiveTab] = useState<'loading' | 'arrival' | 'audit'>('loading');
+  const [auditLogs, setAuditLogs] = useState<{ id: string; time: string; action: string; shipmentId: string }[]>([]);
   const [scanInput, setScanInput] = useState('');
   const [processing, setProcessing] = useState(false);
 
@@ -37,7 +38,10 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/shipments/by-station/${encodeURIComponent(user.station)}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/shipments/by-station/${encodeURIComponent(user.station)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         // Add loaded state based on status
@@ -57,40 +61,10 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   useEffect(() => {
     fetchShipments();
 
-    // Setup Socket.IO connection
-    if (!user?.station) return;
-
-    const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(socketProtocol + '//' + window.location.host + '/ws');
-
-    socket.onopen = () => {
-      console.log('Connected to WebSocket');
-      socket.send(JSON.stringify({ action: 'join-station', room: user.station }));
-    };
-
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.event === 'new-shipment') {
-        const shipment = msg.data;
-        console.log('New shipment received via WebSocket:', shipment);
-        setShipments(prev => {
-          if (prev.find(s => s.id === shipment.id)) return prev;
-          return [{ ...shipment, loaded: shipment.status === 'Погружен' }, ...prev];
-        });
-      } else if (msg.event === 'shipment-updated') {
-        const updatedShipment = msg.data;
-        console.log('Shipment updated via WebSocket:', updatedShipment);
-        setShipments(prev => prev.map(s =>
-          s.id === updatedShipment.id
-            ? { ...updatedShipment, loaded: updatedShipment.status === 'Погружен' }
-            : s
-        ));
-      }
-    };
-
-    return () => {
-      socket.close();
-    };
+    // Poll every 10 seconds for real-time updates
+    // (backend uses Socket.IO; polling is used here for simplicity)
+    const interval = setInterval(fetchShipments, 10000);
+    return () => clearInterval(interval);
   }, [user?.station]);
 
   const toggleShipmentLoaded = async (shipmentId: string) => {
@@ -100,9 +74,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     const newStatus = shipment.loaded ? 'В пути' : 'Погружен';
 
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/shipments/${shipmentId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ status: newStatus })
       });
 
@@ -112,6 +90,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
             ? { ...s, loaded: !s.loaded, status: newStatus }
             : s
         ));
+
+        setAuditLogs(prev => [{
+          id: Date.now().toString(),
+          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          action: newStatus === 'Погружен' ? 'Груз погружен' : 'Погрузка отменена',
+          shipmentId: shipmentId
+        }, ...prev]);
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -123,9 +108,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
     setProcessing(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/shipments/${scanInput}/transit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           current_station: user.station,
           operator_id: user.id,
@@ -140,6 +129,14 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         } else {
           alert(`Груз ${updated.id} обновлен. Статус: ${updated.status}`);
         }
+
+        setAuditLogs(prev => [{
+          id: Date.now().toString(),
+          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          action: 'Прибытие зафиксировано',
+          shipmentId: updated.id || scanInput
+        }, ...prev]);
+
         setScanInput('');
         fetchShipments();
       } else {
@@ -228,7 +225,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
               : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
               }`}
           >
-            Погрузка
+            План на день
           </button>
           <button
             onClick={() => setActiveTab('arrival')}
@@ -238,6 +235,15 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
               }`}
           >
             Прибытие
+          </button>
+          <button
+            onClick={() => setActiveTab('audit')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'audit'
+              ? 'bg-blue-600 text-white'
+              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
+              }`}
+          >
+            Журнал аудита
           </button>
           <button
             onClick={fetchShipments}
@@ -386,7 +392,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
             })}
           </div>
         )
-      ) : (
+      ) : activeTab === 'arrival' ? (
         // ARRIVAL TAB CONTENT
         <div className={`rounded-lg shadow-sm border p-6 md:p-8 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="text-center max-w-md mx-auto">
@@ -427,6 +433,43 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
               {processing ? 'Обработка...' : 'Зафиксировать прибытие'}
             </button>
           </div>
+        </div>
+      ) : (
+        // AUDIT TAB CONTENT
+        <div className={`rounded-lg border p-0 overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className={`p-4 border-b ${isDark ? 'bg-gray-750 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+            <h2 className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>Журнал аудита смены</h2>
+          </div>
+          {auditLogs.length === 0 ? (
+            <div className="text-center py-12">
+              <ClipboardList className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+              <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Журнал пуст. Начните сканирование или погрузку.</p>
+            </div>
+          ) : (
+            <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
+              {auditLogs.map(log => (
+                <div key={log.id} className={`p-4 flex items-center justify-between ${isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      log.action.includes('отмен') 
+                        ? (isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500') 
+                        : (isDark ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600')
+                    }`}>
+                      {log.action.includes('отмен') ? <RefreshCw className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                    </div>
+                    <div>
+                      <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{log.action}</div>
+                      <div className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Груз: {log.shipmentId}</div>
+                    </div>
+                  </div>
+                  <div className={`text-sm flex items-center gap-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <Clock className="w-3.5 h-3.5" />
+                    {log.time}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

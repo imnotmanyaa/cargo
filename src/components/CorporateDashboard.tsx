@@ -37,9 +37,13 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
 
     setIsLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch('/api/payments/topup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ userId: user.id, amount: parseFloat(amount) })
       });
 
@@ -88,7 +92,7 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
             className="w-full mt-4 flex items-center justify-center gap-2 py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
           >
             <Plus className="w-4 h-4" />
-            Пополнить
+            {t('topUp')}
           </button>
         </div>
 
@@ -234,7 +238,7 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
           <div className={`w-full max-w-md p-6 rounded-lg shadow-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Пополнить депозит
+                {t('topUpDeposit')}
               </h2>
               <button
                 onClick={() => setShowTopUpModal(false)}
@@ -247,7 +251,7 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
             <form onSubmit={handleTopUp} className="space-y-6">
               <div>
                 <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Сумма пополнения (₸)
+                  {t('topUpAmount')}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₸</span>
@@ -287,8 +291,8 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
               <div className={`p-4 rounded-lg flex items-start gap-3 ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                 <CreditCard className="w-5 h-5 text-gray-400 mt-0.5" />
                 <div className="text-sm">
-                  <p className={`font-medium mb-1 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>Способ оплаты</p>
-                  <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Банковская карта (Kaspi, Halyk)</p>
+                  <p className={`font-medium mb-1 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('paymentMethod')}</p>
+                  <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('bankCard')}</p>
                 </div>
               </div>
 
@@ -297,7 +301,7 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
                 disabled={isLoading}
                 className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isLoading ? 'Обработка...' : 'Оплатить'}
+                {isLoading ? t('processing') : t('pay')}
               </button>
             </form>
           </div>

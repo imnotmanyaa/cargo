@@ -1,5 +1,5 @@
 import { useLanguage } from '../contexts/LanguageContext';
-import { Settings, HelpCircle, Bell, User } from 'lucide-react';
+
 
 interface RightSidebarProps {
   currentPage: string;

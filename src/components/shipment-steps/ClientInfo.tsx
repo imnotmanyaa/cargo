@@ -1,5 +1,6 @@
-import { ArrowRight, Users } from 'lucide-react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { ArrowRight, Users } from "lucide-react";
+import { useLanguage } from "../../contexts/LanguageContext";
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -8,6 +9,14 @@ interface ClientInfoProps {
   onUpdate: (data: any) => void;
   onNext: () => void;
   theme?: 'light' | 'dark';
+}
+
+interface CorporateClient {
+  id: string;
+  name: string;
+  company: string;
+  contract_number: string;
+  deposit_balance: number;
 }
 
 // Моковые данные клиентов от агрегаторов
@@ -34,6 +43,7 @@ export function ClientInfo({
   const { t } = useLanguage();
   const { user } = useAuth();
   const [isReceiverDifferent, setIsReceiverDifferent] = useState(() => !!data.receiverName || !!data.receiverPhone);
+  const [corporateClients, setCorporateClients] = useState<CorporateClient[]>([]);
 
   // Update local state if data changes externally (e.g. going back/forward)
   useEffect(() => {
@@ -41,6 +51,27 @@ export function ClientInfo({
       setIsReceiverDifferent(true);
     }
   }, [data.receiverName, data.receiverPhone]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (user?.role !== 'individual') {
+      const fetchClients = async () => {
+        try {
+          const res = await fetch('/api/clients?ts=' + Date.now(), {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          if (res.ok) {
+            setCorporateClients(await res.json());
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      fetchClients();
+    }
+  }, [user]);
 
   // Автоматически заполняем данные для физического лица при монтировании
   useEffect(() => {
@@ -198,17 +229,80 @@ export function ClientInfo({
           <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             {t('clientName')}
           </label>
-          <input
-            type="text"
-            value={data.clientName}
-            onChange={(e) => onUpdate({ clientName: e.target.value })}
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
-              ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
-              : 'border-gray-300'
-              }`}
-            placeholder={t('enterClientName')}
-            readOnly={isAggregatorSource && data.aggregatorClientId}
-          />
+          
+          {data.clientType === 'legal' && user?.role !== 'individual' ? (
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery || data.clientName}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSuggestions(true);
+                  // Update data.clientName directly so they can type custom names too
+                  onUpdate({ clientName: e.target.value, corporateClientId: null, hasDeposit: false, contractNumber: '' });
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
+                  ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+                  : 'border-gray-300'
+                  }`}
+                placeholder="Введите ФИО или название организации..."
+              />
+              {showSuggestions && searchQuery.length > 0 && (
+                <div className={`absolute z-10 w-full mt-1 border rounded-lg shadow-lg max-h-60 overflow-y-auto ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                  {corporateClients
+                    .filter(c => 
+                      (c.company || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (c.contract_number || '').toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map(client => (
+                      <div
+                        key={client.id}
+                        className={`px-4 py-2 cursor-pointer ${isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
+                        onClick={() => {
+                          setSearchQuery(client.company || client.name);
+                          setShowSuggestions(false);
+                          onUpdate({
+                            corporateClientId: client.id,
+                            clientName: client.company || client.name,
+                            clientPhone: client.phone || '',
+                            contractNumber: client.contract_number || '',
+                            hasDeposit: true
+                          });
+                        }}
+                      >
+                        <div className="font-medium">{client.company || client.name}</div>
+                        <div className="text-xs opacity-70">
+                          БИН/Договор: {client.contract_number || 'Нет'} | Баланс: {client.deposit_balance} ₸
+                        </div>
+                      </div>
+                    ))}
+                  {corporateClients.filter(c => 
+                      (c.company || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (c.contract_number || '').toLowerCase().includes(searchQuery.toLowerCase())
+                    ).length === 0 && (
+                      <div className={`px-4 py-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Клиентов не найдено
+                      </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={data.clientName}
+              onChange={(e) => onUpdate({ clientName: e.target.value, corporateClientId: null })}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
+                ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+                : 'border-gray-300'
+                }`}
+              placeholder={t('enterClientName')}
+              readOnly={isAggregatorSource && data.aggregatorClientId}
+            />
+          )}
         </div>
 
         {/* Телефон клиента */}
@@ -352,6 +446,7 @@ export function ClientInfo({
                 <option value="Шымкент">Шымкент</option>
                 <option value="Ақтөбе">Ақтөбе</option>
                 <option value="Қарағанды">Қарағанды</option>
+                <option value="Атырау">Атырау</option>
               </select>
             </div>
 
@@ -373,6 +468,7 @@ export function ClientInfo({
                 <option value="Шымкент">Шымкент</option>
                 <option value="Ақтөбе">Ақтөбе</option>
                 <option value="Қарағанды">Қарағанды</option>
+                <option value="Атырау">Атырау</option>
               </select>
             </div>
           </div>

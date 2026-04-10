@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -371,7 +373,7 @@ func (r *Repository) ListUsers(ctx context.Context) ([]model.User, error) {
 }
 
 func (r *Repository) ListEmployees(ctx context.Context) ([]model.User, error) {
-	rows, err := r.pool.Query(ctx, userSelect+` WHERE role IN ('admin','manager','operator','receiver','loading_operator','transit_operator','issue_operator','accounting') ORDER BY created_at DESC`)
+	rows, err := r.pool.Query(ctx, userSelect+` WHERE role IN ('admin','manager','operator','receiver','loading_operator','transit_operator','issue_operator','accounting', 'auditor', 'mobile_group') ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -857,4 +859,127 @@ func collectShipments(rows pgx.Rows) ([]model.Shipment, error) {
 func startOfMonth() time.Time {
 	now := time.Now().UTC()
 	return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+}
+
+// ── Wagon methods ─────────────────────────────────────────────────────────────
+
+func (r *Repository) CreateWagon(ctx context.Context, wagon model.Wagon) (model.Wagon, error) {
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO wagons (id, wagon_number, status, current_station, destination, departure_date, capacity, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	`, wagon.ID, wagon.WagonNumber, wagon.Status, wagon.CurrentStation, wagon.Destination, wagon.DepartureDate, wagon.Capacity, wagon.CreatedAt, wagon.UpdatedAt)
+	if err != nil {
+		return model.Wagon{}, err
+	}
+	return wagon, nil
+}
+
+func (r *Repository) GetWagonByID(ctx context.Context, id string) (model.Wagon, error) {
+	var w model.Wagon
+	err := r.pool.QueryRow(ctx, `
+		SELECT id, wagon_number, status, current_station, destination, departure_date, capacity, created_at, updated_at
+		FROM wagons WHERE id = $1
+	`, id).Scan(&w.ID, &w.WagonNumber, &w.Status, &w.CurrentStation, &w.Destination, &w.DepartureDate, &w.Capacity, &w.CreatedAt, &w.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return model.Wagon{}, service.ErrNotFound
+	}
+	return w, err
+}
+
+func (r *Repository) GetWagonByNumber(ctx context.Context, number string) (model.Wagon, error) {
+	var w model.Wagon
+	err := r.pool.QueryRow(ctx, `
+		SELECT id, wagon_number, status, current_station, destination, departure_date, capacity, created_at, updated_at
+		FROM wagons WHERE wagon_number = $1
+	`, number).Scan(&w.ID, &w.WagonNumber, &w.Status, &w.CurrentStation, &w.Destination, &w.DepartureDate, &w.Capacity, &w.CreatedAt, &w.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return model.Wagon{}, service.ErrNotFound
+	}
+	return w, err
+}
+
+func (r *Repository) UpdateWagon(ctx context.Context, wagon model.Wagon) (model.Wagon, error) {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE wagons SET status = $2, current_station = $3, destination = $4, departure_date = $5, capacity = $6, updated_at = $7
+		WHERE id = $1
+	`, wagon.ID, wagon.Status, wagon.CurrentStation, wagon.Destination, wagon.DepartureDate, wagon.Capacity, wagon.UpdatedAt)
+	return wagon, err
+}
+
+func (r *Repository) ListWagons(ctx context.Context, station string, status *model.WagonStatus) ([]model.Wagon, error) {
+	query := `SELECT id, wagon_number, status, current_station, destination, departure_date, capacity, created_at, updated_at FROM wagons`
+	args := []any{}
+	where := []string{}
+
+	if station != "" {
+		args = append(args, station)
+		where = append(where, fmt.Sprintf("current_station = $%d", len(args)))
+	}
+	if status != nil {
+		args = append(args, *status)
+		where = append(where, fmt.Sprintf("status = $%d", len(args)))
+	}
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
+	}
+	query += " ORDER BY departure_date DESC"
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []model.Wagon
+	for rows.Next() {
+		var w model.Wagon
+		if err := rows.Scan(&w.ID, &w.WagonNumber, &w.Status, &w.CurrentStation, &w.Destination, &w.DepartureDate, &w.Capacity, &w.CreatedAt, &w.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, w)
+	}
+	return items, rows.Err()
+}
+
+// ── WagonShipment (Checklist) methods ─────────────────────────────────────────
+
+func (r *Repository) AssignShipmentToWagon(ctx context.Context, wagonID, shipmentID string) error {
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO wagon_shipments (id, wagon_id, shipment_id, status)
+		VALUES (gen_random_uuid()::text, $1, $2, 'PENDING')
+		ON CONFLICT (wagon_id, shipment_id) DO NOTHING
+	`, wagonID, shipmentID)
+	return err
+}
+
+func (r *Repository) RemoveShipmentFromWagon(ctx context.Context, wagonID, shipmentID string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM wagon_shipments WHERE wagon_id = $1 AND shipment_id = $2`, wagonID, shipmentID)
+	return err
+}
+
+func (r *Repository) GetWagonShipments(ctx context.Context, wagonID string) ([]model.WagonShipment, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT id, wagon_id, shipment_id, status, scanned_at FROM wagon_shipments WHERE wagon_id = $1 ORDER BY shipment_id
+	`, wagonID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []model.WagonShipment
+	for rows.Next() {
+		var ws model.WagonShipment
+		if err := rows.Scan(&ws.ID, &ws.WagonID, &ws.ShipmentID, &ws.Status, &ws.ScannedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, ws)
+	}
+	return items, rows.Err()
+}
+
+func (r *Repository) UpdateWagonShipmentStatus(ctx context.Context, wagonID, shipmentID, status string) error {
+	now := time.Now().UTC()
+	_, err := r.pool.Exec(ctx, `
+		UPDATE wagon_shipments SET status = $3, scanned_at = $4
+		WHERE wagon_id = $1 AND shipment_id = $2
+	`, wagonID, shipmentID, status, now)
+	return err
 }

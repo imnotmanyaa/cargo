@@ -1,12 +1,12 @@
 import { QRCodeSVG } from 'qrcode.react';
-import { Package, Truck, Calendar, MapPin, User, Phone } from 'lucide-react';
+import { Truck } from 'lucide-react';
 
 interface ShipmentLabelProps {
     data: any; // Ideally this should be a proper type
     t: (key: string) => string;
 }
 
-export function ShipmentLabel({ data, t }: ShipmentLabelProps) {
+export function ShipmentLabel({ data, t: _t }: ShipmentLabelProps) {
     // Using a specific class that will be targeted by media print query
     return (
         <div className="hidden print:block print:w-full print:h-screen bg-white p-8">

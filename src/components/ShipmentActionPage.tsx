@@ -27,7 +27,7 @@ interface ActionContext {
 
 export function ShipmentActionPage() {
     const { user } = useAuth();
-    const { t } = useLanguage();
+    const { language: _lang } = useLanguage();
     const [context, setContext] = useState<ActionContext | null>(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
@@ -120,27 +120,23 @@ export function ShipmentActionPage() {
         setProcessing(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/api/shipments/${shipmentId}/transit`, {
+            const response = await fetch(`/api/shipments/${shipmentId}/arrive`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    current_station: user?.station,
-                    operator_id: user?.id,
-                    operator_name: user?.name
+                    current_station: context.shipment.to_station
                 })
             });
 
             if (response.ok) {
-                const updated = await response.json();
-                if (updated.status === 'Прибыл') {
-                    alert('Прибытие груза успешно зафиксировано!');
-                }
+                alert('Прибытие груза успешно зафиксировано!');
                 fetchActionContext(); // Refresh
             } else {
-                alert('Ошибка при фиксировании прибытия');
+                const err = await response.json().catch(() => ({}));
+                alert(err.error || 'Ошибка при фиксировании прибытия');
             }
         } catch (error) {
             console.error('Error:', error);

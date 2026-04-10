@@ -1,17 +1,19 @@
-import { Package, List, Truck, MapPin, FileText, User, Building2, Warehouse, Settings as SettingsIcon } from 'lucide-react';
+import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LeftSidebarProps {
   currentPage: string;
   onNavigate: (page: string) => void;
   theme: 'light' | 'dark';
+  userRole?: string;
 }
 
-export function LeftSidebar({ currentPage, onNavigate, theme }: LeftSidebarProps) {
+export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSidebarProps) {
   const isDark = theme === 'dark';
   const { t } = useLanguage();
 
   const menuItems = [
+    ...(userRole === 'manager' || userRole === 'admin' ? [{ id: 'dashboard', label: 'Дашборд', icon: Package }] : []),
     { id: 'new-shipment', label: t('newShipment'), icon: Package },
     { id: 'active-shipments', label: t('activeShipments'), icon: List },
     { id: 'transit', label: t('transit'), icon: Truck },

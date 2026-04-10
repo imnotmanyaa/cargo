@@ -8,7 +8,7 @@ interface RegisterProps {
 
 export function Register({ onBackToLogin }: RegisterProps) {
   const { register } = useAuth();
-  const [selectedType] = useState<'corporate' | 'individual'>('individual');
+  const [selectedType, setSelectedType] = useState<'corporate' | 'individual'>('individual');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -65,6 +65,29 @@ export function Register({ onBackToLogin }: RegisterProps) {
           </div>
         </div>
 
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setSelectedType('individual')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              selectedType === 'individual'
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Физическое лицо
+          </button>
+          <button
+            onClick={() => setSelectedType('corporate')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              selectedType === 'corporate'
+                ? 'bg-blue-100 text-blue-700'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Юридическое лицо
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -82,6 +105,44 @@ export function Register({ onBackToLogin }: RegisterProps) {
               />
             </div>
           </div>
+
+          {selectedType === 'corporate' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  БИН
+                </label>
+                <div className="relative">
+                  <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={formData.bin}
+                    onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Введите БИН компании"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Название компании
+                </label>
+                <div className="relative">
+                  <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Например: ТОО 'Логистика'"
+                    required
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

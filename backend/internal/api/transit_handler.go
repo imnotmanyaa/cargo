@@ -13,9 +13,14 @@ func (s *Server) mountTransitRoutes(r chi.Router) {
 	r.Get("/transit/outgoing", s.handleTransitOutgoing)
 	r.Post("/shipments/{id}/mark-transit", s.handleMarkTransit)
 	r.Post("/shipments/{id}/transit", s.handleLegacyTransit)
+	// Ревизор: только чтение, без изменения статуса (ТЗ п.4, п.7)
+	r.Get("/shipments/{id}/auditor-check", s.handleAuditorCheck)
 }
 
 func (s *Server) handleTransitIncoming(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	shipments, err := s.services.Shipments.List(r.Context(), model.ShipmentFilter{
 		Type:    "incoming",
 		Station: r.URL.Query().Get("station"),
@@ -28,6 +33,9 @@ func (s *Server) handleTransitIncoming(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTransitOutgoing(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	shipments, err := s.services.Shipments.List(r.Context(), model.ShipmentFilter{
 		Type:    "outgoing",
 		Station: r.URL.Query().Get("station"),
@@ -72,7 +80,7 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleLoading, model.RoleTransit, model.RoleReceiver, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleLoading, model.RoleTransit, model.RoleReceiver, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -129,6 +137,9 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, shipment)
 		return
 	}
+	// Если груз ещё не достиг конечной точки — отметить как транзит.
+	// Если сканирование происходит в Карагандe (транзитный хаб, ТЗ п.4),
+	// это стандартная операция: груз следует дальше → принудительный транзит.
 	shipment, err = s.services.Shipments.MarkTransit(r.Context(), chi.URLParam(r, "id"), req.CurrentStation, &user.ID, &user.Name)
 	if err != nil {
 		handleServiceError(w, err)
@@ -136,4 +147,38 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 	}
 	s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
 	writeJSON(w, http.StatusOK, shipment)
+}
+
+// handleAuditorCheck — ревизор сканирует груз только для проверки (без изменения статуса).
+// GET /api/shipments/{id}/auditor-check?station=<station>
+func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	// Ревизор и мобильная группа имеют право проверки (ТЗ п.7)
+	if err := s.requireRole(user, model.RoleAuditor, model.RoleMobileGroup, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	shipmentID := chi.URLParam(r, "id")
+	shipment, err := s.services.Shipments.Get(r.Context(), shipmentID)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	// Проверка: ожидаемся ли груз на этой станции
+	queriedStation := r.URL.Query().Get("station")
+	if queriedStation == "" {
+		queriedStation = user.Station
+	}
+	stationMatch := shipment.CurrentStation == queriedStation ||
+		shipment.FromStation == queriedStation ||
+		shipment.ToStation == queriedStation
+	writeJSON(w, http.StatusOK, map[string]any{
+		"shipment":      shipment,
+		"station_match": stationMatch,
+		"checked_at":    r.Context().Value("request_time"), // момент проверки
+		"auditor":       user.Name,
+	})
 }

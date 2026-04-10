@@ -72,33 +72,13 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
   useEffect(() => {
     fetchShipments();
 
-    const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(socketProtocol + '//' + window.location.host + '/ws');
-
-    socket.onopen = () => {
-      console.log('Connected to WebSocket (ActiveShipments)');
-    };
-
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.event === 'new-shipment') {
-        const shipment = msg.data;
-        console.log('New shipment received via WebSocket (ActiveShipments):', shipment);
-        setShipments(prev => {
-          if (prev.find(s => s.id === shipment.id)) return prev;
-          return [mapShipment(shipment), ...prev];
-        });
-      } else if (msg.event === 'shipment-updated') {
-        const updated = msg.data;
-        console.log('Shipment updated via WebSocket (ActiveShipments):', updated);
-        setShipments(prev => prev.map(s =>
-          s.id === updated.id ? mapShipment(updated) : s
-        ));
-      }
-    };
+    // Poll every 10 seconds for updates (backend uses Socket.IO, not plain WS)
+    const interval = setInterval(() => {
+      fetchShipments();
+    }, 10000);
 
     return () => {
-      socket.close();
+      clearInterval(interval);
     };
   }, []);
 

@@ -11,20 +11,22 @@ import (
 )
 
 type memoryRepo struct {
-	mu            sync.Mutex
-	users         map[string]model.User
-	roles         []model.RoleRecord
-	stations      map[string]model.Station
-	shipments     map[string]model.Shipment
-	payments      map[string]model.Payment
-	qrCodes       map[string]model.QRCode
-	scanEvents    []model.ScanEvent
-	transitEvents []model.TransitEvent
-	arrivalEvents []model.ArrivalEvent
-	history       []model.ShipmentHistory
-	notifications []model.Notification
-	auditLogs     []model.AuditLog
-	nextNotifID   int64
+	mu             sync.Mutex
+	users          map[string]model.User
+	roles          []model.RoleRecord
+	stations       map[string]model.Station
+	shipments      map[string]model.Shipment
+	payments       map[string]model.Payment
+	qrCodes        map[string]model.QRCode
+	scanEvents     []model.ScanEvent
+	transitEvents  []model.TransitEvent
+	arrivalEvents  []model.ArrivalEvent
+	history        []model.ShipmentHistory
+	notifications  []model.Notification
+	auditLogs      []model.AuditLog
+	nextNotifID    int64
+	wagons         map[string]model.Wagon
+	wagonShipments []model.WagonShipment
 }
 
 func newMemoryRepo() *memoryRepo {
@@ -34,6 +36,7 @@ func newMemoryRepo() *memoryRepo {
 		shipments: map[string]model.Shipment{},
 		payments:  map[string]model.Payment{},
 		qrCodes:   map[string]model.QRCode{},
+		wagons:    map[string]model.Wagon{},
 		roles: []model.RoleRecord{
 			{ID: "admin", Name: "admin", Description: "Administrator"},
 			{ID: "operator", Name: "operator", Description: "Operator"},
@@ -469,4 +472,113 @@ func mapUsers(users map[string]model.User) []model.User {
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].CreatedAt.After(items[j].CreatedAt) })
 	return items
+}
+
+// ── Wagon methods (in-memory stubs for tests) ─────────────────────────────────
+
+func (m *memoryRepo) CreateWagon(_ context.Context, wagon model.Wagon) (model.Wagon, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.wagons[wagon.ID] = wagon
+	return wagon, nil
+}
+
+func (m *memoryRepo) GetWagonByID(_ context.Context, id string) (model.Wagon, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	w, ok := m.wagons[id]
+	if !ok {
+		return model.Wagon{}, service.ErrNotFound
+	}
+	return w, nil
+}
+
+func (m *memoryRepo) GetWagonByNumber(_ context.Context, number string) (model.Wagon, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, w := range m.wagons {
+		if w.WagonNumber == number {
+			return w, nil
+		}
+	}
+	return model.Wagon{}, service.ErrNotFound
+}
+
+func (m *memoryRepo) UpdateWagon(_ context.Context, wagon model.Wagon) (model.Wagon, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.wagons[wagon.ID] = wagon
+	return wagon, nil
+}
+
+func (m *memoryRepo) ListWagons(_ context.Context, station string, status *model.WagonStatus) ([]model.Wagon, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var items []model.Wagon
+	for _, w := range m.wagons {
+		if station != "" && w.CurrentStation != station {
+			continue
+		}
+		if status != nil && w.Status != *status {
+			continue
+		}
+		items = append(items, w)
+	}
+	return items, nil
+}
+
+func (m *memoryRepo) AssignShipmentToWagon(_ context.Context, wagonID, shipmentID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, ws := range m.wagonShipments {
+		if ws.WagonID == wagonID && ws.ShipmentID == shipmentID {
+			return nil // already assigned
+		}
+	}
+	m.wagonShipments = append(m.wagonShipments, model.WagonShipment{
+		ID:         wagonID + "-" + shipmentID,
+		WagonID:    wagonID,
+		ShipmentID: shipmentID,
+		Status:     "PENDING",
+	})
+	return nil
+}
+
+func (m *memoryRepo) RemoveShipmentFromWagon(_ context.Context, wagonID, shipmentID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var filtered []model.WagonShipment
+	for _, ws := range m.wagonShipments {
+		if ws.WagonID != wagonID || ws.ShipmentID != shipmentID {
+			filtered = append(filtered, ws)
+		}
+	}
+	m.wagonShipments = filtered
+	return nil
+}
+
+func (m *memoryRepo) GetWagonShipments(_ context.Context, wagonID string) ([]model.WagonShipment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var items []model.WagonShipment
+	for _, ws := range m.wagonShipments {
+		if ws.WagonID == wagonID {
+			items = append(items, ws)
+		}
+	}
+	return items, nil
+}
+
+func (m *memoryRepo) UpdateWagonShipmentStatus(_ context.Context, wagonID, shipmentID, status string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	now := time.Now().UTC()
+	for i := range m.wagonShipments {
+		if m.wagonShipments[i].WagonID == wagonID && m.wagonShipments[i].ShipmentID == shipmentID {
+			m.wagonShipments[i].Status = status
+			m.wagonShipments[i].ScannedAt = &now
+			return nil
+		}
+	}
+	return service.ErrNotFound
 }

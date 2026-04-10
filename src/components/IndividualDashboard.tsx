@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Package, Plus, MapPin, Ticket } from 'lucide-react';
+import { Package, MapPin, Ticket } from 'lucide-react';
 
 interface Shipment {
   id: string;
@@ -17,8 +17,7 @@ interface IndividualDashboardProps {
   onCreateShipment?: () => void;
 }
 
-export function IndividualDashboard({ theme = 'light', onCreateShipment }: IndividualDashboardProps) {
-  const isDark = theme === 'dark';
+export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment }: IndividualDashboardProps) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [shipments, setShipments] = useState<Shipment[]>([]);

@@ -8,7 +8,7 @@ interface PaymentProps {
   onBack: () => void;
 }
 
-export function Payment({ data, onUpdate, onNext, onBack }: PaymentProps) {
+export function Payment({ data, onUpdate: _onUpdate, onNext, onBack }: PaymentProps) {
   const { t } = useLanguage();
 
   const calculateTotal = () => {

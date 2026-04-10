@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-type UserRole = 'operator' | 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager';
+type UserRole = 'operator' | 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'auditor';
 
 interface User {
   id: string;
@@ -16,7 +16,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => void;
+  login: (email: string, password: string, _role?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   register: (data: RegisterData) => void;
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, _role?: string) => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -99,10 +99,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const userData = await response.json();
+      const rawData = await response.json();
+      // Map backend snake_case to frontend camelCase (same as login)
+      const userData: User = {
+        ...rawData,
+        depositBalance: rawData.deposit_balance,
+        contractNumber: rawData.contract_number
+      };
 
-      if (userData.token) {
-        localStorage.setItem('token', userData.token);
+      if (rawData.token) {
+        localStorage.setItem('token', rawData.token);
       }
 
       setUser(userData);
@@ -130,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = !!user;
 
-  console.log('Auth context state:', { user, isAuthenticated });
+  // Auth state is managed via React state — no logging in production
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated, register, updateUser }}>

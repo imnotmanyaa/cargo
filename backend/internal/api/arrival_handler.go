@@ -15,6 +15,9 @@ func (s *Server) mountArrivalRoutes(r chi.Router) {
 }
 
 func (s *Server) handlePendingArrivals(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	shipments, err := s.services.Shipments.List(r.Context(), model.ShipmentFilter{
 		Type:    "arrived",
 		Station: r.URL.Query().Get("station"),

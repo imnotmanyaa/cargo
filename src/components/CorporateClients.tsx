@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-// Removed unused imports
+import { useLanguage } from '../contexts/LanguageContext';
 import { Building2, Plus, Search, Edit, Trash2, Phone, Mail, X, Save } from 'lucide-react';
 
 interface CorporateClient {
@@ -14,7 +14,7 @@ interface CorporateClient {
 }
 
 export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
-  // Removed unused 't'
+  const { t } = useLanguage();
   const isDark = theme === 'dark';
   const [clients, setClients] = useState<CorporateClient[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -33,10 +33,17 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
 
   const fetchClients = async () => {
     try {
-      const res = await fetch('/api/clients');
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/clients?ts=' + Date.now(), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setClients(data);
+      } else {
+        console.error('Failed to fetch clients', res.status);
       }
     } catch (error) {
       console.error('Failed to fetch clients', error);
@@ -55,7 +62,8 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           name: formData.contactPerson,
@@ -97,15 +105,15 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Корпоративные клиенты</h1>
-          <p className="text-gray-600">Управление юридическими лицами</p>
+          <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('corporate')}</h1>
+          <p className="text-gray-600">{t('corporateClientsDesc')}</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Plus className="w-5 h-5" />
-          Добавить клиента
+          {t('addClient')}
         </button>
       </div>
 
@@ -116,7 +124,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
               <Search className={`w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
               <input
                 type="text"
-                placeholder="Поиск по названию, договору..."
+                placeholder={t('searchByNameOrContract')}
                 className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
                   ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
                   : 'border-gray-300'
@@ -129,7 +137,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
         <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
           {clients.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
-              Нет корпоративных клиентов.
+              {t('noCorporateClients')}
             </div>
           ) : (
             clients.map((client) => (
@@ -143,24 +151,24 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
 
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className={`font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{client.company || 'Без названия'}</h3>
+                        <h3 className={`font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{client.company || t('withoutName')}</h3>
                         {client.activeShipments !== undefined && (
                           <span className={`text-xs px-2 py-1 rounded-full ${isDark
                             ? 'bg-green-900 text-green-400'
                             : 'bg-green-100 text-green-700'
                             }`}>
-                            {client.activeShipments} активных
+                            {client.activeShipments} {t('activeCount')}
                           </span>
                         )}
                       </div>
 
                       <div className={`grid grid-cols-2 gap-x-8 gap-y-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">БИН/Договор:</span>
+                          <span className="font-medium">{t('binContract')}</span>
                           <span>{client.contract_number || '-'}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">Депозит:</span>
+                          <span className="font-medium">{t('deposit')}</span>
                           <span className={`font-semibold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
                             {client.deposit_balance ? client.deposit_balance.toLocaleString() : '0'} ₸
                           </span>
@@ -174,7 +182,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                           <span>{client.email}</span>
                         </div>
                         <div className="flex items-center gap-2 col-span-2">
-                          <span className="font-medium">Контактное лицо:</span>
+                          <span className="font-medium">{t('contactPerson')}</span>
                           <span>{client.name}</span>
                         </div>
                       </div>
@@ -207,7 +215,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
           <div className={`w-full max-w-2xl p-6 rounded-lg shadow-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Добавить корпоративного клиента
+                {t('addCorporateClient')}
               </h2>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -220,38 +228,35 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
             <form onSubmit={handleCreateClient} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Название компании</label>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('companyName')}</label>
                   <input
                     type="text"
                     required
                     value={formData.companyName}
                     onChange={e => setFormData({ ...formData, companyName: e.target.value })}
                     className={`w-full p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                    placeholder='ТОО "Название"'
                   />
                 </div>
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>БИН</label>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('bin')}</label>
                   <input
                     type="text"
                     required
                     value={formData.bin}
                     onChange={e => setFormData({ ...formData, bin: e.target.value })}
                     className={`w-full p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                    placeholder="12 цифр"
                   />
                 </div>
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Контактное лицо (ФИО)</label>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('fullName')}</label>
                 <input
                   type="text"
                   required
                   value={formData.contactPerson}
                   onChange={e => setFormData({ ...formData, contactPerson: e.target.value })}
                   className={`w-full p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                  placeholder="Иванов Иван"
                 />
               </div>
 
@@ -282,19 +287,18 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Пароль</label>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('passwordLabel')}</label>
                   <input
                     type="password"
                     required
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                     className={`w-full p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                    placeholder="Минимум 6 символов"
                     minLength={6}
                   />
                 </div>
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-green-400' : 'text-green-700'}`}>Сумма пополнения депозита (₸)</label>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-green-400' : 'text-green-700'}`}>{t('depositAmount')}</label>
                   <input
                     type="number"
                     value={formData.deposit}
@@ -311,7 +315,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                   onClick={() => setShowAddModal(false)}
                   className={`px-4 py-2 rounded-lg ${isDark ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
                 >
-                  Отмена
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
@@ -319,7 +323,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                   className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Save className="w-5 h-5" />
-                  {isLoading ? 'Создание...' : 'Создать клиента'}
+                  {isLoading ? t('creating') : t('createClient')}
                 </button>
               </div>
             </form>

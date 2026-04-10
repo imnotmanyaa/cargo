@@ -93,6 +93,9 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetShipment(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	shipment, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)
@@ -128,6 +131,14 @@ func (s *Server) handleShipmentsByStation(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleUpdateShipment(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
 	current, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)
