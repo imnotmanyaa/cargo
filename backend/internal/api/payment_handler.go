@@ -13,6 +13,7 @@ func (s *Server) mountPaymentRoutes(r chi.Router) {
 	r.Get("/payments/{id}", s.handleGetPayment)
 	r.Post("/payments/{id}/confirm", s.handleConfirmPayment)
 	r.Post("/payments/topup", s.handleTopUp)
+	r.Get("/payments/user", s.handleGetUserPayments)
 }
 
 func (s *Server) handleCreatePayment(w http.ResponseWriter, r *http.Request) {
@@ -116,3 +117,21 @@ func (s *Server) handleTopUp(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"message": "Top up successful", "newBalance": balance})
 }
+
+func (s *Server) handleGetUserPayments(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleOperator); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	payments, err := s.services.Payments.ListByUser(r.Context(), authUser.ID)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, payments)
+}
+

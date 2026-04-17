@@ -1,17 +1,9 @@
-# CargoTrans — Инструкция по запуску
-
-> ⚠️ **Важно**: Все операции должны выполняться внутри папки нового проекта: `/Users/imnotmanya/Desktop/cargo-trans-mvp-figma-update`
-
-## Запуск проекта для разработки (каждый раз)
-
-Вам нужно открыть **два отдельных терминала**. В VS Code это можно сделать, нажав `+` в панели Terminal (Терминал).
-
 ### Терминал 1 — Бэкенд
 
 Перейдите в папку `backend` и запустите сервер:
 
 ```bash
-cd /Users/imnotmanya/Desktop/cargo-trans-mvp-figma-update/backend
+cd /Users/imnotmanya/Desktop/cargo-figma-update/backend
 go run ./cmd/server
 ```
 
@@ -23,7 +15,7 @@ go run ./cmd/server
 Убедитесь, что вы находитесь в корне новой папки:
 
 ```bash
-cd /Users/imnotmanya/Desktop/cargo-trans-mvp-figma-update
+cd /Users/imnotmanya/Desktop/cargo-figma-update
 npm run dev
 ```
 
@@ -38,7 +30,7 @@ npm run dev
 Если вы запускаете проект с нуля на новом компьютере или вам нужно пересоздать данные:
 
 ```bash
-cd /Users/imnotmanya/Desktop/cargo-trans-mvp-figma-update
+cd /Users/imnotmanya/Desktop/cargo-figma-update
 
 # 1. Создание роли и базы данных (выдаст ошибку "already exists", если уже есть, это нормально)
 psql postgres -c "CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD 'postgres';"

@@ -364,6 +364,11 @@ const translations = {
     findShipment: 'Найти отправку',
     readyForIssue: 'Готово к выдач��',
     issueToClient: 'Выдать клиенту',
+
+    paymentLog: 'Журнал оплат',
+    paymentLogDesc: 'История оплат',
+    totalSum: 'Итоговая сумма',
+    confirmDeleteClient: 'Вы уверены, что хотите удалить этого клиента?',
   },
 
   en: {
@@ -719,6 +724,11 @@ const translations = {
     findShipment: 'Find shipment',
     readyForIssue: 'Ready for issue',
     issueToClient: 'Issue to client',
+
+    paymentLog: 'Payment Log',
+    paymentLogDesc: 'Payment history',
+    totalSum: 'Total Sum',
+    confirmDeleteClient: 'Are you sure you want to delete this client?',
   },
 
   kk: {
@@ -1074,6 +1084,11 @@ const translations = {
     findShipment: 'Жөнелтуді табу',
     readyForIssue: 'Беру үшін дайын',
     issueToClient: 'Клиентке беру',
+
+    paymentLog: 'Төлемдер журналы',
+    paymentLogDesc: 'Төлемдер тарихы',
+    totalSum: 'Жалпы сома',
+    confirmDeleteClient: 'Сіз бұл клиентті өшіруге сенімдісіз бе?',
   }
 };
 

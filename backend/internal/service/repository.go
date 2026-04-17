@@ -35,6 +35,7 @@ type Repository interface {
 	CreatePayment(ctx context.Context, payment model.Payment) (model.Payment, error)
 	GetPayment(ctx context.Context, id string) (model.Payment, error)
 	ListPaymentsByShipment(ctx context.Context, shipmentID string) ([]model.Payment, error)
+	ListPaymentsByUser(ctx context.Context, userID string) ([]model.Payment, error)
 	UpdatePayment(ctx context.Context, payment model.Payment) (model.Payment, error)
 
 	CreateQRCode(ctx context.Context, code model.QRCode) (model.QRCode, error)
@@ -53,6 +54,7 @@ type Repository interface {
 
 	AddAuditLog(ctx context.Context, log model.AuditLog) error
 	ListAuditLogs(ctx context.Context) ([]model.AuditLog, error)
+	ListAuditLogsByUser(ctx context.Context, userID string) ([]model.AuditLog, error)
 
 	GetDashboardReport(ctx context.Context) (model.DashboardReport, error)
 	GetFinanceReport(ctx context.Context) (model.FinanceReport, error)

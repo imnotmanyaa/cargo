@@ -150,6 +150,8 @@ func handleServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrValidation):
 		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrStationMismatch):
+		writeError(w, http.StatusForbidden, "Ошибка привязки станции: вы можете создать отправление только со своей станции.")
 	case errors.Is(err, service.ErrForbidden):
 		writeError(w, http.StatusForbidden, "Forbidden")
 	case errors.Is(err, service.ErrUnauthorized):
@@ -187,7 +189,7 @@ func (s *Server) requireStation(user *service.AuthenticatedUser, station string)
 		return nil
 	}
 	if user.Station == "" || user.Station != station {
-		return service.ErrForbidden
+		return service.ErrStationMismatch
 	}
 	return nil
 }

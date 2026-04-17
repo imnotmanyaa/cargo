@@ -99,3 +99,7 @@ func (s *PaymentService) Confirm(ctx context.Context, id string, confirmedBy str
 	})
 	return payment, shipment, nil
 }
+
+func (s *PaymentService) ListByUser(ctx context.Context, userID string) ([]model.Payment, error) {
+	return s.repo.ListPaymentsByUser(ctx, userID)
+}

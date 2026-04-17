@@ -1,4 +1,4 @@
-import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon } from 'lucide-react';
+import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon, Activity, CreditCard } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LeftSidebarProps {
@@ -22,6 +22,10 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
   ];
 
   const pages = [
+    ...(userRole === 'operator' || userRole === 'manager' || userRole === 'admin' ? [
+      { id: 'audit', label: t('auditLog'), icon: Activity },
+      { id: 'payments', label: t('paymentLog'), icon: CreditCard },
+    ] : []),
     { id: 'settings', label: t('settings'), icon: SettingsIcon },
     { id: 'corporate', label: t('corporate'), icon: Building2 },
   ];

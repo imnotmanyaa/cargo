@@ -18,6 +18,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
   const isDark = theme === 'dark';
   const [clients, setClients] = useState<CorporateClient[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Form State
@@ -54,13 +55,50 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
     fetchClients();
   }, []);
 
+  const handleEditClick = (client: CorporateClient) => {
+    setFormData({
+      companyName: client.company || '',
+      bin: client.contract_number || '',
+      contactPerson: client.name || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      password: '', // Leave empty for edit
+      deposit: client.deposit_balance ? client.deposit_balance.toString() : ''
+    });
+    setEditingClientId(client.id);
+    setShowAddModal(true);
+  };
+
+  const handleDeleteClient = async (id: string) => {
+    if (!window.confirm(t('confirmDeleteClient'))) return;
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (res.ok) {
+        fetchClients();
+      } else {
+        const error = await res.json();
+        alert(error.message || 'Error deleting client');
+      }
+    } catch (error) {
+      console.error('Error deleting client', error);
+    }
+  };
+
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/clients', {
-        method: 'POST',
+      const url = editingClientId ? `/api/clients/${editingClientId}` : '/api/clients';
+      const method = editingClientId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -68,16 +106,17 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
         body: JSON.stringify({
           name: formData.contactPerson,
           email: formData.email,
-          password: formData.password,
+          ...(formData.password ? { password: formData.password } : {}), // only send if filled
           company: formData.companyName,
-          bin: formData.bin, // Backend maps this to contract_number or uses it
+          bin: formData.bin,
           phone: formData.phone,
-          deposit: formData.deposit
+          deposit: formData.deposit ? parseFloat(formData.deposit) : 0
         })
       });
 
       if (res.ok) {
         setShowAddModal(false);
+        setEditingClientId(null);
         setFormData({
           companyName: '',
           bin: '',
@@ -109,7 +148,11 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
           <p className="text-gray-600">{t('corporateClientsDesc')}</p>
         </div>
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setEditingClientId(null);
+            setFormData({ companyName: '', bin: '', contactPerson: '', email: '', phone: '', password: '', deposit: '' });
+            setShowAddModal(true);
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Plus className="w-5 h-5" />
@@ -190,13 +233,17 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                   </div>
 
                   <div className="flex gap-2">
-                    <button className={`p-2 rounded-lg transition-colors ${isDark
+                    <button 
+                      onClick={() => handleEditClick(client)}
+                      className={`p-2 rounded-lg transition-colors ${isDark
                       ? 'text-gray-400 hover:bg-gray-700'
                       : 'text-gray-600 hover:bg-gray-100'
                       }`}>
                       <Edit className="w-5 h-5" />
                     </button>
-                    <button className={`p-2 rounded-lg transition-colors ${isDark
+                    <button 
+                      onClick={() => handleDeleteClient(client.id)}
+                      className={`p-2 rounded-lg transition-colors ${isDark
                       ? 'text-red-400 hover:bg-red-900/20'
                       : 'text-red-600 hover:bg-red-50'
                       }`}>
@@ -215,10 +262,10 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
           <div className={`w-full max-w-2xl p-6 rounded-lg shadow-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {t('addCorporateClient')}
+                {editingClientId ? t('edit') : t('addCorporateClient')}
               </h2>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => { setShowAddModal(false); setEditingClientId(null); }}
                 className={`p-1 rounded-full hover:bg-opacity-10 ${isDark ? 'hover:bg-gray-300 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
               >
                 <X className="w-6 h-6" />
@@ -290,7 +337,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                   <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('passwordLabel')}</label>
                   <input
                     type="password"
-                    required
+                    required={!editingClientId}
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                     className={`w-full p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
@@ -323,7 +370,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                   className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Save className="w-5 h-5" />
-                  {isLoading ? t('creating') : t('createClient')}
+                  {isLoading ? t('processing') : (editingClientId ? t('save') : t('createClient'))}
                 </button>
               </div>
             </form>

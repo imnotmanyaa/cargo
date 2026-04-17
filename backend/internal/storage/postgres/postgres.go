@@ -391,7 +391,7 @@ func (r *Repository) DeleteEmployee(ctx context.Context, id string) error {
 }
 
 func (r *Repository) ListCorporateClients(ctx context.Context) ([]model.User, error) {
-	rows, err := r.pool.Query(ctx, userSelect+` WHERE role = 'corporate' ORDER BY created_at DESC`)
+	rows, err := r.pool.Query(ctx, userSelect+` WHERE role = 'corporate' AND is_active = TRUE ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -603,6 +603,23 @@ func (r *Repository) ListPaymentsByShipment(ctx context.Context, shipmentID stri
 	return items, rows.Err()
 }
 
+func (r *Repository) ListPaymentsByUser(ctx context.Context, userID string) ([]model.Payment, error) {
+	rows, err := r.pool.Query(ctx, `SELECT id, shipment_id, amount, payment_method, pos_terminal_reference, paid_at, confirmed_by, status, created_at FROM payments WHERE confirmed_by = $1 ORDER BY created_at DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []model.Payment
+	for rows.Next() {
+		var payment model.Payment
+		if err := rows.Scan(&payment.ID, &payment.ShipmentID, &payment.Amount, &payment.PaymentMethod, &payment.POSReference, &payment.PaidAt, &payment.ConfirmedBy, &payment.Status, &payment.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, payment)
+	}
+	return items, rows.Err()
+}
+
 func (r *Repository) UpdatePayment(ctx context.Context, payment model.Payment) (model.Payment, error) {
 	_, err := r.pool.Exec(ctx, `UPDATE payments SET amount = $2, payment_method = $3, pos_terminal_reference = $4, paid_at = $5, confirmed_by = $6, status = $7 WHERE id = $1`, payment.ID, payment.Amount, payment.PaymentMethod, payment.POSReference, payment.PaidAt, payment.ConfirmedBy, payment.Status)
 	return payment, err
@@ -736,6 +753,24 @@ func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error
 	}
 	return items, rows.Err()
 }
+
+func (r *Repository) ListAuditLogsByUser(ctx context.Context, userID string) ([]model.AuditLog, error) {
+	rows, err := r.pool.Query(ctx, `SELECT id, user_id, entity_type, entity_id, action, old_value, new_value, station_id, reason, created_at FROM audit_log WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []model.AuditLog
+	for rows.Next() {
+		var item model.AuditLog
+		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 
 func (r *Repository) GetDashboardReport(ctx context.Context) (model.DashboardReport, error) {
 	var report model.DashboardReport

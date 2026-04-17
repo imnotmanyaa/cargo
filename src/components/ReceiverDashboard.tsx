@@ -31,6 +31,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const [activeTab, setActiveTab] = useState<'loading' | 'arrival' | 'audit'>('loading');
   const [auditLogs, setAuditLogs] = useState<{ id: string; time: string; action: string; shipmentId: string }[]>([]);
   const [scanInput, setScanInput] = useState('');
+  const [loadingScanInput, setLoadingScanInput] = useState('');
   const [processing, setProcessing] = useState(false);
 
   const fetchShipments = async () => {
@@ -71,7 +72,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     const shipment = shipments.find(s => s.id === shipmentId);
     if (!shipment) return;
 
-    const newStatus = shipment.loaded ? 'В пути' : 'Погружен';
+    const newStatus = shipment.loaded ? 'Готов к погрузке' : 'Погружен';
 
     try {
       const token = localStorage.getItem('token');
@@ -149,6 +150,29 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleLoadingScan = async () => {
+    if (!loadingScanInput.trim()) return;
+    const shipmentId = loadingScanInput.trim();
+    
+    setProcessing(true);
+    const shipment = shipments.find(s => s.id === shipmentId);
+    if (!shipment) {
+      alert(`Груз с ID ${shipmentId} не найден в плане на день`);
+      setProcessing(false);
+      return;
+    }
+    
+    if (shipment.loaded) {
+        alert("Груз уже отмечен как погруженный!");
+        setProcessing(false);
+        return;
+    }
+    
+    await toggleShipmentLoaded(shipmentId);
+    setLoadingScanInput('');
+    setProcessing(false);
   };
 
   // Group shipments by destination, date AND train time for accurate "train" grouping
@@ -273,6 +297,31 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
           </div>
         ) : (
           <div className="grid gap-4">
+            <div className={`p-4 rounded-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <Scan className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <input
+                    type="text"
+                    value={loadingScanInput}
+                    onChange={(e) => setLoadingScanInput(e.target.value)}
+                    placeholder="Введи ID груза или сканируй QR-код..."
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
+                      ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500'
+                      : 'bg-white border-gray-300'}`}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLoadingScan()}
+                  />
+                </div>
+                <button
+                  onClick={handleLoadingScan}
+                  disabled={!loadingScanInput.trim() || processing}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                  {processing ? 'Обработка...' : 'Погрузить'}
+                </button>
+              </div>
+            </div>
+
             {tasks.map((task) => {
               const loadedCount = task.shipments.filter(s => s.loaded).length;
               const totalCount = task.shipments.length;

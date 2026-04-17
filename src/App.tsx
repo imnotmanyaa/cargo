@@ -15,6 +15,8 @@ import { Reports } from './components/Reports';
 import { WMS } from './components/WMS';
 import { Settings } from './components/Settings';
 import { CorporateClients } from './components/CorporateClients';
+import { AuditLog } from './components/AuditLog';
+import { PaymentLog } from './components/PaymentLog';
 import { CorporateDashboard } from './components/CorporateDashboard';
 import { IndividualDashboard } from './components/IndividualDashboard';
 import { ReceiverDashboard } from './components/ReceiverDashboard';
@@ -241,6 +243,10 @@ function AppContent() {
         return <Settings theme={theme} />;
       case 'corporate':
         return <CorporateClients theme={theme} />;
+      case 'audit':
+        return <AuditLog theme={theme} />;
+      case 'payments':
+        return <PaymentLog theme={theme} />;
       default:
         return <NewShipment theme={theme} />;
     }

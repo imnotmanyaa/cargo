@@ -16,6 +16,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrDuplicateEmail     = errors.New("email already exists")
 	ErrNotFound           = errors.New("not found")
+	ErrStationMismatch    = errors.New("station mismatch")
 	ErrInvalidTransition  = errors.New("invalid status transition")
 	ErrInvalidState       = errors.New("invalid state")
 	ErrInsufficientFunds  = errors.New("недостаточно средств на депозите")
