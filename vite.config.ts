@@ -1,10 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
   plugins: [
     react(),
+    legacy({
+      targets: ['chrome >= 30', 'android >= 4.4', 'safari >= 7', 'edge >= 12'],
+      additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
+      polyfills: true,
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
@@ -53,6 +59,8 @@ export default defineConfig({
   ],
   server: {
     allowedHosts: true,
+    host: '0.0.0.0',
+    port: 5173,
     proxy: {
       '/api': 'http://localhost:8080',
       '/socket.io': {
@@ -61,4 +69,15 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
+    proxy: {
+      '/api': 'http://localhost:8080',
+      '/socket.io': {
+        target: 'ws://localhost:8080',
+        ws: true,
+      },
+    },
+  }
 });

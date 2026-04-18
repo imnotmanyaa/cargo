@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Package, Train, CheckCircle, MapPin, RefreshCw, QrCode, Scan, Clock, ClipboardList } from 'lucide-react';
 
 interface Shipment {
   id: string;
+  shipment_number?: string;
   client_name: string;
   from_station: string;
   to_station: string;
@@ -33,6 +34,56 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const [scanInput, setScanInput] = useState('');
   const [loadingScanInput, setLoadingScanInput] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [scanResult, setScanResult] = useState<{ status: 'success' | 'error', message: string } | null>(null);
+
+  const loadingInputRef = useRef<HTMLInputElement>(null);
+  const arrivalInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus logic for hardware scanner
+  useEffect(() => {
+    if (activeTab === 'loading') {
+      loadingInputRef.current?.focus();
+    } else if (activeTab === 'arrival') {
+      arrivalInputRef.current?.focus();
+    }
+  }, [activeTab, scanResult]);
+
+  // Hardware key listeners (Arrow Keys for Tab Switching)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Allow users to navigate text if they are actively typing an ID
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        const input = document.activeElement as HTMLInputElement;
+        if (input.value.length > 0) return; 
+      }
+
+      if (e.key === 'ArrowRight') {
+        setActiveTab(prev => {
+          if (prev === 'loading') return 'arrival';
+          if (prev === 'arrival') return 'audit';
+          return 'loading';
+        });
+      } else if (e.key === 'ArrowLeft') {
+        setActiveTab(prev => {
+          if (prev === 'loading') return 'audit';
+          if (prev === 'arrival') return 'loading';
+          return 'arrival';
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Show scan result for 1.5 seconds
+  useEffect(() => {
+    if (scanResult) {
+      const timer = setTimeout(() => {
+        setScanResult(null);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [scanResult]);
 
   const fetchShipments = async () => {
     if (!user?.station) return;
@@ -63,14 +114,22 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     fetchShipments();
 
     // Poll every 10 seconds for real-time updates
-    // (backend uses Socket.IO; polling is used here for simplicity)
     const interval = setInterval(fetchShipments, 10000);
     return () => clearInterval(interval);
   }, [user?.station]);
 
-  const toggleShipmentLoaded = async (shipmentId: string) => {
-    const shipment = shipments.find(s => s.id === shipmentId);
+  useEffect(() => {
+    if (activeTab === 'loading' && loadingInputRef.current) {
+      setTimeout(() => loadingInputRef.current?.focus(), 50);
+    } else if (activeTab === 'arrival' && arrivalInputRef.current) {
+      setTimeout(() => arrivalInputRef.current?.focus(), 50);
+    }
+  }, [activeTab]);
+
+  const toggleShipmentLoaded = async (idOrNumber: string) => {
+    const shipment = shipments.find(s => s.id === idOrNumber || s.shipment_number === idOrNumber);
     if (!shipment) return;
+    const shipmentId = shipment.id;
 
     const newStatus = shipment.loaded ? 'Готов к погрузке' : 'Погружен';
 
@@ -104,13 +163,43 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     }
   };
 
-  const handleArrivalScan = async () => {
-    if (!scanInput.trim() || !user?.station) return;
+  const extractId = (input: string) => {
+    const trimmed = input.trim();
+    
+    // Case 1: JSON (from ShipmentLabel.tsx)
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed.id) return parsed.id;
+      } catch (e) { /* ignore */ }
+    }
+    
+    // Case 2: URL containing /shipment/ID
+    if (trimmed.includes('/shipment/')) {
+      const parts = trimmed.split('/shipment/');
+      if (parts.length > 1) {
+        const potentialId = parts[1].split('?')[0].split('#')[0];
+        if (potentialId) return potentialId;
+      }
+    }
+
+    // Case 3: Just find something that looks like SH-XXXX
+    const shMatch = trimmed.match(/SH-[A-Z0-9-]+/i);
+    if (shMatch) return shMatch[0].toUpperCase();
+
+    return trimmed;
+  };
+
+  const handleArrivalScan = async (forcedValue?: string | React.MouseEvent) => {
+    const rawValue = typeof forcedValue === 'string' ? forcedValue : scanInput;
+    const shipmentId = extractId(rawValue);
+    if (!shipmentId || !user?.station) return;
 
     setProcessing(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/shipments/${scanInput}/transit`, {
+      // Backend now handles both UUID and ShipmentNumber (SH-XXXXXX)
+      const response = await fetch(`/api/shipments/${shipmentId}/transit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,51 +215,59 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
       if (response.ok) {
         const updated = await response.json();
         if (updated.status === 'Прибыл') {
-          alert(`Груз ${updated.id} успешно принят! Статус: Прибыл.`);
+          showFeedback('success', `Груз ${updated.id} успешно принят!`);
         } else {
-          alert(`Груз ${updated.id} обновлен. Статус: ${updated.status}`);
+          showFeedback('success', `Груз ${updated.id} обновлен.`);
         }
 
         setAuditLogs(prev => [{
           id: Date.now().toString(),
           time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
           action: 'Прибытие зафиксировано',
-          shipmentId: updated.id || scanInput
+          shipmentId: updated.shipment_number || updated.id || shipmentId
         }, ...prev]);
 
         setScanInput('');
         fetchShipments();
       } else {
         const err = await response.json();
-        alert(err.error || 'Ошибка при сканировании');
+        showFeedback('error', err.error || 'Ошибка при сканировании');
       }
     } catch (error) {
       console.error('Scan error:', error);
-      alert('Ошибка сети');
+      showFeedback('error', 'Ошибка сети');
     } finally {
       setProcessing(false);
+      setScanInput(''); // Clear input after processing
     }
   };
 
-  const handleLoadingScan = async () => {
-    if (!loadingScanInput.trim()) return;
-    const shipmentId = loadingScanInput.trim();
+  const showFeedback = (status: 'success' | 'error', message: string) => {
+    setScanResult({ status, message });
+  };
+
+  const handleLoadingScan = async (forcedValue?: string | React.MouseEvent) => {
+    const rawValue = typeof forcedValue === 'string' ? forcedValue : loadingScanInput;
+    const shipmentId = extractId(rawValue);
+    if (!shipmentId) return;
     
     setProcessing(true);
-    const shipment = shipments.find(s => s.id === shipmentId);
+    // Find by either UUID or shipment_number
+    const shipment = shipments.find(s => s.id === shipmentId || s.shipment_number === shipmentId);
     if (!shipment) {
-      alert(`Груз с ID ${shipmentId} не найден в плане на день`);
+      showFeedback('error', `Груз ${shipmentId} не найден в плане`);
       setProcessing(false);
       return;
     }
     
     if (shipment.loaded) {
-        alert("Груз уже отмечен как погруженный!");
+        showFeedback('error', "Груз уже погружен!");
         setProcessing(false);
         return;
     }
     
     await toggleShipmentLoaded(shipmentId);
+    showFeedback('success', `Груз ${shipmentId} погружен`);
     setLoadingScanInput('');
     setProcessing(false);
   };
@@ -233,50 +330,75 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     });
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className={`text-2xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('receiverDashboard')}</h1>
-          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+    <div className="max-w-6xl mx-auto px-2 sm:px-4">
+      {/* FULL SCREEN SCAN FEEDBACK */}
+      {scanResult && (
+        <div style={{ backgroundColor: scanResult.status === 'success' ? '#16a34a' : '#dc2626' }} className={`fixed inset-0 z-50 flex items-center justify-center animate-in fade-in zoom-in duration-200`}>
+          <div className="text-center p-6">
+            <div className="mb-4 flex justify-center">
+              {scanResult.status === 'success' ? (
+                <CheckCircle className="w-24 h-24 text-white animate-bounce" />
+              ) : (
+                <QrCode className="w-24 h-24 text-white animate-pulse" />
+              )}
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-2">
+              {scanResult.status === 'success' ? 'УСПЕХ' : 'ОШИБКА'}
+            </h2>
+            <p className="text-xl md:text-2xl text-white opacity-90">
+              {scanResult.message}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-4 sm:mb-6 flex flex-col md:flex-row md:items-center justify-between" style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '12px' }}>
+          <h1 className={`text-xl sm:text-2xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('receiverDashboard')}</h1>
+          <p className={`text-xs sm:text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Станция: <span className="font-medium">{user?.station || 'Не указана'}</span>
           </p>
         </div>
-        <div className="flex gap-2">
+        <div style={{ display: 'flex', flexWrap: 'wrap', padding: '4px', margin: '-4px' }}>
           <button
             onClick={() => setActiveTab('loading')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'loading'
+            style={{ margin: '4px', minWidth: '80px', flex: '1 1 20%', padding: '12px 8px' }}
+            className={`rounded-lg font-medium text-sm transition-colors ${activeTab === 'loading'
               ? 'bg-blue-600 text-white'
-              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
+              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-300')
               }`}
           >
-            План на день
+            {t('loadingPlan')}
           </button>
           <button
             onClick={() => setActiveTab('arrival')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'arrival'
+            style={{ margin: '4px', minWidth: '80px', flex: '1 1 20%', padding: '12px 8px' }}
+            className={`rounded-lg font-medium text-sm transition-colors ${activeTab === 'arrival'
               ? 'bg-blue-600 text-white'
-              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
+              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-300')
               }`}
           >
-            Прибытие
+            {t('arrivalTab')}
           </button>
           <button
             onClick={() => setActiveTab('audit')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'audit'
+            style={{ margin: '4px', minWidth: '80px', flex: '1 1 20%', padding: '12px 8px' }}
+            className={`rounded-lg font-medium text-sm transition-colors ${activeTab === 'audit'
               ? 'bg-blue-600 text-white'
-              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50')
+              : (isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-300')
               }`}
           >
-            Журнал аудита
+            {t('auditTab')}
           </button>
           <button
             onClick={fetchShipments}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isDark
+            style={{ margin: '4px', padding: '12px 16px' }}
+            className={`rounded-lg transition-colors border border-gray-300 ${isDark
               ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -286,13 +408,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         loading ? (
           <div className="text-center py-12">
             <RefreshCw className={`w-8 h-8 mx-auto animate-spin ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-            <p className={`mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Загрузка...</p>
+            <p className={`mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('processing')}</p>
           </div>
         ) : tasks.length === 0 ? (
           <div className={`text-center py-12 rounded-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <CheckCircle className={`w-12 h-12 mx-auto ${isDark ? 'text-green-500' : 'text-green-400'}`} />
             <p className={`mt-2 font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-              Нет грузов для погрузки
+              {t('noCargoToLoad')}
             </p>
           </div>
         ) : (
@@ -302,14 +424,23 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 <div className="flex-1 relative">
                   <Scan className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                   <input
+                    ref={loadingInputRef}
+                    autoFocus
                     type="text"
+                    inputMode="none"
                     value={loadingScanInput}
                     onChange={(e) => setLoadingScanInput(e.target.value)}
-                    placeholder="Введи ID груза или сканируй QR-код..."
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
+                    placeholder={t('scanQrPlaceholder')}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base ${isDark
                       ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500'
                       : 'bg-white border-gray-300'}`}
-                    onKeyDown={(e) => e.key === 'Enter' && handleLoadingScan()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLoadingScan(e.currentTarget.value);
+                        e.currentTarget.blur();
+                      }
+                    }}
                   />
                 </div>
                 <button
@@ -317,7 +448,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                   disabled={!loadingScanInput.trim() || processing}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                 >
-                  {processing ? 'Обработка...' : 'Погрузить'}
+                  {processing ? t('processing') : t('loadButton')}
                 </button>
               </div>
             </div>
@@ -399,38 +530,36 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                               )}
                             </div>
 
-                            <div className="flex-1 grid grid-cols-4 gap-4 items-center">
+                            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
                               <div>
-                                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Груз</div>
-                                <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.id}</div>
+                                <div className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>ID</div>
+                                <div className={`font-bold text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.shipment_number || shipment.id.substring(0, 8)}</div>
+                              </div>
+                              <div className="hidden sm:block">
+                                <div className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Клиент</div>
+                                <div className={`font-medium text-sm truncate ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.client_name || '—'}</div>
                               </div>
                               <div>
-                                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Клиент</div>
-                                <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.client_name || 'Неизвестный'}</div>
-                              </div>
-                              <div>
-                                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Назначение</div>
+                                <div className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Куда</div>
                                 <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.to_station}</div>
                               </div>
-                              <div>
-                                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Отправление</div>
-                                <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                                  {new Date(shipment.departure_date).toLocaleDateString()} {shipment.train_time}
-                                </div>
+                              <div className="hidden sm:block">
+                                <div className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Время</div>
+                                <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.train_time}</div>
                               </div>
                             </div>
                           </div>
-
+ 
                           <button
                             onClick={() => toggleShipmentLoaded(shipment.id)}
-                            className={`ml-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${shipment.loaded
+                            className={`ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${shipment.loaded
                               ? (isDark
-                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300')
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                                ? 'bg-gray-700 text-gray-300'
+                                : 'bg-gray-200 text-gray-700')
+                              : 'bg-blue-600 text-white'
                               }`}
                           >
-                            {shipment.loaded ? 'Отменить' : 'Погружено'}
+                            {shipment.loaded ? 'Отмен' : 'Груз'}
                           </button>
                         </div>
                       </div>
@@ -455,11 +584,21 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
             <div className="mb-6 space-y-4">
               <input
+                ref={arrivalInputRef}
+                autoFocus
                 type="text"
+                inputMode="none"
                 value={scanInput}
                 onChange={(e) => setScanInput(e.target.value)}
-                placeholder="Введи ID груза (SH-...)"
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleArrivalScan(e.currentTarget.value);
+                    e.currentTarget.blur();
+                  }
+                }}
+                placeholder="Сканируй штрих-код..."
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base ${isDark
                   ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500'
                   : 'bg-white border-gray-300'}`}
               />

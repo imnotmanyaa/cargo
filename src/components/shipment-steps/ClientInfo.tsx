@@ -382,7 +382,7 @@ export function ClientInfo({
               className="w-4 h-4 text-blue-600 rounded"
             />
             <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-              {t('recipientIsAnotherPerson')}
+              {t('recipientIsAnotherPerson')} <span className="text-gray-400 font-normal text-xs ml-1">(необязательно)</span>
             </span>
           </label>
 
@@ -391,7 +391,7 @@ export function ClientInfo({
               <div className="grid gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {t('receiverName')}
+                    {t('receiverName')} <span className="text-gray-400 font-normal text-xs ml-1">(необязательно)</span>
                   </label>
                   <input
                     type="text"
@@ -406,7 +406,7 @@ export function ClientInfo({
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {t('receiverPhone')}
+                    {t('receiverPhone')} <span className="text-gray-400 font-normal text-xs ml-1">(необязательно)</span>
                   </label>
                   <input
                     type="tel"

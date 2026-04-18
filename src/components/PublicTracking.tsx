@@ -101,7 +101,7 @@ export function PublicTracking({ shipmentId }: PublicTrackingProps) {
                         <div className="flex justify-between items-start">
                             <div>
                                 <h1 className="text-2xl font-bold">Отслеживание груза</h1>
-                                <p className="mt-2 text-blue-100">Номер отслеживания: <span className="font-mono font-bold">{shipment.id}</span></p>
+                                <p className="mt-2 text-blue-100">Номер отслеживания: <span className="font-mono font-bold">{shipment.shipment_number || shipment.id.substring(0, 8)}</span></p>
                             </div>
                             <button
                                 onClick={() => window.location.reload()}

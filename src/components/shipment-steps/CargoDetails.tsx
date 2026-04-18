@@ -171,7 +171,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('declaredValue')}
+            {t('declaredValue')} <span className="text-gray-400 font-normal text-xs">(необязательно)</span>
           </label>
           <input
             type="number"
@@ -185,7 +185,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('cargoDescription')}
+            {t('cargoDescription')} <span className="text-gray-400 font-normal text-xs">(необязательно)</span>
           </label>
           <textarea
             value={data.description}

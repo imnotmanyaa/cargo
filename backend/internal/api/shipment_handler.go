@@ -32,7 +32,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading); err != nil {
 		handleServiceError(w, err)
 		return
 	}

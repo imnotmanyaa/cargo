@@ -116,7 +116,13 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 }
 
 func (s *ShipmentService) Get(ctx context.Context, id string) (model.Shipment, error) {
-	return s.repo.GetShipmentByID(ctx, id)
+	// Try UUID first
+	shipment, err := s.repo.GetShipmentByID(ctx, id)
+	if err == nil {
+		return shipment, nil
+	}
+	// Fallback to ShipmentNumber/TrackingCode
+	return s.repo.GetShipmentByTrackingCode(ctx, id)
 }
 
 func (s *ShipmentService) List(ctx context.Context, filter model.ShipmentFilter) ([]model.Shipment, error) {
@@ -146,7 +152,7 @@ func (s *ShipmentService) Edit(ctx context.Context, shipment model.Shipment) (mo
 }
 
 func (s *ShipmentService) CalculateTariff(ctx context.Context, id string) (model.Shipment, error) {
-	shipment, err := s.repo.GetShipmentByID(ctx, id)
+	shipment, err := s.Get(ctx, id)
 	if err != nil {
 		return model.Shipment{}, err
 	}
@@ -180,7 +186,7 @@ func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, opera
 	if station != nil {
 		_, _ = s.repo.CreateScanEvent(ctx, model.ScanEvent{
 			ID:              uuid.NewString(),
-			ShipmentID:      id,
+			ShipmentID:      shipment.ID,
 			QRCodeID:        shipment.QRCodeID,
 			EventType:       "LOAD",
 			StationID:       station,
@@ -199,7 +205,7 @@ func (s *ShipmentService) Dispatch(ctx context.Context, id string, operatorID, o
 }
 
 func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station string, operatorID, operatorName *string) (model.Shipment, error) {
-	shipment, err := s.repo.GetShipmentByID(ctx, id)
+	shipment, err := s.Get(ctx, id)
 	if err != nil {
 		return model.Shipment{}, err
 	}
@@ -225,7 +231,7 @@ func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station st
 	}
 	_, _ = s.repo.CreateTransitEvent(ctx, model.TransitEvent{
 		ID:         uuid.NewString(),
-		ShipmentID: id,
+		ShipmentID: shipment.ID,
 		StationID:  station,
 		UserID:     operatorID,
 		EventTime:  time.Now().UTC(),
@@ -234,7 +240,7 @@ func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station st
 		ID:         uuid.NewString(),
 		UserID:     operatorID,
 		EntityType: "shipment",
-		EntityID:   id,
+		EntityID:   shipment.ID,
 		Action:     "TRANSIT_EVENT",
 		NewValue:   ptr(station),
 		StationID:  ptr(station),
@@ -244,7 +250,7 @@ func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station st
 }
 
 func (s *ShipmentService) Arrive(ctx context.Context, id string, station string, operatorID, operatorName *string) (model.Shipment, *model.Notification, error) {
-	shipment, err := s.repo.GetShipmentByID(ctx, id)
+	shipment, err := s.Get(ctx, id)
 	if err != nil {
 		return model.Shipment{}, nil, err
 	}
@@ -257,7 +263,7 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 	}
 	_, _ = s.repo.CreateArrivalEvent(ctx, model.ArrivalEvent{
 		ID:                      uuid.NewString(),
-		ShipmentID:              id,
+		ShipmentID:              shipment.ID,
 		StationID:               station,
 		UserID:                  operatorID,
 		EventTime:               time.Now().UTC(),
@@ -286,7 +292,7 @@ func (s *ShipmentService) Issue(ctx context.Context, id string, operatorID, oper
 }
 
 func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, operatorID, operatorName *string, req IssueRequest) (model.Shipment, error) {
-	shipment, err := s.repo.GetShipmentByID(ctx, id)
+	shipment, err := s.Get(ctx, id)
 	if err != nil {
 		return model.Shipment{}, err
 	}
@@ -465,7 +471,7 @@ func (s *ShipmentService) ActionContext(ctx context.Context, id string, user *Au
 }
 
 func (s *ShipmentService) transition(ctx context.Context, id string, next model.ShipmentLifecycle, operatorID, operatorName, station *string, action string, transportUnitID *string, reason ...*string) (model.Shipment, error) {
-	shipment, err := s.repo.GetShipmentByID(ctx, id)
+	shipment, err := s.Get(ctx, id)
 	if err != nil {
 		return model.Shipment{}, err
 	}
@@ -495,7 +501,7 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 		reasonText = reason[0]
 	}
 	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{
-		ShipmentID:   id,
+		ShipmentID:   shipment.ID,
 		Action:       action,
 		OperatorID:   operatorID,
 		OperatorName: operatorName,
@@ -510,7 +516,7 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 		ID:         uuid.NewString(),
 		UserID:     operatorID,
 		EntityType: "shipment",
-		EntityID:   id,
+		EntityID:   shipment.ID,
 		Action:     action,
 		OldValue:   ptr(string(old)),
 		NewValue:   ptr(string(next)),
@@ -528,7 +534,7 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 		model.ShipmentPaymentPending:  {model.ShipmentPaid, model.ShipmentCancelled},
 		model.ShipmentPaid:            {model.ShipmentReadyForLoading, model.ShipmentOnHold},
 		model.ShipmentReadyForLoading: {model.ShipmentLoaded, model.ShipmentOnHold},
-		model.ShipmentLoaded:          {model.ShipmentInTransit, model.ShipmentDamaged, model.ShipmentReadyForLoading},
+		model.ShipmentLoaded:          {model.ShipmentInTransit, model.ShipmentArrived, model.ShipmentDamaged, model.ShipmentReadyForLoading},
 		model.ShipmentInTransit:       {model.ShipmentArrived, model.ShipmentOnHold, model.ShipmentDamaged},
 		model.ShipmentArrived:         {model.ShipmentReadyForIssue, model.ShipmentDamaged},
 		model.ShipmentReadyForIssue:   {model.ShipmentIssued},
@@ -563,16 +569,8 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 		return fmt.Errorf("%w: weight is required", ErrValidation)
 	case req.Dimensions == "":
 		return fmt.Errorf("%w: dimensions are required", ErrValidation)
-	case req.Description == "":
-		return fmt.Errorf("%w: description is required", ErrValidation)
-	case req.Value == "":
-		return fmt.Errorf("%w: declared value is required", ErrValidation)
 	case req.QuantityPlaces <= 0:
 		return fmt.Errorf("%w: quantity_places must be greater than zero", ErrValidation)
-	case req.ReceiverName == nil || *req.ReceiverName == "":
-		return fmt.Errorf("%w: receiver_name is required", ErrValidation)
-	case req.ReceiverPhone == nil || *req.ReceiverPhone == "":
-		return fmt.Errorf("%w: receiver_phone is required", ErrValidation)
 	}
 	return nil
 }
@@ -593,16 +591,8 @@ func validateEditableShipment(shipment model.Shipment) error {
 		return fmt.Errorf("%w: weight is required", ErrValidation)
 	case shipment.Dimensions == "":
 		return fmt.Errorf("%w: dimensions are required", ErrValidation)
-	case shipment.Description == "":
-		return fmt.Errorf("%w: description is required", ErrValidation)
-	case shipment.Value == "":
-		return fmt.Errorf("%w: declared value is required", ErrValidation)
 	case shipment.QuantityPlaces <= 0:
 		return fmt.Errorf("%w: quantity_places must be greater than zero", ErrValidation)
-	case shipment.ReceiverName == nil || *shipment.ReceiverName == "":
-		return fmt.Errorf("%w: receiver_name is required", ErrValidation)
-	case shipment.ReceiverPhone == nil || *shipment.ReceiverPhone == "":
-		return fmt.Errorf("%w: receiver_phone is required", ErrValidation)
 	}
 	return nil
 }

@@ -105,7 +105,7 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
 
                     <div>
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-medium text-blue-600">{shipment.id}</span>
+                        <span className="text-sm font-medium text-blue-600">{shipment.shipment_number || shipment.id.substring(0, 8)}</span>
                         <span className={`text-xs px-2 py-1 rounded-full ${shipment.status === 'Прибыл'
                           ? 'bg-green-100 text-green-700'
                           : 'bg-blue-100 text-blue-700'

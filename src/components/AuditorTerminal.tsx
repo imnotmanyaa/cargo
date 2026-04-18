@@ -152,7 +152,10 @@ export function AuditorTerminal() {
   }, [isProcessing, user]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleScan(scanValue);
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleScan(e.currentTarget.value);
+    }
   };
 
   const resultBg =

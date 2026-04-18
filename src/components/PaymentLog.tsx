@@ -40,7 +40,7 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
     }
   };
 
-  const totalSum = payments.reduce((acc, p) => acc + (p.status === 'confirmed' ? p.amount : 0), 0);
+  const totalSum = payments.reduce((acc, p) => acc + ((p.status || '').toLowerCase() === 'confirmed' ? p.amount : 0), 0);
 
   return (
     <div>
@@ -97,12 +97,12 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        payment.status === 'confirmed' 
+                        (payment.status || '').toLowerCase() === 'confirmed' 
                           ? (isDark ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-700')
                           : (isDark ? 'bg-yellow-900/50 text-yellow-400' : 'bg-yellow-100 text-yellow-700')
                       }`}>
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        {payment.status === 'confirmed' ? 'Подтвержден' : 'Ожидает'}
+                        {(payment.status || '').toLowerCase() === 'confirmed' ? 'Подтвержден' : 'Ожидает'}
                       </span>
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>

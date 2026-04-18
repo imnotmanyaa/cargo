@@ -189,7 +189,8 @@ export function ScannerTerminal() {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleScan(scanValue);
+      e.preventDefault();
+      handleScan(e.currentTarget.value);
     }
   };
 

@@ -15,6 +15,8 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
         case 'В пути': return 'In Transit';
         case 'Погружен': return 'Loaded';
         case 'Прибыл': return 'Arrived';
+        case 'Готов к выдаче': return 'Ready for Issue';
+        case 'Выдан': return 'Issued';
         default: return status;
       }
     }
@@ -23,6 +25,8 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
         case 'В пути': return 'Жолда';
         case 'Погружен': return 'Тиелген';
         case 'Прибыл': return 'Келді';
+        case 'Готов к выдаче': return 'Беруге дайын';
+        case 'Выдан': return 'Берілді';
         default: return status;
       }
     }
@@ -34,6 +38,8 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
       case 'В пути': return 'bg-blue-100 text-blue-700';
       case 'Погружен': return 'bg-purple-100 text-purple-700';
       case 'Прибыл': return 'bg-green-100 text-green-700';
+      case 'Готов к выдаче': return 'bg-yellow-100 text-yellow-700';
+      case 'Выдан': return 'bg-emerald-100 text-emerald-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -147,7 +153,7 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
                       <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
                         <Package className={`w-5 h-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
                       </div>
-                      <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.id}</span>
+                      <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.shipment_number || shipment.id.substring(0, 8)}</span>
                     </div>
                   </td>
                   <td className={`px-6 py-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.client}</td>

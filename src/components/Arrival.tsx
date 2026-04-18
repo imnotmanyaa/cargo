@@ -39,7 +39,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/shipments/${id}/ready-for-issue`, {
+      const res = await fetch(`/api/shipments/${id}/issue`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

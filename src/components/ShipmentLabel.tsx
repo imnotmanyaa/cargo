@@ -71,12 +71,7 @@ export function ShipmentLabel({ data, t: _t }: ShipmentLabelProps) {
                 {/* QR Code */}
                 <div className="flex flex-col items-center justify-center pt-2">
                     <QRCodeSVG
-                        value={JSON.stringify({
-                            id: data.id || ('SH-' + Math.floor(Math.random() * 10000)), // Use actual ID if available
-                            from: data.fromStation,
-                            to: data.toStation,
-                            client: data.clientName
-                        })}
+                        value={data.shipment_number || data.id}
                         size={128}
                     />
                     <p className="mt-2 text-xs font-mono">Scan for tracking</p>

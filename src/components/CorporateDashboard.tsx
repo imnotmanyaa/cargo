@@ -149,7 +149,7 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
                 }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <span className="text-sm font-medium text-blue-600">{shipment.id}</span>
+                    <span className="text-sm font-medium text-blue-600">{shipment.shipment_number || shipment.id.substring(0, 8)}</span>
                     <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{shipment.from} → {shipment.to}</p>
                   </div>
                   <span className={`text-xs px-3 py-1 rounded-full ${shipment.status === 'Прибыл' ? 'bg-green-100 text-green-700' :

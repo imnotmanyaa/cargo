@@ -239,7 +239,10 @@ export function InspectorDashboard({ theme }: ThemeProps) {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleCheckParcel();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCheckParcel(e.currentTarget.value);
+    }
   };
 
   const cardBg = theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white';

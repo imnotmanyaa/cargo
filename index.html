@@ -1,6 +1,28 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // 1. Polyfill globalThis for ancient Android WebViews
+      if (typeof globalThis === 'undefined') {
+        window.globalThis = window;
+      }
+      
+      // 2. Visual error catcher for debugging the white screen on Zebra MC36
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        var errDiv = document.createElement('div');
+        errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;z-index:999999;padding:10px;font-size:12px;font-family:monospace;word-break:break-all;';
+        errDiv.innerHTML = 'JS ERROR: ' + msg + '<br>Line: ' + lineNo + '<br>URL: ' + url;
+        document.body.appendChild(errDiv);
+        return false;
+      };
+      
+      window.addEventListener('unhandledrejection', function(event) {
+        var errDiv = document.createElement('div');
+        errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:orange;color:white;z-index:999999;padding:10px;font-size:12px;font-family:monospace;word-break:break-all;';
+        errDiv.innerHTML = 'PROMISE ERROR: ' + (event.reason && event.reason.message ? event.reason.message : event.reason);
+        document.body.appendChild(errDiv);
+      });
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -369,6 +369,14 @@ const translations = {
     paymentLogDesc: 'История оплат',
     totalSum: 'Итоговая сумма',
     confirmDeleteClient: 'Вы уверены, что хотите удалить этого клиента?',
+    
+    // Receiver Tabs
+    loadingPlan: 'План',
+    arrivalTab: 'Прибытие',
+    auditTab: 'Журнал',
+    noCargoToLoad: 'Нет грузов для погрузки',
+    scanQrPlaceholder: 'Сканируй QR-код...',
+    loadButton: 'Погрузить',
   },
 
   en: {
@@ -729,6 +737,14 @@ const translations = {
     paymentLogDesc: 'Payment history',
     totalSum: 'Total Sum',
     confirmDeleteClient: 'Are you sure you want to delete this client?',
+
+    // Receiver Tabs
+    loadingPlan: 'Plan',
+    arrivalTab: 'Arrival',
+    auditTab: 'Log',
+    noCargoToLoad: 'No cargo to load',
+    scanQrPlaceholder: 'Scan QR code...',
+    loadButton: 'Load',
   },
 
   kk: {
@@ -1086,9 +1102,17 @@ const translations = {
     issueToClient: 'Клиентке беру',
 
     paymentLog: 'Төлемдер журналы',
-    paymentLogDesc: 'Төлемдер тарихы',
+    paymentLogDesc: 'Төлем тарихы',
     totalSum: 'Жалпы сома',
-    confirmDeleteClient: 'Сіз бұл клиентті өшіруге сенімдісіз бе?',
+    confirmDeleteClient: 'Бұл клиентті жойғыңыз келетініне сенімдісіз бе?',
+
+    // Receiver Tabs
+    loadingPlan: 'Жоспар',
+    arrivalTab: 'Келу',
+    auditTab: 'Журнал',
+    noCargoToLoad: 'Жүктеуге жүк жоқ',
+    scanQrPlaceholder: 'QR-код сканерлеңіз...',
+    loadButton: 'Жүктеу',
   }
 };
 

@@ -52,7 +52,7 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Печать ${shipment.id}</title>
+            <title>Печать ${shipment.shipment_number || shipment.id.substring(0, 8)}</title>
             <style>
               body {
                 font-family: 'Courier New', monospace;
@@ -103,7 +103,7 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
           <body>
             <div class="header">CargoTrans</div>
             
-            <div class="shipment-id">${shipment.id}</div>
+            <div class="shipment-id">${shipment.shipment_number || shipment.id.substring(0, 8)}</div>
             
             <div class="qr-container">${qrSvg}</div>
             
@@ -137,7 +137,7 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-xl font-semibold text-gray-900">{t('details')} {shipment.id}</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('details')} {shipment.shipment_number || shipment.id.substring(0, 8)}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -270,12 +270,12 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
             <h3 className="text-sm font-semibold text-gray-900 mb-3">QR-код отправки</h3>
             <div id="qr-code-container" className="p-2 bg-white border-2 border-gray-300 rounded-lg shadow-sm">
               <QRCodeSVG
-                value={`${window.location.origin}/shipment/${shipment.id}`}
-                size={160}
+                value={shipment.shipment_number || shipment.id.substring(0, 8)}
+                size={96}
                 level={"H"}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-2">{shipment.id}</p>
+            <p className="text-xs text-gray-500 mt-2">{shipment.shipment_number || shipment.id.substring(0, 8)}</p>
           </div>
         </div>
 

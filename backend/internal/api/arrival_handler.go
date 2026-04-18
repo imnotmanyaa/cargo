@@ -65,7 +65,7 @@ func (s *Server) handleReadyForIssue(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleReceiver, model.RoleIssue, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager, model.RoleOperator); err != nil {
 		handleServiceError(w, err)
 		return
 	}

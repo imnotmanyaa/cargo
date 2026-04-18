@@ -21,6 +21,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<Step>('client');
   const [createdShipmentId, setCreatedShipmentId] = useState<string | null>(null);
+  const [createdShipmentNumber, setCreatedShipmentNumber] = useState<string | null>(null);
   const [shipmentData, setShipmentData] = useState({
     clientType: 'individual',
     clientName: '',
@@ -175,17 +176,106 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         return;
       }
 
-      // Step 6: Generate QR code
       await fetch(`/api/shipments/${shipmentId}/generate-qr`, {
         method: 'POST',
         headers
       });
 
       setCreatedShipmentId(shipmentId);
+      setCreatedShipmentNumber(shipment.shipment_number || shipmentId.substring(0, 8));
       setCurrentStep('documents');
     } catch (error) {
       console.error('Failed to create shipment:', error);
       alert('Ошибка соединения с сервером');
+    }
+  };
+
+  const handlePrint = () => {
+    const qrContainer = document.getElementById('qr-code-container');
+    const qrSvg = qrContainer?.innerHTML || '';
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow && createdShipmentNumber) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Печать ${createdShipmentNumber}</title>
+            <style>
+              body {
+                font-family: 'Courier New', monospace;
+                width: 58mm;
+                margin: 0;
+                padding: 5px;
+                color: black;
+                background: white;
+              }
+              .header {
+                text-align: center;
+                font-weight: bold;
+                font-size: 20px;
+                margin-bottom: 5px;
+                text-transform: uppercase;
+              }
+              .shipment-id {
+                text-align: center;
+                font-size: 22px;
+                font-weight: bold;
+                margin: 5px 0;
+              }
+              .qr-container {
+                display: flex;
+                justify-content: center;
+                margin: 10px 0;
+              }
+              .qr-container svg {
+                width: 45mm !important;
+                height: 45mm !important;
+              }
+              .info {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+              .row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+              }
+              @media print {
+                @page { margin: 0; size: 58mm auto; }
+                body { margin: 0; padding: 5px; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">CargoTrans</div>
+            <div class="shipment-id">${createdShipmentNumber}</div>
+            <div class="qr-container">${qrSvg}</div>
+            
+            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
+              ${shipmentData.fromStation} -> ${shipmentData.toStation}
+            </div>
+            
+            <div class="row info">
+              <span>Вес:</span>
+              <span>${shipmentData.weight} кг</span>
+            </div>
+            
+            ${shipmentData.dimensions ? `
+            <div class="row info">
+              <span>Габариты:</span>
+              <span>${shipmentData.dimensions}</span>
+            </div>` : ''}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
     }
   };
 
@@ -230,12 +320,12 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t('shipmentCreated')}</h2>
               <p className="text-gray-600 mb-6">{t('documentsReady')}</p>
 
-              {createdShipmentId && (
+              {createdShipmentNumber && (
                 <div className="mb-6 flex flex-col items-center">
                   <p className="text-sm text-gray-500 mb-2">QR-код для отслеживания:</p>
-                  <div className="p-2 bg-white border rounded-lg shadow-sm">
+                  <div id="qr-code-container" className="p-2 bg-white border rounded-lg shadow-sm">
                     <QRCodeSVG
-                      value={`${window.location.origin}/shipment/${createdShipmentId}`}
+                      value={createdShipmentNumber}
                       size={160}
                       level={"H"}
                     />
@@ -245,7 +335,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
 
               <div className="space-y-3">
                 <button
-                  onClick={() => window.print()}
+                  onClick={handlePrint}
                   className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   {t('printDocuments')}
@@ -285,18 +375,6 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 >
                   {t('newShipmentButton')}
                 </button>
-              </div>
-
-              {/* Hidden label for printing */}
-              <div className="print-only">
-                <ShipmentLabel
-                  data={{
-                    ...shipmentData,
-                    id: createdShipmentId,
-                    date: new Date().toISOString()
-                  }}
-                  t={t}
-                />
               </div>
             </div>
           </div>
