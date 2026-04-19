@@ -401,7 +401,14 @@ func (r *Repository) ListCorporateClients(ctx context.Context) ([]model.User, er
 
 func (r *Repository) TopUpDeposit(ctx context.Context, userID string, amount float64) (float64, error) {
 	var balance float64
-	err := r.pool.QueryRow(ctx, `UPDATE users SET deposit_balance = deposit_balance + $2 WHERE id = $1 RETURNING deposit_balance`, userID, amount).Scan(&balance)
+	var err error
+
+	if amount < 0 {
+		// Prevent negative balances natively in the database
+		err = r.pool.QueryRow(ctx, `UPDATE users SET deposit_balance = deposit_balance + $2 WHERE id = $1 AND deposit_balance + $2 >= 0 RETURNING deposit_balance`, userID, amount).Scan(&balance)
+	} else {
+		err = r.pool.QueryRow(ctx, `UPDATE users SET deposit_balance = deposit_balance + $2 WHERE id = $1 RETURNING deposit_balance`, userID, amount).Scan(&balance)
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return 0, service.ErrNotFound
 	}
@@ -488,7 +495,7 @@ func (r *Repository) ListShipments(ctx context.Context, filter model.ShipmentFil
 		where = ` WHERE current_station = $1 AND shipment_status IN ('READY_FOR_LOADING','LOADED','IN_TRANSIT')`
 		args = append(args, filter.Station)
 	case "arrived":
-		where = ` WHERE current_station = $1 AND shipment_status = 'ARRIVED'`
+		where = ` WHERE current_station = $1 AND shipment_status IN ('ARRIVED', 'READY_FOR_ISSUE')`
 		args = append(args, filter.Station)
 	default:
 		if filter.ClientID != "" {

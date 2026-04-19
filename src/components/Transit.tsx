@@ -72,13 +72,13 @@ export function Transit({ theme = 'light' }: TransitProps) {
 
         // Show specific message for arrival
         if (updated.status === 'Прибыл') {
-          alert(`Груз ${updated.id} прибыл в пункт назначения! Переместите на склад выдачи.`);
+          alert(`Груз ${updated.shipment_number} прибыл в пункт назначения! Переместите на склад выдачи.`);
         } else {
-          alert(`Shipment ${updated.id} updated! Status: ${updated.status}`);
+          alert(`Shipment ${updated.shipment_number} updated! Status: ${updated.status}`);
         }
 
         setRecentScans(prev => [{
-          id: updated.id,
+          id: updated.shipment_number,
           time: new Date().toLocaleTimeString(),
           location: updated.current_station,
           action: updated.status === 'Прибыл' ? t('arrivalScan') : t('issuance')
@@ -175,7 +175,7 @@ export function Transit({ theme = 'light' }: TransitProps) {
               incomingShipments.map((shipment) => (
                 <div key={shipment.id} className={`p-3 border rounded-lg ${isDark ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{shipment.shipment_number || shipment.id.substring(0, 8)}</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{shipment.shipment_number}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'
                       }`}>
                       {shipment.status}
@@ -208,7 +208,7 @@ export function Transit({ theme = 'light' }: TransitProps) {
               outgoingShipments.map((shipment) => (
                 <div key={shipment.id} className={`p-3 border rounded-lg ${isDark ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{shipment.shipment_number || shipment.id.substring(0, 8)}</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{shipment.shipment_number}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${shipment.status === 'Прибыл'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-yellow-100 text-yellow-700'

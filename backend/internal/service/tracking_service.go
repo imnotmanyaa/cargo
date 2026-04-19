@@ -53,8 +53,13 @@ func (s *TrackingService) GetTracking(ctx context.Context, code string) (model.S
 func (s *TrackingService) Scan(ctx context.Context, shipmentID, eventType string, stationID, transportUnitID, userID *string, comment *string) (model.ScanEvent, error) {
 	shipment, err := s.repo.GetShipmentByID(ctx, shipmentID)
 	if err != nil {
-		return model.ScanEvent{}, err
+		shipment, err = s.repo.GetShipmentByTrackingCode(ctx, shipmentID)
+		if err != nil {
+			return model.ScanEvent{}, err
+		}
 	}
+	// Use the resolved UUID for the rest of the method
+	shipmentID = shipment.ID
 	event := model.ScanEvent{
 		ID:              uuid.NewString(),
 		ShipmentID:      shipmentID,

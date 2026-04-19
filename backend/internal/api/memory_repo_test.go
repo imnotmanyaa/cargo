@@ -138,6 +138,9 @@ func (m *memoryRepo) TopUpDeposit(_ context.Context, userID string, amount float
 	if !ok {
 		return 0, service.ErrNotFound
 	}
+	if amount < 0 && user.DepositBalance+amount < 0 {
+		return 0, service.ErrInsufficientFunds
+	}
 	user.DepositBalance += amount
 	m.users[userID] = user
 	return user.DepositBalance, nil
@@ -291,6 +294,12 @@ func (m *memoryRepo) ListPaymentsByShipment(_ context.Context, shipmentID string
 	return items, nil
 }
 
+func (m *memoryRepo) ListPaymentsByUser(_ context.Context, userID string) ([]model.Payment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil, nil // Not fully implemented for test
+}
+
 func (m *memoryRepo) UpdatePayment(_ context.Context, payment model.Payment) (model.Payment, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -411,11 +420,19 @@ func (m *memoryRepo) AddAuditLog(_ context.Context, log model.AuditLog) error {
 	return nil
 }
 
-func (m *memoryRepo) ListAuditLogs(_ context.Context) ([]model.AuditLog, error) {
+func (m *memoryRepo) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return append([]model.AuditLog{}, m.auditLogs...), nil
 }
+
+func (m *memoryRepo) ListAuditLogsByUser(ctx context.Context, userID string) ([]model.AuditLog, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil, nil
+}
+
+
 
 func (m *memoryRepo) GetDashboardReport(_ context.Context) (model.DashboardReport, error) {
 	m.mu.Lock()

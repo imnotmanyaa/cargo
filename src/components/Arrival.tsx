@@ -34,8 +34,56 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     return () => clearInterval(interval);
   }, [user]);
 
+  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const code = e.currentTarget.value.trim();
+      e.currentTarget.value = '';
+      if (!code) return;
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ shipment_id: code, event_type: 'ISSUE_SCAN', station_id: user?.station })
+        });
+        if (res.ok) {
+           playBeep(880);
+           alert(`Груз ${code} успешно просканирован. Теперь вы можете нажать "Выдать".`);
+        } else {
+           playBeep(220);
+           const err = await res.json();
+           alert('Ошибка сканирования: ' + (err.error || ''));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const playBeep = (freq: number) => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } catch {}
+  };
+
   const handleIssue = async (id: string) => {
-    if (!confirm(t('confirmIssue'))) return;
+    if (!confirm('Выдать этот груз получателю?')) return;
+
+    const receiverName = window.prompt("Введите ФИО получателя (как в документе) для проверки:");
+    if (!receiverName) return;
+
+    const receiverPhone = window.prompt("Введите номер телефона получателя для проверки:");
+    if (!receiverPhone) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -44,7 +92,11 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({
+          receiver_name: receiverName.trim(),
+          receiver_phone: receiverPhone.trim()
+        })
       });
 
       if (res.ok) {
@@ -75,6 +127,20 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
         </button>
       </div>
 
+      <div className={`rounded-lg shadow-sm border mb-6 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className="p-4">
+          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+            Сканирование груза для выдачи
+          </label>
+          <input
+            type="text"
+            placeholder="Считайте штрих-код сканером..."
+            className={`w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'}`}
+            onKeyDown={handleScan}
+          />
+        </div>
+      </div>
+
       <div className={`rounded-lg shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className={`p-6 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex justify-between items-center">
@@ -102,8 +168,14 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
 
                     <div>
                       <div className="flex items-center gap-3 mb-1">
-                        <span className="text-sm font-medium text-blue-600">{arrival.id}</span>
-                        {/* Notification status logic would go here if we tracked it per shipment */}
+                        <span className="text-sm font-medium text-blue-600">{arrival.shipment_number}</span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          arrival.shipment_status === 'READY_FOR_ISSUE' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {arrival.shipment_status === 'READY_FOR_ISSUE' ? 'На складе' : 'Прибыл'}
+                        </span>
                       </div>
                       <h4 className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{arrival.client_name}</h4>
                       <div className={`text-sm space-y-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>

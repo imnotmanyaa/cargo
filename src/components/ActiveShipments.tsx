@@ -2,12 +2,15 @@ import { Search, Filter, MapPin, Package, Clock, QrCode, RefreshCw } from 'lucid
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect } from 'react';
 import { ShipmentDetailsModal } from './ShipmentDetailsModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const { t, language } = useLanguage();
+  const { user } = useAuth();
   const [shipments, setShipments] = useState<any[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const getStatus = (status: string) => {
     if (language === 'en') {
@@ -62,7 +65,10 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
   const fetchShipments = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/shipments');
+      const url = (user?.role === 'manager' && user?.station) 
+        ? `/api/shipments?type=by-station&station=${encodeURIComponent(user.station)}`
+        : '/api/shipments';
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         const mapped = data.map(mapShipment);
@@ -86,7 +92,17 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
     return () => {
       clearInterval(interval);
     };
-  }, []);
+  }, [user?.role, user?.station]);
+
+  const filteredShipments = shipments.filter(s => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (s.shipment_number?.toLowerCase().includes(q) ||
+            s.client?.toLowerCase().includes(q) ||
+            s.from?.toLowerCase().includes(q) ||
+            s.to?.toLowerCase().includes(q) ||
+            s.status?.toLowerCase().includes(q));
+  });
 
   return (
     <div>
@@ -111,6 +127,8 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
               <Search className={`w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('searchPlaceholder')}
                 className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark'
                   ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
@@ -142,7 +160,7 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
               </tr>
             </thead>
             <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
-              {shipments.map((shipment) => (
+              {filteredShipments.map((shipment) => (
                 <tr
                   key={shipment.id}
                   onClick={() => setSelectedShipment(shipment)}
@@ -153,7 +171,7 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
                       <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
                         <Package className={`w-5 h-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
                       </div>
-                      <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.shipment_number || shipment.id.substring(0, 8)}</span>
+                      <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.shipment_number}</span>
                     </div>
                   </td>
                   <td className={`px-6 py-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.client}</td>

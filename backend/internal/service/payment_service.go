@@ -41,18 +41,13 @@ func (s *PaymentService) Confirm(ctx context.Context, id string, confirmedBy str
 	if payment.Status != model.PaymentPending {
 		return model.Payment{}, model.Shipment{}, ErrInvalidTransition
 	}
-	now := time.Now().UTC()
-	payment.Status = model.PaymentConfirmed
-	payment.PaidAt = &now
-	payment.ConfirmedBy = &confirmedBy
-	payment, err = s.repo.UpdatePayment(ctx, payment)
+	shipment, err := s.repo.GetShipmentByID(ctx, payment.ShipmentID)
 	if err != nil {
 		return model.Payment{}, model.Shipment{}, err
 	}
 
-	shipment, err := s.repo.GetShipmentByID(ctx, payment.ShipmentID)
-	if err != nil {
-		return model.Payment{}, model.Shipment{}, err
+	if shipment.PaymentStatus == model.PaymentConfirmed || shipment.ShipmentStatus == model.ShipmentPaid {
+		return model.Payment{}, model.Shipment{}, ErrInvalidTransition
 	}
 
 	if payment.PaymentMethod == "deposit" {
@@ -65,10 +60,18 @@ func (s *PaymentService) Confirm(ctx context.Context, id string, confirmedBy str
 		}
 		_, err = s.repo.TopUpDeposit(ctx, shipment.ClientID, -payment.Amount)
 		if err != nil {
-			return model.Payment{}, model.Shipment{}, err
+			return model.Payment{}, model.Shipment{}, err // Could be ErrInsufficientFunds from DB now
 		}
 	}
 
+	now := time.Now().UTC()
+	payment.Status = model.PaymentConfirmed
+	payment.PaidAt = &now
+	payment.ConfirmedBy = &confirmedBy
+	payment, err = s.repo.UpdatePayment(ctx, payment)
+	if err != nil {
+		return model.Payment{}, model.Shipment{}, err
+	}
 	old := shipment.ShipmentStatus
 	shipment.PaymentStatus = model.PaymentConfirmed
 	shipment.ShipmentStatus = model.ShipmentPaid

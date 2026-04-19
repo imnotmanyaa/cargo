@@ -5,3 +5,6 @@ dist
 .env
 .idea
 .vscode
+backend/server
+*.log
+*.pem

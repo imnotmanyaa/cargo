@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-type UserRole = 'operator' | 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'auditor';
+type UserRole = 'operator' | 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'auditor' | 'mobile_group';
 
 interface User {
   id: string;

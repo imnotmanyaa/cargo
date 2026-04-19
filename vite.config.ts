@@ -12,7 +12,7 @@ export default defineConfig({
       polyfills: true,
     }),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       manifest: {
         name: 'CargoTrans',
         short_name: 'CargoTrans',
@@ -35,7 +35,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Cache all API responses for 1 hour for offline fallback
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^\/api\//,
@@ -50,7 +51,7 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'static-assets',
-              expiration: { maxEntries: 100, maxAgeSeconds: 86400 * 7 },
+              expiration: { maxEntries: 100, maxAgeSeconds: 3600 },
             },
           },
         ],

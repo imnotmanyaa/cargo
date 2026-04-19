@@ -15,6 +15,7 @@ interface CorporateClient {
   id: string;
   name: string;
   company: string;
+  phone?: string;
   contract_number: string;
   deposit_balance: number;
 }
@@ -227,7 +228,7 @@ export function ClientInfo({
 
         <div>
           <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            {t('clientName')}
+            {data.clientType === 'legal' ? t('clientName') : t('fullName')}
           </label>
           
           {data.clientType === 'legal' && user?.role !== 'individual' ? (

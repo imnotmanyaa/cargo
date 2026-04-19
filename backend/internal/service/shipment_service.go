@@ -296,17 +296,23 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	if shipment.ShipmentStatus != model.ShipmentReadyForIssue {
+	if shipment.ShipmentStatus != model.ShipmentReadyForIssue && shipment.ShipmentStatus != model.ShipmentArrived {
 		return model.Shipment{}, ErrInvalidTransition
-	}
-	if shipment.ReceiverName == nil || shipment.ReceiverPhone == nil {
-		return model.Shipment{}, fmt.Errorf("%w: shipment receiver data is incomplete", ErrInvalidState)
 	}
 	if req.ReceiverName == "" || req.ReceiverPhone == "" {
 		return model.Shipment{}, fmt.Errorf("%w: receiver verification data is required", ErrValidation)
 	}
-	if req.ReceiverName != *shipment.ReceiverName || req.ReceiverPhone != *shipment.ReceiverPhone {
-		return model.Shipment{}, fmt.Errorf("%w: receiver verification failed", ErrForbidden)
+
+	if shipment.ReceiverName == nil || shipment.ReceiverPhone == nil {
+		// Fallback for old shipments created without receiver data:
+		// Save the provided receiver information to the shipment
+		shipment.ReceiverName = &req.ReceiverName
+		shipment.ReceiverPhone = &req.ReceiverPhone
+	} else {
+		// Strict verification for shipments that have receiver data
+		if req.ReceiverName != *shipment.ReceiverName || req.ReceiverPhone != *shipment.ReceiverPhone {
+			return model.Shipment{}, fmt.Errorf("%w: receiver verification failed", ErrForbidden)
+		}
 	}
 	events, err := s.repo.ListScanEvents(ctx, id)
 	if err != nil {

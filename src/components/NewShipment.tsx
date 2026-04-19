@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { ClientInfo } from './shipment-steps/ClientInfo';
 import { CargoDetails } from './shipment-steps/CargoDetails';
 import { Payment } from './shipment-steps/Payment';
-import { ShipmentLabel } from './ShipmentLabel';
 import { QRCodeSVG } from 'qrcode.react';
 
 type Step = 'client' | 'cargo' | 'payment' | 'documents';
@@ -20,11 +19,12 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<Step>('client');
-  const [createdShipmentId, setCreatedShipmentId] = useState<string | null>(null);
+
   const [createdShipmentNumber, setCreatedShipmentNumber] = useState<string | null>(null);
   const [shipmentData, setShipmentData] = useState({
     clientType: 'individual',
     clientName: '',
+    corporateClientId: '',
     clientSource: '',
     clientPhone: '',
     aggregatorClientId: '',
@@ -78,8 +78,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     let basePrice = (weight / 10) * baseRate;
 
     if (shipmentData.isFragile) basePrice += 1000;
-    if (shipmentData.isOversized) basePrice += 1000;
-    
+    if (shipmentData.isOversized) basePrice += 2500;
+
     if (shipmentData.hasTicket) {
       basePrice = basePrice * 0.5;
     }
@@ -108,7 +108,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           dimensions: shipmentData.dimensions,
           description: shipmentData.description,
           value: shipmentData.value,
-          cost: 0, // will be recalculated on backend
+          cost: calculateCost(),
           quantity_places: shipmentData.quantityPlaces || 1,
           receiver_name: shipmentData.receiverName || null,
           receiver_phone: shipmentData.receiverPhone || null,
@@ -124,18 +124,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       const shipment = await createRes.json();
       const shipmentId = shipment.id;
 
-      // Step 2: Calculate tariff
-      const tariffRes = await fetch(`/api/shipments/${shipmentId}/calculate-tariff`, {
-        method: 'POST',
-        headers
-      });
-      if (!tariffRes.ok) {
-        const err = await tariffRes.json().catch(() => ({}));
-        alert(err.error || 'Ошибка при расчёте тарифа');
-        return;
-      }
-      const withTariff = await tariffRes.json();
-      const calculatedCost = withTariff.cost || calculateCost();
+      const calculatedCost = calculateCost();
 
       // Step 3: Send to payment
       const sendRes = await fetch(`/api/shipments/${shipmentId}/send-to-payment`, {
@@ -181,7 +170,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         headers
       });
 
-      setCreatedShipmentId(shipmentId);
+
       setCreatedShipmentNumber(shipment.shipment_number || shipmentId.substring(0, 8));
       setCurrentStep('documents');
     } catch (error) {
@@ -343,7 +332,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 <button
                   onClick={() => {
                     setCurrentStep('client');
-                    setCreatedShipmentId(null);
+
                     setShipmentData({
                       clientType: 'individual',
                       clientName: '',

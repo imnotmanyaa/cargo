@@ -36,7 +36,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
     let basePrice = (weight / 10) * baseRate;
     
     if (data.isFragile) basePrice += 1000;
-    if (data.isOversized) basePrice += 1000;
+    if (data.isOversized) basePrice += 2500;
     
     if (data.hasTicket) {
       basePrice = basePrice * 0.5;

@@ -5,6 +5,7 @@ import { Package, MapPin, Ticket } from 'lucide-react';
 
 interface Shipment {
   id: string;
+  shipment_number?: string;
   from_station: string;
   to_station: string;
   status: string;
@@ -42,7 +43,6 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
   }, [user?.id]);
 
   const handleDetails = (id: string) => {
-    // Open tracking page in new tab or navigate
     window.open(`/tracking/${id}`, '_blank');
   };
 
@@ -58,26 +58,26 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold mb-1">Новая отправка</h3>
-              <p className="text-sm text-blue-100">Отправить багаж</p>
+              <h3 className="text-lg font-semibold mb-1">{t('newShipment')}</h3>
+              <p className="text-sm text-blue-100">{t('newShipmentDesc')}</p>
             </div>
             <Package className="w-8 h-8 text-blue-200" />
           </div>
           <button className="w-full px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium" onClick={onCreateShipment}>
-            Создать отправку
+            {t('createNewShipment')}
           </button>
         </div>
 
         <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold mb-1">Скидка 50% с билетом</h3>
-              <p className="text-sm text-green-100">Проверка Mobius</p>
+              <h3 className="text-lg font-semibold mb-1">{t('mobiusTicket')}</h3>
+              <p className="text-sm text-green-100">{t('ticketDiscount')}</p>
             </div>
             <Ticket className="w-8 h-8 text-green-200" />
           </div>
           <button className="w-full px-4 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 font-medium">
-            Подать заявку
+            {t('track')}
           </button>
         </div>
       </div>
@@ -85,27 +85,25 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
       {/* My Shipments */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Мои отправки</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('myShipments')}</h2>
         </div>
         <div className="divide-y divide-gray-200">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Загрузка...</div>
+            <div className="p-8 text-center text-gray-500">{t('processing')}</div>
           ) : shipments.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">У вас пока нет отправлений</div>
+            <div className="p-8 text-center text-gray-500">{t('noShipmentsYet')}</div>
           ) : (
             shipments.map((shipment) => (
               <div key={shipment.id} className="p-6 hover:bg-gray-50">
                 <div className="flex items-start justify-between">
                   <div className="flex gap-4">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${shipment.status === 'Прибыл' ? 'bg-green-100' : 'bg-blue-100'
-                      }`}>
-                      <Package className={`w-6 h-6 ${shipment.status === 'Прибыл' ? 'text-green-600' : 'text-blue-600'
-                        }`} />
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${shipment.status === 'Прибыл' ? 'bg-green-100' : 'bg-blue-100'}`}>
+                      <Package className={`w-6 h-6 ${shipment.status === 'Прибыл' ? 'text-green-600' : 'text-blue-600'}`} />
                     </div>
 
                     <div>
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-medium text-blue-600">{shipment.shipment_number || shipment.id.substring(0, 8)}</span>
+                        <span className="text-sm font-medium text-blue-600">{shipment.shipment_number}</span>
                         <span className={`text-xs px-2 py-1 rounded-full ${shipment.status === 'Прибыл'
                           ? 'bg-green-100 text-green-700'
                           : 'bg-blue-100 text-blue-700'
@@ -118,19 +116,18 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
                         <span>{shipment.from_station} → {shipment.to_station}</span>
                       </div>
                       <div className="text-sm text-gray-600">
-                        <span className="font-medium">Дата:</span> {new Date(shipment.created_at).toLocaleDateString()}
+                        <span className="font-medium">{t('date')}:</span> {new Date(shipment.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    {/* Assuming 'value' is stored as money or similar, adjust display if needed */}
                     <p className="text-lg font-bold text-gray-900">{shipment.cost?.toLocaleString() || 0} ₸</p>
                     <button
                       onClick={() => handleDetails(shipment.id)}
                       className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
                     >
-                      Подробнее
+                      {t('details')}
                     </button>
                   </div>
                 </div>

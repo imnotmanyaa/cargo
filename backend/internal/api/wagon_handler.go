@@ -115,6 +115,15 @@ func (s *Server) handleAssignShipment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
+	wagon, err := s.services.Wagons.GetWagon(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if err := s.requireStation(user, wagon.CurrentStation); err != nil {
+		handleServiceError(w, err)
+		return
+	}
 	if err := s.services.Wagons.AssignShipment(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "shipmentID")); err != nil {
 		handleServiceError(w, err)
 		return
@@ -144,6 +153,15 @@ func (s *Server) handleScanShipmentInWagon(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := s.requireRole(user, model.RoleLoading, model.RoleReceiver, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	wagonQuery, err := s.services.Wagons.GetWagon(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if err := s.requireStation(user, wagonQuery.CurrentStation); err != nil {
 		handleServiceError(w, err)
 		return
 	}

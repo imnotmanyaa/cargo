@@ -12,22 +12,59 @@ export function Payment({ data, onUpdate: _onUpdate, onNext, onBack }: PaymentPr
   const { t } = useLanguage();
 
   const calculateTotal = () => {
-    let basePrice = 5000;
-    
-    const weight = parseFloat(data.weight) || 0;
-    if (weight > 20) {
-      basePrice += (weight - 20) * 150;
+    if (!data.fromStation || !data.toStation || !data.weight) {
+      return 0;
     }
-    
+
+    const rates: Record<string, number> = {
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u0441\u0442\u0430\u043d\u0430 \u043d\u04b1\u0440\u043b\u044b \u0436\u043e\u043b': 976,
+      '\u0430\u0441\u0442\u0430\u043d\u0430 \u043d\u04b1\u0440\u043b\u044b \u0436\u043e\u043b-\u0430\u043b\u043c\u0430\u0442\u044b-1': 976,
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u049b\u0430\u0440\u0430\u0493\u0430\u043d\u0434\u044b': 825,
+      '\u049b\u0430\u0440\u0430\u0493\u0430\u043d\u0434\u044b-\u0430\u043b\u043c\u0430\u0442\u044b-1': 825,
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u0442\u044b\u0440\u0430\u0443': 1145,
+      '\u0430\u0442\u044b\u0440\u0430\u0443-\u0430\u043b\u043c\u0430\u0442\u044b-1': 1145,
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0448\u044b\u043c\u043a\u0435\u043d\u0442': 590,
+      '\u0448\u044b\u043c\u043a\u0435\u043d\u0442-\u0430\u043b\u043c\u0430\u0442\u044b-1': 590,
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u049b\u0442\u04e9\u0431\u0435': 1114,
+      '\u0430\u049b\u0442\u04e9\u0431\u0435-\u0430\u043b\u043c\u0430\u0442\u044b-1': 1114,
+    };
+
+    const route = `${data.fromStation.toLowerCase()}-${data.toStation.toLowerCase()}`;
+    const baseRate = rates[route] || 5000;
+
+    const weight = parseFloat(data.weight) || 0;
+    let basePrice = (weight / 10) * baseRate;
+
     if (data.isFragile) basePrice += 1000;
     if (data.isOversized) basePrice += 2500;
-    
+
     if (data.hasTicket) {
       basePrice = basePrice * 0.5;
     }
-    
+
     return Math.round(basePrice);
   };
+
+  const getBaseRate = () => {
+    const rates: Record<string, number> = {
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u0441\u0442\u0430\u043d\u0430 \u043d\u04b1\u0440\u043b\u044b \u0436\u043e\u043b': 976,
+      '\u0430\u0441\u0442\u0430\u043d\u0430 \u043d\u04b1\u0440\u043b\u044b \u0436\u043e\u043b-\u0430\u043b\u043c\u0430\u0442\u044b-1': 976,
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u049b\u0430\u0440\u0430\u0493\u0430\u043d\u0434\u044b': 825,
+      '\u049b\u0430\u0440\u0430\u0493\u0430\u043d\u0434\u044b-\u0430\u043b\u043c\u0430\u0442\u044b-1': 825,
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u0442\u044b\u0440\u0430\u0443': 1145,
+      '\u0430\u0442\u044b\u0440\u0430\u0443-\u0430\u043b\u043c\u0430\u0442\u044b-1': 1145,
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0448\u044b\u043c\u043a\u0435\u043d\u0442': 590,
+      '\u0448\u044b\u043c\u043a\u0435\u043d\u0442-\u0430\u043b\u043c\u0430\u0442\u044b-1': 590,
+      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u049b\u0442\u04e9\u0431\u0435': 1114,
+      '\u0430\u049b\u0442\u04e9\u0431\u0435-\u0430\u043b\u043c\u0430\u0442\u044b-1': 1114,
+    };
+    if (!data.fromStation || !data.toStation) return 5000;
+    const route = `${data.fromStation.toLowerCase()}-${data.toStation.toLowerCase()}`;
+    return rates[route] || 5000;
+  };
+
+  const baseRate = getBaseRate();
+  const transportCost = Math.round(((parseFloat(data.weight) || 0) / 10) * baseRate);
 
   const total = calculateTotal();
 
@@ -39,15 +76,8 @@ export function Payment({ data, onUpdate: _onUpdate, onNext, onBack }: PaymentPr
         <div className="bg-gray-50 rounded-lg p-6 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">{t('baseTransportCost')}</span>
-            <span className="font-medium text-gray-900">5 000 ₸</span>
+            <span className="font-medium text-gray-900">{transportCost.toLocaleString()} ₸</span>
           </div>
-          
-          {parseFloat(data.weight) > 20 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{t('weightSurcharge')}</span>
-              <span className="font-medium text-gray-900">+ {((parseFloat(data.weight) - 20) * 150).toLocaleString()} ₸</span>
-            </div>
-          )}
           
           {data.isFragile && (
             <div className="flex justify-between text-sm">

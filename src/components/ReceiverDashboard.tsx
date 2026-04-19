@@ -215,9 +215,9 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
       if (response.ok) {
         const updated = await response.json();
         if (updated.status === 'Прибыл') {
-          showFeedback('success', `Груз ${updated.id} успешно принят!`);
+          showFeedback('success', `Груз ${updated.shipment_number} успешно принят!`);
         } else {
-          showFeedback('success', `Груз ${updated.id} обновлен.`);
+          showFeedback('success', `Груз ${updated.shipment_number} обновлен.`);
         }
 
         setAuditLogs(prev => [{
@@ -420,8 +420,8 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         ) : (
           <div className="grid gap-4">
             <div className={`p-4 rounded-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 relative">
+              <div className="block sm:flex">
+                <div className="relative w-full mb-3 sm:mb-0 sm:mr-4 sm:flex-1">
                   <Scan className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                   <input
                     ref={loadingInputRef}
@@ -431,7 +431,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                     value={loadingScanInput}
                     onChange={(e) => setLoadingScanInput(e.target.value)}
                     placeholder={t('scanQrPlaceholder')}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base ${isDark
+                    className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base shadow-sm ${isDark
                       ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500'
                       : 'bg-white border-gray-300'}`}
                     onKeyDown={(e) => {
@@ -446,7 +446,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 <button
                   onClick={handleLoadingScan}
                   disabled={!loadingScanInput.trim() || processing}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                  className="block w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors text-center font-semibold"
                 >
                   {processing ? t('processing') : t('loadButton')}
                 </button>
@@ -462,27 +462,25 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 <div key={task.id} className={`rounded-lg border overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                   {/* Task Header */}
                   <div className="bg-green-600 p-4 text-white">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Train className="w-5 h-5" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">Поезд {task.trainNumber}</span>
-                            <span className="text-green-200">•</span>
-                            <span className="text-sm">Вагон {task.carNumber}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-green-100">
-                            <MapPin className="w-3 h-3" />
-                            {task.route}
-                          </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between border-b border-white/20 pb-3 mb-3">
+                        <div className="flex items-center">
+                          <Train className="w-5 h-5 mr-2" />
+                          <span className="font-bold text-lg">Поезд {task.trainNumber}</span>
                         </div>
+                        <span className="bg-white/20 px-3 py-1 rounded-lg text-sm font-medium">Вагон {task.carNumber}</span>
                       </div>
-
-                      <div className="text-right">
-                        <div className="text-xs text-green-100">Отправление</div>
-                        <div className="text-lg font-bold">
-                          {task.formattedDate && <span className="mr-2">{task.formattedDate}</span>}
-                          {task.departureTime}
+                      
+                      <div className="flex flex-col text-sm">
+                        <div className="flex items-center text-green-50 mb-2">
+                          <MapPin className="w-4 h-4 flex-shrink-0 mr-2" />
+                          <span className="font-medium truncate">{task.route}</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-green-700/50 px-3 py-2 rounded-lg">
+                          <span className="text-green-50 text-xs uppercase tracking-wide">Отправление</span>
+                          <span className="font-bold">
+                            {task.formattedDate ? `${task.formattedDate} в ` : ''}{task.departureTime}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -518,8 +516,8 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                           }`}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${shipment.loaded
+                          <div className="flex items-center flex-1 mr-3 min-w-0">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 flex-shrink-0 ${shipment.loaded
                               ? (isDark ? 'bg-green-900' : 'bg-green-100')
                               : (isDark ? 'bg-blue-900' : 'bg-blue-100')
                               }`}>
@@ -530,22 +528,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                               )}
                             </div>
 
-                            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
-                              <div>
-                                <div className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>ID</div>
-                                <div className={`font-bold text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.shipment_number || shipment.id.substring(0, 8)}</div>
-                              </div>
-                              <div className="hidden sm:block">
-                                <div className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Клиент</div>
-                                <div className={`font-medium text-sm truncate ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.client_name || '—'}</div>
-                              </div>
-                              <div>
-                                <div className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Куда</div>
-                                <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.to_station}</div>
-                              </div>
-                              <div className="hidden sm:block">
-                                <div className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Время</div>
-                                <div className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.train_time}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`font-bold text-sm truncate ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.shipment_number}</div>
+                              <div className={`text-xs truncate mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.client_name || 'Клиент не указан'}</div>
+                              <div className="text-xs text-blue-600 font-semibold truncate">
+                                <span>Куда: {shipment.to_station}</span>
+                                <span className="mx-2">•</span>
+                                <span>Время: {shipment.train_time}</span>
                               </div>
                             </div>
                           </div>

@@ -5,6 +5,7 @@ import { Package, Train, MapPin, CheckCircle, Loader } from 'lucide-react';
 
 interface Shipment {
     id: string;
+    shipment_number?: string;
     client_name: string;
     from_station: string;
     to_station: string;
@@ -179,7 +180,7 @@ export function ShipmentActionPage() {
                             <Package className="w-8 h-8 text-blue-600" />
                             <div>
                                 <h1 className="text-2xl font-semibold text-gray-900">Информация о грузе</h1>
-                                <p className="text-sm text-gray-600">{shipment.shipment_number || shipment.id.substring(0, 8)}</p>
+                                <p className="text-sm text-gray-600">{shipment.shipment_number}</p>
                             </div>
                         </div>
 
@@ -237,7 +238,7 @@ export function ShipmentActionPage() {
                             <Package className="w-8 h-8 text-blue-600" />
                             <div>
                                 <h1 className="text-2xl font-semibold text-gray-900">Информация о грузе</h1>
-                                <p className="text-sm text-gray-600">{shipment.shipment_number || shipment.id.substring(0, 8)}</p>
+                                <p className="text-sm text-gray-600">{shipment.shipment_number}</p>
                             </div>
                         </div>
 
@@ -290,7 +291,7 @@ export function ShipmentActionPage() {
                             <Train className="w-8 h-8 text-green-600" />
                             <div>
                                 <h1 className="text-2xl font-semibold text-gray-900">Погрузка груза</h1>
-                                <p className="text-sm text-gray-600">{shipment.shipment_number || shipment.id.substring(0, 8)}</p>
+                                <p className="text-sm text-gray-600">{shipment.shipment_number}</p>
                             </div>
                         </div>
 
@@ -357,7 +358,7 @@ export function ShipmentActionPage() {
                             <MapPin className="w-8 h-8 text-blue-600" />
                             <div>
                                 <h1 className="text-2xl font-semibold text-gray-900">Прибытие груза</h1>
-                                <p className="text-sm text-gray-600">{shipment.shipment_number || shipment.id.substring(0, 8)}</p>
+                                <p className="text-sm text-gray-600">{shipment.shipment_number}</p>
                             </div>
                         </div>
 

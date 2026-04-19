@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"cargo/backend/internal/model"
 
@@ -175,6 +176,19 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 	stationMatch := shipment.CurrentStation == queriedStation ||
 		shipment.FromStation == queriedStation ||
 		shipment.ToStation == queriedStation
+
+	if !stationMatch {
+		// Send notification to the manager of the origin station
+		s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "notification:new", map[string]any{
+			"id": time.Now().UnixNano(),
+			"title": "🔴 Ошибка маршрута",
+			"message": "Груз " + shipment.ShipmentNumber + " оказался на неверной станции: " + queriedStation + ". Ожидался: " + shipment.FromStation + " -> " + shipment.ToStation,
+			"shipment_id": shipment.ID,
+			"type": "alert",
+			"created_at": time.Now().UTC(),
+		})
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"shipment":      shipment,
 		"station_match": stationMatch,

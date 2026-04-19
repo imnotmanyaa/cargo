@@ -13,3 +13,8 @@ func (s *NotificationService) List(ctx context.Context, userID string) ([]model.
 func (s *NotificationService) MarkRead(ctx context.Context, id int64) error {
 	return s.repo.MarkNotificationRead(ctx, id)
 }
+
+func (s *NotificationService) Create(ctx context.Context, notification model.Notification) (model.Notification, error) {
+	return s.repo.CreateNotification(ctx, notification)
+}
+

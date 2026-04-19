@@ -49,20 +49,29 @@ func (s *WagonService) ListWagons(ctx context.Context, station string, status *m
 	return s.repo.ListWagons(ctx, station, status)
 }
 
-// AssignShipment adds a shipment to the wagon's checklist with status PENDING.
 func (s *WagonService) AssignShipment(ctx context.Context, wagonID, shipmentID string) error {
-	if _, err := s.repo.GetWagonByID(ctx, wagonID); err != nil {
+	wagon, err := s.repo.GetWagonByID(ctx, wagonID)
+	if err != nil {
 		return err
 	}
-	if err := s.repo.AssignShipmentToWagon(ctx, wagonID, shipmentID); err != nil {
-		return err
-	}
-	// Update shipment's transport_unit_id
 	shipment, err := s.repo.GetShipmentByID(ctx, shipmentID)
 	if err != nil {
 		return err
 	}
-	wagon, _ := s.repo.GetWagonByID(ctx, wagonID)
+	if shipment.CurrentStation != wagon.CurrentStation {
+		return fmt.Errorf("%w: недопустимая станция, груз находится на другой станции (%s)", ErrValidation, shipment.CurrentStation)
+	}
+	if shipment.TransportUnitID != nil && *shipment.TransportUnitID != "" {
+		return fmt.Errorf("%w: груз уже привязан к транспорту %s", ErrValidation, *shipment.TransportUnitID)
+	}
+	if shipment.ShipmentStatus == model.ShipmentClosed || shipment.ShipmentStatus == model.ShipmentIssued {
+		return fmt.Errorf("%w: груз уже доставлен или выдан клиенту", ErrValidation)
+	}
+
+	if err := s.repo.AssignShipmentToWagon(ctx, wagonID, shipmentID); err != nil {
+		return err
+	}
+	// Update shipment's transport_unit_id
 	shipment.TransportUnitID = &wagon.WagonNumber
 	shipment.UpdatedAt = time.Now().UTC()
 	_, err = s.repo.UpdateShipment(ctx, shipment)
