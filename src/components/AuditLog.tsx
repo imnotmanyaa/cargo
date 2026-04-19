@@ -89,7 +89,7 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                       </span>
                     </td>
                     <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                      {log.entity_type} <span className="text-xs text-gray-500 ml-1">({log.entity_id.substring(0,8)}...)</span>
+                      {log.entity_type}
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {log.new_value ? (
