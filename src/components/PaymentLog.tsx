@@ -5,6 +5,7 @@ import { CreditCard, Calendar, CheckCircle2 } from 'lucide-react';
 interface Payment {
   id: string;
   shipment_id: string;
+  shipment_number: string;
   amount: number;
   payment_method: string;
   status: string;
@@ -77,11 +78,7 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
                   <th className="px-6 py-4 font-medium">Сумма</th>
                   <th className="px-6 py-4 font-medium">Способ оплаты</th>
                   <th className="px-6 py-4 font-medium">{t('status')}</th>
-                <tr className={`text-left border-b ${isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-                  <th className="px-6 py-4 font-medium">{t('date')}</th>
-                  <th className="px-6 py-4 font-medium">Сумма</th>
-                  <th className="px-6 py-4 font-medium">Способ оплаты</th>
-                  <th className="px-6 py-4 font-medium">{t('status')}</th>
+                  <th className="px-6 py-4 font-medium">Номер отправки</th>
                 </tr>
               </thead>
               <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
@@ -108,6 +105,9 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {(payment.status || '').toLowerCase() === 'confirmed' ? 'Подтвержден' : 'Ожидает'}
                       </span>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                      {payment.shipment_number}
                     </td>
                   </tr>
                 ))}

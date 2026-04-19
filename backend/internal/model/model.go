@@ -131,8 +131,9 @@ type Payment struct {
 	POSReference  *string       `json:"pos_terminal_reference,omitempty"`
 	PaidAt        *time.Time    `json:"paid_at,omitempty"`
 	ConfirmedBy   *string       `json:"confirmed_by,omitempty"`
-	Status        PaymentStatus `json:"status"`
-	CreatedAt     time.Time     `json:"created_at"`
+	Status         PaymentStatus `json:"status"`
+	ShipmentNumber string        `json:"shipment_number,omitempty"`
+	CreatedAt      time.Time     `json:"created_at"`
 }
 
 type QRCode struct {
@@ -193,9 +194,10 @@ type AuditLog struct {
 	Action     string     `json:"action"`
 	OldValue   *string    `json:"old_value,omitempty"`
 	NewValue   *string    `json:"new_value,omitempty"`
-	StationID  *string    `json:"station_id,omitempty"`
-	Reason     *string    `json:"reason,omitempty"`
-	CreatedAt  time.Time  `json:"created_at"`
+	StationID      *string    `json:"station_id,omitempty"`
+	Reason         *string    `json:"reason,omitempty"`
+	ShipmentNumber *string    `json:"shipment_number,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 type RouteRevenue struct {

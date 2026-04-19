@@ -611,7 +611,12 @@ func (r *Repository) ListPaymentsByShipment(ctx context.Context, shipmentID stri
 }
 
 func (r *Repository) ListPaymentsByUser(ctx context.Context, userID string) ([]model.Payment, error) {
-	rows, err := r.pool.Query(ctx, `SELECT id, shipment_id, amount, payment_method, pos_terminal_reference, paid_at, confirmed_by, status, created_at FROM payments WHERE confirmed_by = $1 ORDER BY created_at DESC`, userID)
+	rows, err := r.pool.Query(ctx, `
+		SELECT p.id, p.shipment_id, p.amount, p.payment_method, p.pos_terminal_reference, p.paid_at, p.confirmed_by, p.status, p.created_at, s.shipment_number 
+		FROM payments p
+		JOIN shipments s ON p.shipment_id = s.id
+		WHERE p.confirmed_by = $1 
+		ORDER BY p.created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -619,7 +624,7 @@ func (r *Repository) ListPaymentsByUser(ctx context.Context, userID string) ([]m
 	var items []model.Payment
 	for rows.Next() {
 		var payment model.Payment
-		if err := rows.Scan(&payment.ID, &payment.ShipmentID, &payment.Amount, &payment.PaymentMethod, &payment.POSReference, &payment.PaidAt, &payment.ConfirmedBy, &payment.Status, &payment.CreatedAt); err != nil {
+		if err := rows.Scan(&payment.ID, &payment.ShipmentID, &payment.Amount, &payment.PaymentMethod, &payment.POSReference, &payment.PaidAt, &payment.ConfirmedBy, &payment.Status, &payment.CreatedAt, &payment.ShipmentNumber); err != nil {
 			return nil, err
 		}
 		items = append(items, payment)
@@ -745,7 +750,11 @@ func (r *Repository) AddAuditLog(ctx context.Context, log model.AuditLog) error 
 }
 
 func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error) {
-	rows, err := r.pool.Query(ctx, `SELECT id, user_id, entity_type, entity_id, action, old_value, new_value, station_id, reason, created_at FROM audit_log ORDER BY created_at DESC`)
+	rows, err := r.pool.Query(ctx, `
+		SELECT a.id, a.user_id, a.entity_type, a.entity_id, a.action, a.old_value, a.new_value, a.station_id, a.reason, a.created_at, s.shipment_number
+		FROM audit_log a
+		LEFT JOIN shipments s ON a.entity_id = s.id AND a.entity_type = 'shipment'
+		ORDER BY a.created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -753,7 +762,7 @@ func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error
 	var items []model.AuditLog
 	for rows.Next() {
 		var item model.AuditLog
-		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt, &item.ShipmentNumber); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -762,7 +771,12 @@ func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error
 }
 
 func (r *Repository) ListAuditLogsByUser(ctx context.Context, userID string) ([]model.AuditLog, error) {
-	rows, err := r.pool.Query(ctx, `SELECT id, user_id, entity_type, entity_id, action, old_value, new_value, station_id, reason, created_at FROM audit_log WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+	rows, err := r.pool.Query(ctx, `
+		SELECT a.id, a.user_id, a.entity_type, a.entity_id, a.action, a.old_value, a.new_value, a.station_id, a.reason, a.created_at, s.shipment_number
+		FROM audit_log a
+		LEFT JOIN shipments s ON a.entity_id = s.id AND a.entity_type = 'shipment'
+		WHERE a.user_id = $1 
+		ORDER BY a.created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -770,7 +784,7 @@ func (r *Repository) ListAuditLogsByUser(ctx context.Context, userID string) ([]
 	var items []model.AuditLog
 	for rows.Next() {
 		var item model.AuditLog
-		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt, &item.ShipmentNumber); err != nil {
 			return nil, err
 		}
 		items = append(items, item)

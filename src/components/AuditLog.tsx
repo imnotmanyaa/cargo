@@ -11,6 +11,7 @@ interface AuditLog {
   old_value: string;
   new_value: string;
   reason: string;
+  shipment_number?: string;
   created_at: string;
 }
 
@@ -89,7 +90,11 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                       </span>
                     </td>
                     <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                      {log.entity_type}
+                      {log.entity_type} {log.shipment_number && (
+                        <span className={`ml-2 px-2 py-0.5 rounded text-xs ${isDark ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                          {log.shipment_number}
+                        </span>
+                      )}
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {log.new_value ? (
