@@ -42,7 +42,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setClients(data);
+        setClients(Array.isArray(data) ? data : []);
       } else {
         console.error('Failed to fetch clients', res.status);
       }

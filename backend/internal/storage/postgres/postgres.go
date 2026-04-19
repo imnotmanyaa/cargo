@@ -568,7 +568,7 @@ func (r *Repository) ListShipmentHistory(ctx context.Context, shipmentID string)
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.ShipmentHistory
+	items := []model.ShipmentHistory{}
 	for rows.Next() {
 		var item model.ShipmentHistory
 		if err := rows.Scan(&item.ID, &item.ShipmentID, &item.Action, &item.OperatorID, &item.OperatorName, &item.Station, &item.Details, &item.OldStatus, &item.NewStatus, &item.Reason, &item.CreatedAt); err != nil {
@@ -599,7 +599,7 @@ func (r *Repository) ListPaymentsByShipment(ctx context.Context, shipmentID stri
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.Payment
+	items := []model.Payment{}
 	for rows.Next() {
 		var payment model.Payment
 		if err := rows.Scan(&payment.ID, &payment.ShipmentID, &payment.Amount, &payment.PaymentMethod, &payment.POSReference, &payment.PaidAt, &payment.ConfirmedBy, &payment.Status, &payment.CreatedAt); err != nil {
@@ -621,7 +621,7 @@ func (r *Repository) ListPaymentsByUser(ctx context.Context, userID string) ([]m
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.Payment
+	items := []model.Payment{}
 	for rows.Next() {
 		var payment model.Payment
 		if err := rows.Scan(&payment.ID, &payment.ShipmentID, &payment.Amount, &payment.PaymentMethod, &payment.POSReference, &payment.PaidAt, &payment.ConfirmedBy, &payment.Status, &payment.CreatedAt, &payment.ShipmentNumber); err != nil {
@@ -662,7 +662,7 @@ func (r *Repository) ListScanEvents(ctx context.Context, shipmentID string) ([]m
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.ScanEvent
+	items := []model.ScanEvent{}
 	for rows.Next() {
 		var event model.ScanEvent
 		if err := rows.Scan(&event.ID, &event.ShipmentID, &event.QRCodeID, &event.EventType, &event.StationID, &event.TransportUnitID, &event.UserID, &event.OldStatus, &event.NewStatus, &event.Comment, &event.ScannedAt); err != nil {
@@ -684,7 +684,7 @@ func (r *Repository) ListTransitEvents(ctx context.Context, shipmentID string) (
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.TransitEvent
+	items := []model.TransitEvent{}
 	for rows.Next() {
 		var event model.TransitEvent
 		if err := rows.Scan(&event.ID, &event.ShipmentID, &event.StationID, &event.UserID, &event.EventTime, &event.Comment); err != nil {
@@ -706,7 +706,7 @@ func (r *Repository) ListArrivalEvents(ctx context.Context, shipmentID string) (
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.ArrivalEvent
+	items := []model.ArrivalEvent{}
 	for rows.Next() {
 		var event model.ArrivalEvent
 		if err := rows.Scan(&event.ID, &event.ShipmentID, &event.StationID, &event.UserID, &event.EventTime, &event.ConfirmedAsFinalArrival); err != nil {
@@ -723,7 +723,7 @@ func (r *Repository) ListNotifications(ctx context.Context, userID string) ([]mo
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.Notification
+	items := []model.Notification{}
 	for rows.Next() {
 		var item model.Notification
 		if err := rows.Scan(&item.ID, &item.UserID, &item.Message, &item.Read, &item.Type, &item.RelatedID, &item.CreatedAt); err != nil {
@@ -759,7 +759,7 @@ func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.AuditLog
+	items := []model.AuditLog{}
 	for rows.Next() {
 		var item model.AuditLog
 		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt, &item.ShipmentNumber); err != nil {
@@ -781,7 +781,7 @@ func (r *Repository) ListAuditLogsByUser(ctx context.Context, userID string) ([]
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.AuditLog
+	items := []model.AuditLog{}
 	for rows.Next() {
 		var item model.AuditLog
 		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt, &item.ShipmentNumber); err != nil {
@@ -849,7 +849,7 @@ func (r *Repository) GetStatusSummary(ctx context.Context) ([]model.StatusSummar
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.StatusSummaryItem
+	items := []model.StatusSummaryItem{}
 	for rows.Next() {
 		var item model.StatusSummaryItem
 		if err := rows.Scan(&item.Status, &item.Count); err != nil {
@@ -873,7 +873,7 @@ func scanUser(row pgx.Row) (model.User, error) {
 }
 
 func collectUsers(rows pgx.Rows) ([]model.User, error) {
-	var items []model.User
+	items := []model.User{}
 	for rows.Next() {
 		var user model.User
 		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt); err != nil {
@@ -899,7 +899,7 @@ func scanShipment(row pgx.Row) (model.Shipment, error) {
 }
 
 func collectShipments(rows pgx.Rows) ([]model.Shipment, error) {
-	var items []model.Shipment
+	items := []model.Shipment{}
 	for rows.Next() {
 		var shipment model.Shipment
 		var routeRaw []byte
@@ -985,7 +985,7 @@ func (r *Repository) ListWagons(ctx context.Context, station string, status *mod
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.Wagon
+	items := []model.Wagon{}
 	for rows.Next() {
 		var w model.Wagon
 		if err := rows.Scan(&w.ID, &w.WagonNumber, &w.Status, &w.CurrentStation, &w.Destination, &w.DepartureDate, &w.Capacity, &w.CreatedAt, &w.UpdatedAt); err != nil {
@@ -1020,7 +1020,7 @@ func (r *Repository) GetWagonShipments(ctx context.Context, wagonID string) ([]m
 		return nil, err
 	}
 	defer rows.Close()
-	var items []model.WagonShipment
+	items := []model.WagonShipment{}
 	for rows.Next() {
 		var ws model.WagonShipment
 		if err := rows.Scan(&ws.ID, &ws.WagonID, &ws.ShipmentID, &ws.Status, &ws.ScannedAt); err != nil {
