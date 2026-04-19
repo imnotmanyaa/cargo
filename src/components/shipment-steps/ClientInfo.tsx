@@ -74,23 +74,33 @@ export function ClientInfo({
     }
   }, [user]);
 
-  // Автоматически заполняем данные для физического лица при монтировании
+  // Автоматически заполняем данные при монтировании или смене пользователя
   useEffect(() => {
-    if (user?.role === 'individual' && user.name) {
-      onUpdate({
-        clientType: 'individual',
-        clientName: user.name,
-        clientPhone: user.phone || '',
-        clientSource: 'direct'
-      });
-    } else if (user?.role === 'corporate') {
-      onUpdate({
-        clientType: 'legal',
-        clientName: user.company || user.name,
-        contractNumber: user.contractNumber || ''
-      });
+    if (!user) return;
+
+    const updates: any = {};
+
+    // Авто-заполнение станции отправления (для операторов и филиалов)
+    if (user.station && !data.fromStation) {
+      updates.fromStation = user.station;
     }
-  }, [user]);
+
+    // Авто-заполнение данных клиента (для физ. лиц и компаний)
+    if (user.role === 'individual' && user.name) {
+      updates.clientType = 'individual';
+      updates.clientName = user.name;
+      updates.clientPhone = user.phone || '';
+      updates.clientSource = 'direct';
+    } else if (user.role === 'corporate') {
+      updates.clientType = 'legal';
+      updates.clientName = user.company || user.name;
+      updates.contractNumber = user.contractNumber || '';
+    }
+
+    if (Object.keys(updates).length > 0) {
+      onUpdate(updates);
+    }
+  }, [user, user?.station]);
 
   // Автозаполнение при выборе источника агрегатора
   const handleSourceChange = (source: string) => {
