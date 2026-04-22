@@ -15,6 +15,8 @@ interface Notification {
   id: number;
   message: string;
   read: boolean;
+  type?: string;
+  related_id?: string;
   created_at: string;
 }
 
@@ -27,6 +29,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   const [unreadCount, setUnreadCount] = useState(0);
   const [langOpen, setLangOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const langRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -181,7 +184,10 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
                   <div
                     key={n.id}
                     className={`p-3 border-b last:border-0 cursor-pointer ${!n.read ? (isDark ? 'bg-blue-900/20' : 'bg-blue-50') : ''} ${isDark ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'}`}
-                    onClick={() => markAsRead(n.id)}
+                    onClick={() => {
+                      markAsRead(n.id);
+                      setSelectedNotification(n);
+                    }}
                   >
                     <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{n.message}</p>
                     <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
@@ -251,6 +257,41 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           </button>
         )}
       </div>
+
+      {selectedNotification && (
+        <div className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4" onClick={() => setSelectedNotification(null)}>
+          <div
+            className={`w-full max-w-lg rounded-lg border shadow-xl ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`px-4 py-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className={`font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Детали уведомления</div>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className={`text-sm whitespace-pre-line ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{selectedNotification.message}</p>
+              <p className="text-xs text-gray-500">{new Date(selectedNotification.created_at).toLocaleString()}</p>
+              <div className="flex gap-2 justify-end">
+                {selectedNotification.related_id && (
+                  <button
+                    onClick={() => {
+                      window.location.href = `/shipment/${selectedNotification.related_id}`;
+                    }}
+                    className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Открыть груз
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedNotification(null)}
+                  className={`px-3 py-2 text-sm rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

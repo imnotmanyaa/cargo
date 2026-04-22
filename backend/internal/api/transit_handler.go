@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -177,22 +178,59 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 		shipment.FromStation == queriedStation ||
 		shipment.ToStation == queriedStation
 
-	if !stationMatch {
-		// Send notification to the manager of the origin station
-		s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "notification:new", map[string]any{
-			"id": time.Now().UnixNano(),
-			"title": "🔴 Ошибка маршрута",
-			"message": "Груз " + shipment.ShipmentNumber + " оказался на неверной станции: " + queriedStation + ". Ожидался: " + shipment.FromStation + " -> " + shipment.ToStation,
-			"shipment_id": shipment.ID,
-			"type": "alert",
-			"created_at": time.Now().UTC(),
-		})
+	checkedAt := time.Now().UTC()
+
+	// Point 5: if unauthorized cargo is scanned by mobile group,
+	// managers must receive a detailed notification.
+	if !stationMatch && user.Role == model.RoleMobileGroup {
+		employees, err := s.services.Admin.ListEmployees(r.Context())
+		if err == nil {
+			var recipients []model.User
+			for _, item := range employees {
+				if item.Role != model.RoleManager {
+					continue
+				}
+				if item.Station != nil && *item.Station == queriedStation {
+					recipients = append(recipients, item)
+				}
+			}
+			// Fallback: if manager for this station is not found, notify all managers.
+			if len(recipients) == 0 {
+				for _, item := range employees {
+					if item.Role == model.RoleManager {
+						recipients = append(recipients, item)
+					}
+				}
+			}
+
+			details := fmt.Sprintf(
+				"Несанкционированное сканирование груза %s\nВремя: %s\nСотрудник: %s\nСтанция: %s\nМаршрут: %s -> %s",
+				shipment.ShipmentNumber,
+				checkedAt.Format("02.01.2006 15:04:05"),
+				user.Name,
+				queriedStation,
+				shipment.FromStation,
+				shipment.ToStation,
+			)
+			for _, manager := range recipients {
+				notification, err := s.services.Notifications.Create(r.Context(), model.Notification{
+					UserID:    manager.ID,
+					Message:   details,
+					Type:      "unauthorized_shipment_scan",
+					RelatedID: &shipment.ID,
+					CreatedAt: checkedAt,
+				})
+				if err == nil {
+					s.socket.BroadcastToRoom("/", "user:"+manager.ID, "notification:new", notification)
+				}
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"shipment":      shipment,
 		"station_match": stationMatch,
-		"checked_at":    r.Context().Value("request_time"), // момент проверки
+		"checked_at":    checkedAt,
 		"auditor":       user.Name,
 	})
 }
