@@ -204,9 +204,9 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 					stationLeadersCount++
 				}
 			}
-			// Always notify chief heads globally.
+			// Always notify chief heads and admins globally.
 			for _, item := range employees {
-				if item.Role == model.RoleChiefHead {
+				if item.Role == model.RoleChiefHead || item.Role == model.RoleAdmin {
 					addRecipient(item)
 				}
 			}

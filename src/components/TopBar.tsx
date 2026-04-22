@@ -36,6 +36,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   useEffect(() => {
     if (user?.id) {
       fetchNotifications();
+      const poll = window.setInterval(fetchNotifications, 15000);
 
       // Setup socket listener
       const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -56,10 +57,17 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       };
 
       return () => {
+        window.clearInterval(poll);
         socket.close();
       };
     }
   }, [user]);
+
+  useEffect(() => {
+    if (notifOpen) {
+      fetchNotifications();
+    }
+  }, [notifOpen]);
 
   const fetchNotifications = async () => {
     try {
