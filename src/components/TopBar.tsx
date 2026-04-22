@@ -105,8 +105,8 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   const showStationInfo = user?.role === 'operator' || user?.role === 'receiver';
 
   return (
-    <div className={`h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-3 md:px-6`}>
-      <div className="flex items-center gap-2 md:gap-4">
+    <div className={`h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-2 sm:px-3 md:px-6 overflow-x-hidden`}>
+      <div className="flex items-center gap-1 sm:gap-2 md:gap-4 min-w-0">
         {!hideSidebarButtons && (
           <button
             onClick={onToggleLeftSidebar}
@@ -116,7 +116,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           </button>
         )}
 
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg ${isDark ? 'bg-blue-600' : 'bg-blue-600'} flex items-center justify-center`}>
             <span className="text-white font-semibold text-base md:text-lg">CT</span>
           </div>
@@ -142,7 +142,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-shrink-0">
         {/* Поиск - скрываем на очень маленьких экранах */}
         <div className={`relative hidden md:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -198,7 +198,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
             className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
           >
             <Globe className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
-            <span className={`text-xs md:text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{getLanguageCode()}</span>
+            <span className={`hidden sm:inline text-xs md:text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{getLanguageCode()}</span>
           </button>
 
           {langOpen && (
@@ -245,7 +245,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
         {!hideSidebarButtons && (
           <button
             onClick={onToggleRightSidebar}
-            className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+            className={`hidden lg:inline-flex p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
           >
             <Menu className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
           </button>
