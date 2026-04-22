@@ -24,6 +24,7 @@ import { ManagerDashboard } from './components/ManagerDashboard';
 import { ShipmentActionPage } from './components/ShipmentActionPage';
 import { ScannerTerminal } from './components/ScannerTerminal';
 import { DailySheet } from './components/DailySheet';
+import { FrequentClients } from './components/FrequentClients';
 
 import { AuditorTerminal } from './components/AuditorTerminal';
 
@@ -211,6 +212,8 @@ function AppContent() {
         return <AuditLog theme={theme} />;
       case 'payments':
         return <PaymentLog theme={theme} />;
+      case 'frequent-clients':
+        return <FrequentClients theme={theme} />;
       default:
         return <NewShipment theme={theme} />;
     }

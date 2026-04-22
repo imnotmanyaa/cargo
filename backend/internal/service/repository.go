@@ -17,6 +17,8 @@ type Repository interface {
 	DeleteEmployee(ctx context.Context, id string) error
 	ListCorporateClients(ctx context.Context) ([]model.User, error)
 	TopUpDeposit(ctx context.Context, userID string, amount float64) (float64, error)
+	ListFrequentClients(ctx context.Context, provider string) ([]model.FrequentClient, error)
+	CreateFrequentClient(ctx context.Context, client model.FrequentClient) (model.FrequentClient, error)
 
 	ListRoles(ctx context.Context) ([]model.RoleRecord, error)
 	ListStations(ctx context.Context) ([]model.Station, error)

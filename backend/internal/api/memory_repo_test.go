@@ -27,6 +27,7 @@ type memoryRepo struct {
 	nextNotifID    int64
 	wagons         map[string]model.Wagon
 	wagonShipments []model.WagonShipment
+	frequentClients map[string]model.FrequentClient
 }
 
 func newMemoryRepo() *memoryRepo {
@@ -37,6 +38,7 @@ func newMemoryRepo() *memoryRepo {
 		payments:  map[string]model.Payment{},
 		qrCodes:   map[string]model.QRCode{},
 		wagons:    map[string]model.Wagon{},
+		frequentClients: map[string]model.FrequentClient{},
 		roles: []model.RoleRecord{
 			{ID: "admin", Name: "admin", Description: "Administrator"},
 			{ID: "operator", Name: "operator", Description: "Operator"},
@@ -144,6 +146,29 @@ func (m *memoryRepo) TopUpDeposit(_ context.Context, userID string, amount float
 	user.DepositBalance += amount
 	m.users[userID] = user
 	return user.DepositBalance, nil
+}
+
+func (m *memoryRepo) ListFrequentClients(_ context.Context, provider string) ([]model.FrequentClient, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var items []model.FrequentClient
+	for _, item := range m.frequentClients {
+		if !item.IsActive {
+			continue
+		}
+		if provider != "" && item.Provider != provider {
+			continue
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func (m *memoryRepo) CreateFrequentClient(_ context.Context, client model.FrequentClient) (model.FrequentClient, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.frequentClients[client.ID] = client
+	return client, nil
 }
 
 func (m *memoryRepo) ListRoles(_ context.Context) ([]model.RoleRecord, error) { return m.roles, nil }

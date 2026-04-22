@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -17,6 +18,34 @@ func (s *ClientService) ListCorporateClients(ctx context.Context) ([]model.User,
 
 func (s *ClientService) TopUp(ctx context.Context, userID string, amount float64) (float64, error) {
 	return s.repo.TopUpDeposit(ctx, userID, amount)
+}
+
+func (s *ClientService) ListFrequentClients(ctx context.Context, provider string) ([]model.FrequentClient, error) {
+	return s.repo.ListFrequentClients(ctx, strings.TrimSpace(strings.ToLower(provider)))
+}
+
+func (s *ClientService) CreateFrequentClient(ctx context.Context, provider, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error) {
+	provider = strings.TrimSpace(strings.ToLower(provider))
+	clientName = strings.TrimSpace(clientName)
+	if provider == "" || clientName == "" {
+		return model.FrequentClient{}, ErrValidation
+	}
+	if provider != "glovo" && provider != "choko" && provider != "other" {
+		return model.FrequentClient{}, ErrValidation
+	}
+
+	item := model.FrequentClient{
+		ID:             uuid.NewString(),
+		Provider:       provider,
+		CompanyName:    companyName,
+		ClientName:     clientName,
+		Phone:          phone,
+		ContractNumber: contractNumber,
+		Notes:          notes,
+		IsActive:       true,
+		CreatedAt:      time.Now().UTC(),
+	}
+	return s.repo.CreateFrequentClient(ctx, item)
 }
 
 func (s *ClientService) CreateCorporateClient(ctx context.Context, name, email, password, company, contractNumber string, phone *string, deposit float64) (model.User, error) {

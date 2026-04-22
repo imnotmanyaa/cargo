@@ -20,19 +20,14 @@ interface CorporateClient {
   deposit_balance: number;
 }
 
-// Моковые данные клиентов от агрегаторов
-const aggregatorClients: Record<string, Array<{ id: string; name: string; phone: string; contractNumber: string }>> = {
-  glovo: [
-    { id: 'GLV-001', name: 'Ермек Асанов', phone: '+7 701 234 5678', contractNumber: 'GLV-2024-001' },
-    { id: 'GLV-002', name: 'Айгүл Сейтова', phone: '+7 702 345 6789', contractNumber: 'GLV-2024-002' },
-    { id: 'GLV-003', name: 'Нұрлан Қасымов', phone: '+7 705 456 7890', contractNumber: 'GLV-2024-003' },
-  ],
-  choko: [
-    { id: 'CHK-001', name: 'Данияр Әлімов', phone: '+7 707 567 8901', contractNumber: 'CHK-2024-001' },
-    { id: 'CHK-002', name: 'Сәуле Жұмабаева', phone: '+7 708 678 9012', contractNumber: 'CHK-2024-002' },
-    { id: 'CHK-003', name: 'Бауыржан Төлеуов', phone: '+7 775 789 0123', contractNumber: 'CHK-2024-003' },
-  ],
-};
+interface FrequentClient {
+  id: string;
+  provider: 'glovo' | 'choko' | 'other';
+  company_name?: string;
+  client_name: string;
+  phone?: string;
+  contract_number?: string;
+}
 
 export function ClientInfo({
   data,
@@ -45,6 +40,7 @@ export function ClientInfo({
   const { user } = useAuth();
   const [isReceiverDifferent, setIsReceiverDifferent] = useState(() => !!data.receiverName || !!data.receiverPhone);
   const [corporateClients, setCorporateClients] = useState<CorporateClient[]>([]);
+  const [frequentClients, setFrequentClients] = useState<FrequentClient[]>([]);
 
   const normalizeStation = (v: string) => v.trim().toLowerCase();
   const sameFromTo =
@@ -66,11 +62,18 @@ export function ClientInfo({
     if (user?.role !== 'individual') {
       const fetchClients = async () => {
         try {
+          const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
           const res = await fetch('/api/clients?ts=' + Date.now(), {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers,
           });
           if (res.ok) {
             setCorporateClients(await res.json());
+          }
+          const frequentRes = await fetch('/api/clients/frequent?ts=' + Date.now(), {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          if (frequentRes.ok) {
+            setFrequentClients(await frequentRes.json());
           }
         } catch (error) {
           console.error(error);
@@ -113,7 +116,7 @@ export function ClientInfo({
     onUpdate({ clientSource: source });
 
     // Если выбран агрегатор, очищаем данные клиента для нового выбора
-    if (source === 'glovo' || source === 'choko') {
+    if (source === 'glovo' || source === 'choko' || source === 'other') {
       onUpdate({
         clientSource: source,
         aggregatorClientId: '',
@@ -132,24 +135,20 @@ export function ClientInfo({
 
   // Автозаполнение данных клиента при выборе из списка агрегатора
   const handleAggregatorClientSelect = (clientId: string) => {
-    const source = data.clientSource;
-    if (source === 'glovo' || source === 'choko') {
-      const clients = aggregatorClients[source];
-      const selectedClient = clients.find(c => c.id === clientId);
+    const selectedClient = frequentClients.find(c => c.id === clientId);
 
-      if (selectedClient) {
-        onUpdate({
-          aggregatorClientId: clientId,
-          clientName: selectedClient.name,
-          clientPhone: selectedClient.phone,
-          contractNumber: selectedClient.contractNumber
-        });
-      }
+    if (selectedClient) {
+      onUpdate({
+        aggregatorClientId: clientId,
+        clientName: selectedClient.client_name,
+        clientPhone: selectedClient.phone || '',
+        contractNumber: selectedClient.contract_number || ''
+      });
     }
   };
 
-  const isAggregatorSource = data.clientSource === 'glovo' || data.clientSource === 'choko';
-  const currentAggregatorClients = isAggregatorSource ? aggregatorClients[data.clientSource] : [];
+  const isAggregatorSource = data.clientSource === 'glovo' || data.clientSource === 'choko' || data.clientSource === 'other';
+  const currentAggregatorClients = isAggregatorSource ? frequentClients.filter(c => c.provider === data.clientSource) : [];
 
   return (
     <div className={`rounded-lg shadow-sm border p-8 ${isDark
@@ -207,6 +206,7 @@ export function ClientInfo({
               <option value="">{t('selectSource')}</option>
               <option value="glovo">Glovo</option>
               <option value="choko">Choko</option>
+              <option value="other">Другая компания</option>
               <option value="direct">{t('directContact')}</option>
             </select>
           </div>
@@ -221,7 +221,7 @@ export function ClientInfo({
             <div className="flex items-center gap-2 mb-3">
               <Users className="w-5 h-5 text-blue-600" />
               <span className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-900'}`}>
-                Выберите клиента из {data.clientSource === 'glovo' ? 'Glovo' : 'Choko'}
+                Выберите клиента из {data.clientSource === 'glovo' ? 'Glovo' : data.clientSource === 'choko' ? 'Choko' : 'других компаний'}
               </span>
             </div>
             <select
@@ -235,7 +235,7 @@ export function ClientInfo({
               <option value="">Выберите клиента...</option>
               {currentAggregatorClients.map(client => (
                 <option key={client.id} value={client.id}>
-                  {client.name} - {client.phone}
+                  {client.client_name}{client.company_name ? ` (${client.company_name})` : ''}{client.phone ? ` - ${client.phone}` : ''}
                 </option>
               ))}
             </select>
@@ -256,7 +256,7 @@ export function ClientInfo({
                   setSearchQuery(e.target.value);
                   setShowSuggestions(true);
                   // Update data.clientName directly so they can type custom names too
-                  onUpdate({ clientName: e.target.value, corporateClientId: null, hasDeposit: false, contractNumber: '' });
+                    onUpdate({ clientName: e.target.value, corporateClientId: null, hasDeposit: false, contractNumber: '', clientDepositBalance: 0 });
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
@@ -285,7 +285,9 @@ export function ClientInfo({
                             clientName: client.company || client.name,
                             clientPhone: client.phone || '',
                             contractNumber: client.contract_number || '',
-                            hasDeposit: true
+                            hasDeposit: (client.deposit_balance || 0) > 0,
+                            clientDepositBalance: client.deposit_balance || 0,
+                            paymentMethod: (client.deposit_balance || 0) > 0 ? 'deposit' : 'cash',
                           });
                         }}
                       >

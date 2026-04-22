@@ -42,6 +42,25 @@ END
 SQL
 "
 
+echo "🗂️ Ensuring frequent clients table exists..."
+$SSH $SERVER "
+  set -e
+  DATABASE_URL=\${DATABASE_URL:-postgres://postgres:postgres@localhost:5432/cargotrans?sslmode=disable}
+  psql \"\$DATABASE_URL\" -v ON_ERROR_STOP=1 <<'SQL'
+CREATE TABLE IF NOT EXISTS frequent_clients (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  company_name TEXT,
+  client_name TEXT NOT NULL,
+  phone TEXT,
+  contract_number TEXT,
+  notes TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+SQL
+"
+
 echo "🔧 Building and restarting backend..."
 $SSH $SERVER "
   cd /home/ubuntu/cargo/backend &&

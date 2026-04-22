@@ -62,6 +62,18 @@ type User struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+type FrequentClient struct {
+	ID             string    `json:"id"`
+	Provider       string    `json:"provider"` // glovo, choko, other
+	CompanyName    *string   `json:"company_name,omitempty"`
+	ClientName     string    `json:"client_name"`
+	Phone          *string   `json:"phone,omitempty"`
+	ContractNumber *string   `json:"contract_number,omitempty"`
+	Notes          *string   `json:"notes,omitempty"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 type RoleRecord struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`

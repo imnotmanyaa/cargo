@@ -415,6 +415,57 @@ func (r *Repository) TopUpDeposit(ctx context.Context, userID string, amount flo
 	return balance, err
 }
 
+func (r *Repository) ListFrequentClients(ctx context.Context, provider string) ([]model.FrequentClient, error) {
+	query := `
+		SELECT id, provider, company_name, client_name, phone, contract_number, notes, is_active, created_at
+		FROM frequent_clients
+		WHERE is_active = TRUE
+	`
+	args := []any{}
+	if provider != "" {
+		query += ` AND provider = $1`
+		args = append(args, provider)
+	}
+	query += ` ORDER BY created_at DESC`
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []model.FrequentClient
+	for rows.Next() {
+		var item model.FrequentClient
+		if err := rows.Scan(
+			&item.ID,
+			&item.Provider,
+			&item.CompanyName,
+			&item.ClientName,
+			&item.Phone,
+			&item.ContractNumber,
+			&item.Notes,
+			&item.IsActive,
+			&item.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (r *Repository) CreateFrequentClient(ctx context.Context, client model.FrequentClient) (model.FrequentClient, error) {
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO frequent_clients (id, provider, company_name, client_name, phone, contract_number, notes, is_active, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	`, client.ID, client.Provider, client.CompanyName, client.ClientName, client.Phone, client.ContractNumber, client.Notes, client.IsActive, client.CreatedAt)
+	if err != nil {
+		return model.FrequentClient{}, err
+	}
+	return client, nil
+}
+
 func (r *Repository) ListRoles(ctx context.Context) ([]model.RoleRecord, error) {
 	rows, err := r.pool.Query(ctx, `SELECT id, name, description FROM roles ORDER BY name`)
 	if err != nil {

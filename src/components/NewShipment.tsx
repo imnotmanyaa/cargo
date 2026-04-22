@@ -46,7 +46,9 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     hasTicket: false,
     ticketNumber: '',
     receiverName: '',
-    receiverPhone: ''
+    receiverPhone: '',
+    paymentMethod: 'cash' as 'cash' | 'deposit',
+    clientDepositBalance: 0,
   });
 
   const updateShipmentData = (data: Partial<typeof shipmentData>) => {
@@ -133,7 +135,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         body: JSON.stringify({
           shipment_id: shipmentId,
           amount: calculatedCost,
-          payment_method: shipmentData.clientType === 'legal' && shipmentData.hasDeposit ? 'deposit' : 'cash'
+          payment_method: shipmentData.clientType === 'legal' ? shipmentData.paymentMethod : 'cash'
         })
       });
       if (!payRes.ok) {
@@ -346,7 +348,9 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       hasTicket: false,
                       ticketNumber: '',
                       receiverName: '',
-                      receiverPhone: ''
+                      receiverPhone: '',
+                      paymentMethod: 'cash',
+                      clientDepositBalance: 0,
                     });
                   }}
                   className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
