@@ -1,6 +1,5 @@
 /**
- * ZebraTerminal — полностью изолированный терминал для Zebra TSD (Android 4, WebView).
- * Никаких Tailwind-классов, никаких современных CSS-фич.
+ * ZebraTerminal — изолированный терминал для Zebra TSD (Android 4, WebView).
  * Только inline-стили, совместимые с Android 4.x WebView.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -38,7 +37,6 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Отменён',
 };
 
-// Стили — только то, что поддерживает Android 4 WebView
 const S = {
   root: {
     margin: 0,
@@ -49,54 +47,89 @@ const S = {
     minHeight: '100vh',
   } as React.CSSProperties,
 
-  header: {
+  // ── ТОПБАР ──────────────────────────────────────────────
+  topbar: {
     background: '#1a56db',
     color: '#fff',
-    padding: '10px 14px',
+    padding: '0 12px',
+    height: '48px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderBottom: '2px solid #1340a8',
+    position: 'sticky' as const,
+    top: 0,
+    zIndex: 100,
   } as React.CSSProperties,
 
-  headerTitle: {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    margin: 0,
-  } as React.CSSProperties,
-
-  headerSub: {
-    fontSize: '12px',
-    opacity: 0.85,
-    marginTop: '2px',
-  } as React.CSSProperties,
-
-  logoutBtn: {
-    float: 'right' as const,
-    background: '#dc2626',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '8px 14px',
-    fontSize: '13px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  } as React.CSSProperties,
-
-  statsRow: {
-    background: '#1a56db',
-    padding: '0 14px 10px',
+  topbarLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    minWidth: 0,
     overflow: 'hidden',
   } as React.CSSProperties,
 
-  statBox: {
-    display: 'inline-block',
+  logo: {
+    background: 'rgba(255,255,255,0.25)',
+    borderRadius: '6px',
+    width: '32px',
+    height: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    fontSize: '13px',
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  topbarName: {
+    fontSize: '14px',
+    fontWeight: 'bold',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap' as const,
+    textOverflow: 'ellipsis',
+  } as React.CSSProperties,
+
+  topbarStation: {
+    fontSize: '11px',
+    opacity: 0.8,
+    overflow: 'hidden',
+    whiteSpace: 'nowrap' as const,
+    textOverflow: 'ellipsis',
+  } as React.CSSProperties,
+
+  logoutBtn: {
     background: 'rgba(255,255,255,0.18)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.35)',
     borderRadius: '6px',
     padding: '6px 12px',
-    marginRight: '8px',
-    marginBottom: '4px',
+    fontSize: '13px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    flexShrink: 0,
+    WebkitAppearance: 'none' as const,
+  } as React.CSSProperties,
+
+  // ── СТАТИСТИКА ──────────────────────────────────────────
+  statsRow: {
+    background: '#1340a8',
+    padding: '8px 12px',
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap' as const,
+  } as React.CSSProperties,
+
+  statBox: {
+    background: 'rgba(255,255,255,0.15)',
+    borderRadius: '6px',
+    padding: '4px 12px',
     color: '#fff',
     fontSize: '12px',
     fontWeight: 'bold',
-    verticalAlign: 'top',
+    textAlign: 'center' as const,
+    flex: '1 1 auto',
   } as React.CSSProperties,
 
   statNum: {
@@ -106,6 +139,7 @@ const S = {
     lineHeight: '1.2',
   } as React.CSSProperties,
 
+  // ── BODY ────────────────────────────────────────────────
   body: {
     padding: '12px',
   } as React.CSSProperties,
@@ -131,7 +165,7 @@ const S = {
     width: '100%',
     boxSizing: 'border-box' as const,
     padding: '14px 12px',
-    fontSize: '18px',
+    fontSize: '20px',
     fontFamily: 'monospace',
     border: '2px solid #1a56db',
     borderRadius: '6px',
@@ -139,7 +173,7 @@ const S = {
     color: '#111',
     outline: 'none',
     marginBottom: '10px',
-    WebkitAppearance: 'none',
+    WebkitAppearance: 'none' as const,
   } as React.CSSProperties,
 
   btnPrimary: {
@@ -155,7 +189,7 @@ const S = {
     borderRadius: '6px',
     cursor: 'pointer',
     marginBottom: '8px',
-    WebkitAppearance: 'none',
+    WebkitAppearance: 'none' as const,
   } as React.CSSProperties,
 
   btnDisabled: {
@@ -171,7 +205,7 @@ const S = {
     borderRadius: '6px',
     cursor: 'default',
     marginBottom: '8px',
-    WebkitAppearance: 'none',
+    WebkitAppearance: 'none' as const,
   } as React.CSSProperties,
 
   hint: {
@@ -209,13 +243,13 @@ const S = {
   } as React.CSSProperties,
 
   resultTitle: {
-    fontSize: '24px',
+    fontSize: '22px',
     fontWeight: 'bold',
     margin: '0 0 8px 0',
   } as React.CSSProperties,
 
   resultMsg: {
-    fontSize: '15px',
+    fontSize: '14px',
     margin: '0 0 10px 0',
     wordBreak: 'break-word' as const,
   } as React.CSSProperties,
@@ -236,7 +270,7 @@ const S = {
   infoKey: {
     color: '#666',
     display: 'inline-block',
-    minWidth: '100px',
+    minWidth: '90px',
   } as React.CSSProperties,
 
   infoVal: {
@@ -245,18 +279,17 @@ const S = {
   } as React.CSSProperties,
 
   historyTitle: {
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: 'bold',
-    color: '#555',
+    color: '#666',
     marginBottom: '8px',
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
   } as React.CSSProperties,
 
   histItem: {
-    padding: '8px 10px',
+    padding: '7px 10px',
     borderRadius: '5px',
-    marginBottom: '5px',
+    marginBottom: '4px',
     fontSize: '13px',
     overflow: 'hidden',
   } as React.CSSProperties,
@@ -274,23 +307,29 @@ const S = {
 
 export function ZebraTerminal() {
   const { user, logout } = useAuth();
+  // Единственный input — одновременно работает и со сканером и с клавиатурой
   const inputRef = useRef<HTMLInputElement>(null);
-  const visibleInputRef = useRef<HTMLInputElement>(null);
   const [scanValue, setScanValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [stats, setStats] = useState({ total: 0, ok: 0, fail: 0 });
 
-  // Авто-фокус на скрытый input для сканера штрихкодов
+  // Фокус только при клике НЕ на input/button,
+  // чтобы сканер ШК сразу писал в поле без лишних кликов.
   useEffect(() => {
-    const focus = () => { inputRef.current?.focus(); };
-    focus();
-    document.addEventListener('click', focus);
-    document.addEventListener('touchend', focus);
+    inputRef.current?.focus();
+    const handler = (e: Event) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag !== 'INPUT' && tag !== 'BUTTON' && tag !== 'TEXTAREA') {
+        inputRef.current?.focus();
+      }
+    };
+    document.addEventListener('click', handler);
+    document.addEventListener('touchend', handler);
     return () => {
-      document.removeEventListener('click', focus);
-      document.removeEventListener('touchend', focus);
+      document.removeEventListener('click', handler);
+      document.removeEventListener('touchend', handler);
     };
   }, []);
 
@@ -300,7 +339,6 @@ export function ZebraTerminal() {
 
     setIsLoading(true);
     setScanValue('');
-    if (visibleInputRef.current) visibleInputRef.current.value = '';
 
     const token = localStorage.getItem('token') || '';
     try {
@@ -313,7 +351,7 @@ export function ZebraTerminal() {
         const data = await res.json();
         const s = data.shipment;
         const match: boolean = data.station_match;
-        const r: ScanResult = {
+        setResult({
           ok: true,
           match,
           shipmentNumber: s.shipment_number,
@@ -321,16 +359,27 @@ export function ZebraTerminal() {
           toStation: s.to_station,
           currentStation: s.current_station,
           status: s.shipment_status,
-          message: match
-            ? 'Груз на правильной станции'
-            : 'Груз НЕ на этой станции',
-        };
-        setResult(r);
-        setHistory(prev => [{ id: Date.now() + '', code: s.shipment_number || trimmed, ok: match, time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }, ...prev].slice(0, 10));
-        setStats(prev => ({ total: prev.total + 1, ok: match ? prev.ok + 1 : prev.ok, fail: match ? prev.fail : prev.fail + 1 }));
+          message: match ? 'Груз на правильной станции' : 'Груз НЕ на этой станции',
+        });
+        setHistory(prev => [{
+          id: String(Date.now()),
+          code: s.shipment_number || trimmed,
+          ok: match,
+          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        }, ...prev].slice(0, 10));
+        setStats(prev => ({
+          total: prev.total + 1,
+          ok: match ? prev.ok + 1 : prev.ok,
+          fail: match ? prev.fail : prev.fail + 1,
+        }));
       } else if (res.status === 404) {
         setResult({ ok: false, match: false, message: 'Груз не найден: ' + trimmed });
-        setHistory(prev => [{ id: Date.now() + '', code: trimmed, ok: false, time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }, ...prev].slice(0, 10));
+        setHistory(prev => [{
+          id: String(Date.now()),
+          code: trimmed,
+          ok: false,
+          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        }, ...prev].slice(0, 10));
         setStats(prev => ({ ...prev, total: prev.total + 1, fail: prev.fail + 1 }));
       } else {
         setResult({ ok: false, match: false, message: 'Ошибка сервера (' + res.status + ')' });
@@ -339,54 +388,58 @@ export function ZebraTerminal() {
       setResult({ ok: false, match: false, message: 'Нет связи с сервером' });
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isLoading, user]);
 
-  const getResultStyle = () => {
-    if (!result) return null;
-    if (!result.ok) return S.resultFail;
-    if (result.match) return S.resultOk;
-    return S.resultWarn;
-  };
+  const resultStyle = !result ? null
+    : !result.ok ? S.resultFail
+    : result.match ? S.resultOk
+    : S.resultWarn;
 
-  const getResultColor = () => {
-    if (!result) return '#111';
-    if (!result.ok) return '#dc2626';
-    if (result.match) return '#059669';
-    return '#d97706';
-  };
+  const resultColor = !result ? '#111'
+    : !result.ok ? '#dc2626'
+    : result.match ? '#059669'
+    : '#d97706';
 
   return (
     <div style={S.root}>
-      {/* HEADER */}
-      <div style={S.header}>
+
+      {/* ── МИНИМАЛЬНЫЙ ТОПБАР ─────────────────────── */}
+      <div style={S.topbar}>
+        <div style={S.topbarLeft}>
+          <div style={S.logo}>CT</div>
+          <div style={{ overflow: 'hidden' }}>
+            <div style={S.topbarName}>{user?.name || 'Сотрудник'}</div>
+            <div style={S.topbarStation}>{user?.station || 'Станция не задана'}</div>
+          </div>
+        </div>
         <button style={S.logoutBtn} onClick={logout}>Выход</button>
-        <p style={S.headerTitle}>Мобильная группа</p>
-        <p style={S.headerSub}>{user?.name || ''} · {user?.station || 'Станция не задана'}</p>
       </div>
 
-      {/* STATS BAR */}
+      {/* ── СТАТИСТИКА ─────────────────────────────── */}
       <div style={S.statsRow}>
-        <span style={S.statBox}>
+        <div style={S.statBox}>
           <span style={S.statNum}>{stats.total}</span>
           Проверено
-        </span>
-        <span style={S.statBox}>
-          <span style={S.statNum}>{stats.ok}</span>
+        </div>
+        <div style={S.statBox}>
+          <span style={{ ...S.statNum, color: '#86efac' }}>{stats.ok}</span>
           Верных
-        </span>
-        <span style={S.statBox}>
-          <span style={S.statNum}>{stats.fail}</span>
+        </div>
+        <div style={S.statBox}>
+          <span style={{ ...S.statNum, color: '#fca5a5' }}>{stats.fail}</span>
           Ошибок
-        </span>
+        </div>
       </div>
 
+      {/* ── КОНТЕНТ ────────────────────────────────── */}
       <div style={S.body}>
-        {/* RESULT BLOCK */}
+
+        {/* Результат */}
         {result && (
-          <div style={getResultStyle()!}>
-            <p style={{ ...S.resultTitle, color: getResultColor() }}>
+          <div style={resultStyle!}>
+            <p style={{ ...S.resultTitle, color: resultColor }}>
               {!result.ok ? '❌ ОШИБКА' : result.match ? '✅ OK' : '⚠️ НЕСОВПАДЕНИЕ'}
             </p>
             <p style={S.resultMsg}>{result.message}</p>
@@ -413,61 +466,42 @@ export function ZebraTerminal() {
           </div>
         )}
 
-        {/* SCAN CARD */}
+        {/* Ввод кода */}
         <div style={S.card}>
           <label style={S.label}>Код груза</label>
 
-          {/* Скрытый input для физического сканера (без клавиатуры) */}
+          {/* Один input — работает и со сканером и с руками */}
           <input
             ref={inputRef}
+            type="text"
             value={scanValue}
             onChange={e => setScanValue(e.target.value)}
             onKeyDown={e => {
-              if (e.key === 'Enter') {
-                doScan(e.currentTarget.value);
+              if (e.key === 'Enter' && scanValue.trim()) {
+                doScan(scanValue);
               }
             }}
+            placeholder="Сканируйте или введите..."
+            disabled={isLoading}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
-            style={{ position: 'absolute', opacity: 0, width: 1, height: 1, left: -9999 }}
-            aria-hidden="true"
-          />
-
-          {/* Видимый input для ручного ввода */}
-          <input
-            ref={visibleInputRef}
-            type="text"
-            placeholder="Введите или сканируйте..."
-            defaultValue=""
-            onChange={e => setScanValue(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                doScan(e.currentTarget.value);
-                e.currentTarget.value = '';
-              }
-            }}
-            disabled={isLoading}
-            autoComplete="off"
             style={S.input}
           />
 
           <button
             style={isLoading ? S.btnDisabled : S.btnPrimary}
             disabled={isLoading}
-            onClick={() => {
-              const val = visibleInputRef.current?.value || scanValue;
-              if (val) doScan(val);
-            }}
+            onClick={() => { if (scanValue.trim()) doScan(scanValue); }}
           >
             {isLoading ? 'Проверяется...' : 'Проверить'}
           </button>
 
-          <p style={S.hint}>Нажмите Enter или кнопку после ввода кода</p>
+          <p style={S.hint}>Enter или кнопка для проверки</p>
         </div>
 
-        {/* HISTORY */}
+        {/* Журнал */}
         {history.length > 0 && (
           <div style={S.card}>
             <p style={S.historyTitle}>Журнал</p>
