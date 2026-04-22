@@ -130,11 +130,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const originalFetch = window.fetch.bind(window);
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const response = await originalFetch(input, init);
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
+      const isApiRequest = url.includes('/api/');
+      const token = localStorage.getItem('token');
 
-      if (response.status === 401 && !isAuthEndpoint) {
+      let nextInit = init;
+      // Auto-attach bearer token for API requests when caller forgot headers.
+      if (isApiRequest && token && !(input instanceof Request)) {
+        const headers = new Headers(init?.headers || {});
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        nextInit = { ...init, headers };
+      }
+
+      const response = await originalFetch(input, nextInit);
+
+      if (response.status === 401 && !isAuthEndpoint && token) {
         logout();
       }
       return response;
