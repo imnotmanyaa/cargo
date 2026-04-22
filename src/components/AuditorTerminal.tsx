@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { CheckCircle, QrCode, ArrowLeft, Sun, Moon, Globe } from 'lucide-react';
+import { CheckCircle, QrCode, Package, MapPin, AlertTriangle, Scan } from 'lucide-react';
 
 type AuditResult = {
   type: 'found' | 'not-found' | 'error' | 'station-mismatch';
@@ -53,29 +53,32 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Отменён',
 };
 
+interface AuditorTerminalProps {
+  embedded?: boolean;
+  theme?: 'light' | 'dark';
+}
+
 /**
  * AuditorTerminal — терминал проверки для mobile_group.
  * Позволяет сканировать грузы и проверять их данные/маршрут
  * без изменения статуса.
  */
-export function AuditorTerminal({ embedded = false }: { embedded?: boolean }) {
-  const { user, logout } = useAuth();
-  const { language, setLanguage } = useLanguage();
+export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
+  const { user } = useAuth();
+  const { } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [scanValue, setScanValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [stats, setStats] = useState({ total: 0, approved: 0, rejected: 0, mismatch: 0 });
-  const [isDark, setIsDark] = useState(false);
-  const [showLangMenu, setShowLangMenu] = useState(false);
-  const bg = isDark ? '#0f172a' : '#f8fafc';
-  const cardBg = isDark ? '#1e293b' : '#ffffff';
-  const textPrimary = isDark ? '#f1f5f9' : '#1e293b';
 
+  const isDark = theme === 'dark';
+  const cardBg = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
+  const textPrimary = isDark ? 'text-gray-100' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
 
   useEffect(() => {
-    // Check if element or any parent is interactive (closest() not supported on old TSD browsers)
     function isInteractiveEl(el: HTMLElement | null): boolean {
       while (el) {
         const tag = el.tagName;
@@ -169,7 +172,6 @@ export function AuditorTerminal({ embedded = false }: { embedded?: boolean }) {
       } else {
         playBeep(220, 400);
         setResult({ type: 'error', shipmentId: trimmed, message: '⚠️ Ошибка сервера' });
-        setStats(prev => ({ ...prev, total: prev.total + 1, rejected: prev.rejected + 1 }));
       }
     } catch {
       playBeep(220, 400);
@@ -180,83 +182,162 @@ export function AuditorTerminal({ embedded = false }: { embedded?: boolean }) {
     }
   }, [isProcessing, user]);
 
-  const resultBg =
-    result?.type === 'found' ? '#16a34a' : // Светло-зеленый
-    result?.type === 'station-mismatch' ? '#ea580c' : // Оранжевый
-    result?.type === 'not-found' ? '#dc2626' : // Ярко-красный
-    '#dc2626';
+  const resultOverlayBg =
+    result?.type === 'found' ? 'bg-green-600' :
+    result?.type === 'station-mismatch' ? 'bg-orange-500' :
+    'bg-red-600';
 
-  const historyDot = (type: HistoryItem['type']) =>
-    type === 'found' ? '#22c55e' :
-    type === 'station-mismatch' ? '#f59e0b' :
-    '#ef4444';
+  const historyBorderColor = (type: HistoryItem['type']) =>
+    type === 'found' ? 'border-green-500' :
+    type === 'station-mismatch' ? 'border-yellow-500' :
+    'border-red-500';
 
   return (
-    <div style={{ minHeight: embedded ? 'auto' : '100vh', background: embedded ? 'transparent' : bg, display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', userSelect: 'none' }}>
-
-      {/* TOP TOOLBAR (standalone mode only) */}
-      {!embedded && (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: cardBg, borderBottom: isDark ? '1px solid #334155' : '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100, gap: 8, minHeight: 52 }}>
-        {/* Back Button — icon + text on wide, icon-only on narrow */}
-        <button
-          onMouseDown={(e) => { e.stopPropagation(); }}
-          onClick={(e) => { e.stopPropagation(); logout(); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
-        >
-          <ArrowLeft size={16} />
-          <span style={{ display: 'var(--back-text-display, inline)' } as React.CSSProperties}>Назад</span>
-        </button>
-
-        {/* Title — truncate on small screens */}
-        <div style={{ color: textPrimary, fontWeight: 700, fontSize: 13, textAlign: 'center', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-          🔍 Моб. группа
-        </div>
-
-        {/* Right Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, position: 'relative' }}>
-          {/* Language switcher */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); setShowLangMenu(v => !v); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 8px', background: isDark ? '#334155' : '#f1f5f9', color: textPrimary, border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
-            >
-              <Globe size={14} />
-              {language === 'ru' ? 'RU' : language === 'en' ? 'EN' : 'ҚЗ'}
-            </button>
-            {showLangMenu && (
-              <div style={{ position: 'absolute', right: 0, top: 44, background: cardBg, border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 999, overflow: 'hidden', minWidth: 110 }}>
-                {(['ru', 'en', 'kk'] as const).map(lang => (
-                  <button
-                    key={lang}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); setLanguage(lang); setShowLangMenu(false); }}
-                    style={{ display: 'block', width: '100%', padding: '10px 14px', textAlign: 'left', background: language === lang ? '#2563eb' : 'transparent', color: language === lang ? 'white' : textPrimary, border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
-                  >
-                    {lang === 'ru' ? 'Русский' : lang === 'en' ? 'English' : 'Қазақша'}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Theme toggle */}
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); setIsDark(v => !v); }}
-            style={{ display: 'flex', alignItems: 'center', padding: '8px 8px', background: isDark ? '#334155' : '#f1f5f9', color: textPrimary, border: 'none', borderRadius: 10, cursor: 'pointer' }}
-          >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
+    <div>
+      {/* Page Header — matches ManagerDashboard style */}
+      <div className="mb-6">
+        <h1 className={`text-xl md:text-2xl font-semibold mb-1 ${textPrimary}`}>
+          Мобильная группа
+        </h1>
+        <div className={`flex items-center gap-2 text-sm ${textSecondary}`}>
+          <MapPin className="w-4 h-4 shrink-0" />
+          <span>{user?.name} · {user?.station || 'Станция не задана'}</span>
         </div>
       </div>
+
+      {/* Stats — matches ManagerDashboard card grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm p-5 text-white">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+              <Package className="w-6 h-6 text-blue-600" />
+            </div>
+            <span className="text-xs font-medium">Смена</span>
+          </div>
+          <p className="text-xs opacity-90 mb-1">Проверено</p>
+          <p className="text-2xl font-bold">{stats.total}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-sm p-5 text-white">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+            <span className="text-xs font-medium">Смена</span>
+          </div>
+          <p className="text-xs opacity-90 mb-1">Одобрено</p>
+          <p className="text-2xl font-bold">{stats.approved}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-sm p-5 text-white">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+              <QrCode className="w-6 h-6 text-red-600" />
+            </div>
+            <span className="text-xs font-medium">Смена</span>
+          </div>
+          <p className="text-xs opacity-90 mb-1">Отклонено</p>
+          <p className="text-2xl font-bold">{stats.rejected}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg shadow-sm p-5 text-white">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-yellow-600" />
+            </div>
+            <span className="text-xs font-medium">Смена</span>
+          </div>
+          <p className="text-xs opacity-90 mb-1">Несовп. станции</p>
+          <p className="text-2xl font-bold">{stats.mismatch}</p>
+        </div>
+      </div>
+
+      {/* Scan Input Card */}
+      <div className={`rounded-lg shadow-sm border p-5 mb-6 ${cardBg}`}>
+        <div className="flex items-center gap-2 mb-4">
+          <Scan className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+          <h3 className={`text-base font-semibold ${textPrimary}`}>Сканирование груза</h3>
+        </div>
+        <p className={`text-sm mb-4 ${textSecondary}`}>
+          Введите номер отправки вручную или используйте сканер штрихкода — нажмите Enter для проверки
+        </p>
+
+        {/* Hidden real input for barcode scanners */}
+        <input
+          ref={inputRef}
+          value={scanValue}
+          onChange={e => setScanValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleScan(e.currentTarget.value);
+            }
+          }}
+          disabled={isProcessing}
+          inputMode="none"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+          aria-hidden="true"
+        />
+
+        {/* Visible input */}
+        <input
+          value={scanValue}
+          onChange={e => setScanValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleScan(e.currentTarget.value);
+            }
+          }}
+          disabled={isProcessing}
+          placeholder={isProcessing ? 'Проверка...' : 'Наведите сканер или введите номер...'}
+          className={`w-full px-4 py-3 text-base font-mono rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+            isProcessing
+              ? isDark ? 'border-gray-600 bg-gray-700 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-400'
+              : isDark ? 'border-blue-500 bg-gray-700 text-gray-100' : 'border-blue-500 bg-white text-gray-900'
+          }`}
+        />
+
+        <button
+          onClick={() => handleScan(scanValue)}
+          disabled={isProcessing || !scanValue.trim()}
+          className="mt-3 w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+        >
+          <Package className="w-5 h-5" />
+          {isProcessing ? 'Проверяется...' : 'Проверить груз'}
+        </button>
+        <p className={`text-xs text-center mt-2 ${textSecondary}`}>
+          Режим только чтения — статус груза не изменяется
+        </p>
+      </div>
+
+      {/* Inspection History */}
+      {history.length > 0 && (
+        <div className={`rounded-lg shadow-sm border ${cardBg}`}>
+          <div className={`px-5 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+            <h3 className={`text-base font-semibold ${textPrimary}`}>Журнал проверок</h3>
+          </div>
+          <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
+            {history.map((item) => (
+              <div key={item.id} className={`flex items-center justify-between px-5 py-3 border-l-4 ${historyBorderColor(item.type)} ${isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}>
+                <div className="min-w-0">
+                  <p className={`text-sm font-mono font-semibold ${textPrimary}`}>{item.shipmentId}</p>
+                  <p className={`text-xs truncate ${textSecondary}`}>{item.info}</p>
+                </div>
+                <span className={`text-xs shrink-0 ml-4 ${textSecondary}`}>{item.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* MAIN CONTENT */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      {/* FULL SCREEN OVERLAY */}
+      {/* Full-screen result overlay */}
       {result && (
-        <div style={{ backgroundColor: resultBg }} className={`fixed inset-0 z-50 flex items-center justify-center animate-in fade-in zoom-in duration-200`}>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center ${resultOverlayBg} animate-in fade-in zoom-in duration-200`}>
           <div className="text-center p-6 w-full max-w-lg">
             <div className="mb-4 flex justify-center">
               {result.type === 'found' ? (
@@ -271,7 +352,6 @@ export function AuditorTerminal({ embedded = false }: { embedded?: boolean }) {
             <div className="text-xl md:text-2xl font-bold text-white mb-6">
               {result.message}
             </div>
-            
             {result.shipmentNumber && (
               <div className="w-full bg-black bg-opacity-20 p-6 rounded-2xl text-left border border-white border-opacity-20 shadow-xl">
                 <div className="flex justify-between text-base text-gray-200 mb-3">
@@ -291,154 +371,6 @@ export function AuditorTerminal({ embedded = false }: { embedded?: boolean }) {
           </div>
         </div>
       )}
-
-
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 28, opacity: isProcessing ? 0.5 : 1 }}>
-          <div style={{
-            display: 'inline-block',
-            background: '#2563eb',
-            color: '#eff6ff',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            padding: '4px 12px',
-            borderRadius: 999,
-            marginBottom: 12,
-          }}>
-            🔍 Мобильная группа
-          </div>
-          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
-            {user?.name} · <span style={{ color: '#2563eb', fontWeight: 600 }}>{user?.station || 'Станция не задана'}</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <div style={{ padding: '6px 14px', borderRadius: 999, background: '#e0e7ff', color: '#3730a3', fontSize: 13, fontWeight: 600 }}>
-              Проверено: <span style={{ color: '#312e81' }}>{stats.total}</span>
-            </div>
-            <div style={{ padding: '6px 14px', borderRadius: 999, background: '#dcfce7', color: '#166534', fontSize: 13, fontWeight: 600 }}>
-              Одобрено: <span style={{ color: '#14532d' }}>{stats.approved}</span>
-            </div>
-            <div style={{ padding: '6px 14px', borderRadius: 999, background: '#fee2e2', color: '#991b1b', fontSize: 13, fontWeight: 600 }}>
-              Отклонено: <span style={{ color: '#7f1d1d' }}>{stats.rejected}</span>
-            </div>
-            <div style={{ padding: '6px 14px', borderRadius: 999, background: '#ffedd5', color: '#9a3412', fontSize: 13, fontWeight: 600 }}>
-              Несовп. станции: <span style={{ color: '#7c2d12' }}>{stats.mismatch}</span>
-            </div>
-          </div>
-        </div>
-
-      {/* Result display */}
-      <div style={{
-        width: '100%',
-        maxWidth: 480,
-        minHeight: result ? 160 : 80,
-        borderRadius: 16,
-        background: result ? 'transparent' : '#ffffff',
-        boxShadow: result ? 'none' : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 24,
-        padding: '20px 24px',
-      }}>
-        {result ? (
-          <>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 16 }}>
-              {result.message}
-            </div>
-            {result.shipmentNumber && (
-              <div style={{ width: '100%', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#fff', marginBottom: 8 }}>
-                  <span>Маршрут:</span>
-                  <span style={{ fontWeight: 700 }}>{result.fromStation} → {result.toStation}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#fff', marginBottom: 8 }}>
-                  <span>Текущая станция:</span>
-                  <span style={{ fontWeight: 700 }}>{result.currentStation}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#fff' }}>
-                  <span>Статус:</span>
-                  <span style={{ fontWeight: 700 }}>{STATUS_LABELS[result.status || ''] || result.status}</span>
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div style={{ fontSize: 16, color: '#334155', textAlign: 'center', fontWeight: 500 }}>
-            {isProcessing ? '🔍 Проверка...' : 'Готов к сканированию'}
-          </div>
-        )}
-      </div>
-
-      {/* Scan input */}
-      {!result && (
-        <div style={{ width: '100%', maxWidth: 480, position: 'relative' }}>
-            <input
-              ref={inputRef}
-              value={scanValue}
-              onChange={e => setScanValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleScan(e.currentTarget.value);
-                  e.currentTarget.blur();
-                }
-              }}
-              disabled={isProcessing}
-              inputMode="none"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              placeholder="Наведите сканер..."
-            style={{
-              width: '100%',
-              padding: '20px 24px',
-              fontSize: 20,
-              fontFamily: 'monospace',
-              letterSpacing: 2,
-              borderRadius: 16,
-              border: '2px solid',
-              borderColor: isProcessing ? '#cbd5e1' : '#3b82f6',
-              background: '#ffffff',
-              color: '#1e293b',
-              outline: 'none',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
-            }}
-          />
-        </div>
-      )}
-
-      {/* History */}
-      {history.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 480, marginTop: 24 }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>
-            Журнал
-          </div>
-          {history.slice(0, 8).map(item => (
-            <div key={item.id} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '10px 14px',
-              borderRadius: 12,
-              background: '#ffffff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              marginBottom: 8,
-              borderLeft: `4px solid ${historyDot(item.type)}`,
-            }}>
-              <span style={{ fontSize: 13, color: '#334155', fontFamily: 'monospace', fontWeight: 600 }}>{item.shipmentId}</span>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>{item.time}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
     </div>
   );
 }
