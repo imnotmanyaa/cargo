@@ -35,7 +35,7 @@ function AppContent() {
       const saved = localStorage.getItem('currentPage');
       if (saved) return saved;
     }
-    return user?.role === 'manager' || user?.role === 'admin' ? 'dashboard' : 'new-shipment';
+    return user?.role === 'manager' || user?.role === 'admin' || user?.role === 'direction_head' || user?.role === 'chief_head' ? 'dashboard' : 'new-shipment';
   });
   // На мобильных закрыты по умолчанию, на десктопе открыты (оба на lg - 1024px)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);

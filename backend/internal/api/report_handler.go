@@ -16,7 +16,23 @@ func (s *Server) mountReportRoutes(r chi.Router) {
 }
 
 func (s *Server) handleDashboardReport(w http.ResponseWriter, r *http.Request) {
-	report, err := s.services.Reports.Dashboard(r.Context())
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	var (
+		report model.DashboardReport
+		err    error
+	)
+	if user.Role == model.RoleDirectionHead {
+		report, err = s.services.Reports.DashboardByStation(r.Context(), user.Station)
+	} else {
+		report, err = s.services.Reports.Dashboard(r.Context())
+	}
 	if err != nil {
 		handleServiceError(w, err)
 		return
@@ -46,11 +62,19 @@ func (s *Server) handleStatusSummary(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleAccounting, model.RoleAdmin, model.RoleManager); err != nil {
+	if err := s.requireRole(user, model.RoleAccounting, model.RoleAdmin, model.RoleManager, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
-	report, err := s.services.Reports.StatusSummary(r.Context())
+	var (
+		report []model.StatusSummaryItem
+		err    error
+	)
+	if user.Role == model.RoleDirectionHead {
+		report, err = s.services.Reports.StatusSummaryByStation(r.Context(), user.Station)
+	} else {
+		report, err = s.services.Reports.StatusSummary(r.Context())
+	}
 	if err != nil {
 		handleServiceError(w, err)
 		return

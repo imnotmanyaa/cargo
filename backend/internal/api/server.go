@@ -185,7 +185,13 @@ func (s *Server) requireRole(user *service.AuthenticatedUser, roles ...model.Rol
 }
 
 func (s *Server) requireStation(user *service.AuthenticatedUser, station string) error {
-	if user.Role == model.RoleAdmin || user.Role == model.RoleManager {
+	if user.Role == model.RoleAdmin || user.Role == model.RoleManager || user.Role == model.RoleChiefHead {
+		return nil
+	}
+	if user.Role == model.RoleDirectionHead {
+		if user.Station == "" || user.Station != station {
+			return service.ErrStationMismatch
+		}
 		return nil
 	}
 	if user.Station == "" || user.Station != station {

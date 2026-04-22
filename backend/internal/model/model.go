@@ -7,6 +7,8 @@ type Role string
 const (
 	RoleAdmin      Role = "admin"
 	RoleManager    Role = "manager"
+	RoleDirectionHead Role = "direction_head"
+	RoleChiefHead     Role = "chief_head"
 	RoleOperator   Role = "operator"
 	RoleReceiver   Role = "receiver"
 	RoleAuditor     Role = "auditor"      // Ревизор: проверка без изменения статуса (ТЗ п.4, п.7)

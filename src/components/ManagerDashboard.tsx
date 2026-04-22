@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Package, CheckCircle, FileText, Train } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ManagerDashboardProps {
   theme?: 'light' | 'dark';
@@ -17,6 +18,7 @@ interface DashboardData {
 export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
   const isDark = theme === 'dark';
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardData>({
     monthlyShipments: 0,
     completedShipments: 0,
@@ -74,12 +76,26 @@ export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
 
   const totalRevenue = data.revenueByRoute.reduce((sum, item) => sum + item.revenue, 0);
   const totalWagons = wagonStatus.reduce((sum, item) => sum + item.count, 0);
+  const roleLabel =
+    user?.role === 'chief_head'
+      ? 'Главный руководитель'
+      : user?.role === 'direction_head'
+      ? 'Руководитель по направлению'
+      : t('roleManager');
 
   return (
     <div>
       <div className="mb-6">
         <h1 className={`text-xl md:text-2xl font-semibold mb-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('managerDashboard')}</h1>
         <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('managerDashboardDesc')}</p>
+      </div>
+
+      <div className={`rounded-lg shadow-sm border p-4 mb-6 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className={`text-xs uppercase tracking-wider mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Роль пользователя</div>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className={isDark ? 'text-gray-400' : 'text-gray-600'}>Текущая роль</div>
+          <div className={isDark ? 'text-gray-100 font-medium' : 'text-gray-900 font-medium'}>{roleLabel}</div>
+        </div>
       </div>
 
       {/* Основные показатели */}

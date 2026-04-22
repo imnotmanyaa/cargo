@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -19,6 +20,12 @@ func (s *AdminService) ListUsers(ctx context.Context) ([]model.User, error) {
 }
 
 func (s *AdminService) CreateEmployee(ctx context.Context, name, email, password string, role model.Role, station *string) (model.User, error) {
+	switch role {
+	case model.RoleAdmin, model.RoleManager, model.RoleDirectionHead, model.RoleChiefHead, model.RoleOperator, model.RoleReceiver, model.RoleAuditor, model.RoleMobileGroup, model.RoleLoading, model.RoleTransit, model.RoleIssue, model.RoleAccounting:
+	default:
+		return model.User{}, fmt.Errorf("%w: unsupported role", ErrValidation)
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return model.User{}, err

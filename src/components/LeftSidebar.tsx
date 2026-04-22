@@ -13,7 +13,7 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
   const { t } = useLanguage();
 
   const menuItems = [
-    ...(userRole === 'manager' || userRole === 'admin' ? [{ id: 'dashboard', label: 'Дашборд', icon: Package }] : []),
+    ...(userRole === 'manager' || userRole === 'admin' || userRole === 'direction_head' || userRole === 'chief_head' ? [{ id: 'dashboard', label: 'Дашборд', icon: Package }] : []),
     { id: 'new-shipment', label: t('newShipment'), icon: Package },
     { id: 'active-shipments', label: t('activeShipments'), icon: List },
     { id: 'transit', label: t('transit'), icon: Truck },

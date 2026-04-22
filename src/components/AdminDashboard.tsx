@@ -6,7 +6,7 @@ interface Employee {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'operator' | 'receiver' | 'auditor' | 'mobile_group';
+  role: 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'operator' | 'receiver' | 'auditor' | 'mobile_group';
   station: string;
   createdAt: string;
   status: 'active' | 'inactive';
@@ -63,7 +63,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     name: '',
     email: '',
     password: '',
-    role: 'operator' as 'admin' | 'manager' | 'operator' | 'receiver' | 'auditor' | 'mobile_group',
+    role: 'operator' as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'operator' | 'receiver' | 'auditor' | 'mobile_group',
     station: ''
   });
 
@@ -325,13 +325,15 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 </label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'operator' | 'receiver' | 'auditor' | 'mobile_group' })}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'operator' | 'receiver' | 'auditor' | 'mobile_group' })}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'
                     }`}
                   required
                 >
                   <option value="admin">{t('roleAdmin')}</option>
                   <option value="manager">{t('roleManager')}</option>
+                  <option value="direction_head">Руководитель по направлению</option>
+                  <option value="chief_head">Главный руководитель</option>
                   <option value="operator">{t('operator')}</option>
                   <option value="receiver">{t('receiver')}</option>
                   <option value="auditor">{t('roleAuditor')}</option>
@@ -441,6 +443,8 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                       {employee.role === 'operator' ? t('operator') :
                         employee.role === 'receiver' ? t('receiver') :
                         employee.role === 'admin' ? t('roleAdmin') :
+                        employee.role === 'direction_head' ? 'Руководитель по направлению' :
+                        employee.role === 'chief_head' ? 'Главный руководитель' :
                         employee.role === 'auditor' ? t('roleAuditor') :
                         employee.role === 'mobile_group' ? t('roleMobileGroup') :
                         t('roleManager')}
@@ -525,6 +529,8 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 >
                   <option value="admin">{t('roleAdmin')}</option>
                   <option value="manager">{t('roleManager')}</option>
+                  <option value="direction_head">Руководитель по направлению</option>
+                  <option value="chief_head">Главный руководитель</option>
                   <option value="operator">{t('operator')}</option>
                   <option value="receiver">{t('receiver')}</option>
                   <option value="auditor">{t('roleAuditor')}</option>

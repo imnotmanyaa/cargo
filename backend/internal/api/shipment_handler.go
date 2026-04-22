@@ -114,12 +114,32 @@ func (s *Server) handleGetShipment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListShipments(w http.ResponseWriter, r *http.Request) {
-	shipments, err := s.services.Shipments.List(r.Context(), model.ShipmentFilter{
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user,
+		model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead,
+		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
+		model.RoleCorporate, model.RoleIndividual, model.RoleAuditor, model.RoleMobileGroup,
+	); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	filter := model.ShipmentFilter{
 		Type:     r.URL.Query().Get("type"),
 		Station:  r.URL.Query().Get("station"),
 		ClientID: r.URL.Query().Get("client_id"),
 		Query:    r.URL.Query().Get("q"),
-	})
+	}
+	if user.Role == model.RoleDirectionHead {
+		filter.Station = user.Station
+		if filter.Type == "" {
+			filter.Type = "by-station"
+		}
+	}
+	shipments, err := s.services.Shipments.List(r.Context(), filter)
 	if err != nil {
 		handleServiceError(w, err)
 		return
@@ -128,9 +148,21 @@ func (s *Server) handleListShipments(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleShipmentsByStation(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	station := chi.URLParam(r, "station")
+	if user.Role == model.RoleDirectionHead {
+		station = user.Station
+	}
 	shipments, err := s.services.Shipments.List(r.Context(), model.ShipmentFilter{
 		Type:    "by-station",
-		Station: chi.URLParam(r, "station"),
+		Station: station,
 	})
 	if err != nil {
 		handleServiceError(w, err)
