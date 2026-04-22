@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 
 type UserRole = 'operator' | 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'auditor' | 'mobile_group';
 
@@ -120,11 +120,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-  };
+  }, []);
+
+  // Global 401 handler: auto-logout on expired/invalid token
+  useEffect(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const response = await originalFetch(input, init);
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
+
+      if (response.status === 401 && !isAuthEndpoint) {
+        logout();
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [logout]);
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
