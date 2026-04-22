@@ -1,27 +1,17 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, User, Package, Shield, BarChart3, UserPlus } from 'lucide-react';
+import { LogIn, Package, UserPlus } from 'lucide-react';
 import { Register } from './Register';
-
-type UserRole = 'operator' | 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager';
 
 export function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('operator');
   const [showRegister, setShowRegister] = useState(false);
-
-  const roles = [
-    { id: 'operator' as UserRole, name: 'Менеджер', icon: User },
-    { id: 'receiver' as UserRole, name: 'Приёмосдатчик', icon: Package },
-    { id: 'manager' as UserRole, name: 'Руководитель', icon: BarChart3 },
-    { id: 'admin' as UserRole, name: 'Администратор', icon: Shield },
-  ];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password, selectedRole);
+    await login(email, password);
 
     // Check for redirect param and navigate if present
     const params = new URLSearchParams(window.location.search);
@@ -76,38 +66,6 @@ export function Login() {
                 placeholder="••••••••"
                 required
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Выберите роль
-              </label>
-              <div className="space-y-2">
-                {roles.map((role) => {
-                  const Icon = role.icon;
-                  return (
-                    <div key={role.id}>
-                      <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${selectedRole === role.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                        }`}>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="role"
-                            value={role.id}
-                            checked={selectedRole === role.id}
-                            onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                            className="w-4 h-4 text-blue-600"
-                          />
-                          <Icon className="w-5 h-5 text-gray-600" />
-                          <span className="text-sm font-medium text-gray-900">{role.name}</span>
-                        </div>
-                      </label>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
 
             <button
