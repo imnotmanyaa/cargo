@@ -186,19 +186,35 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 		employees, err := s.services.Admin.ListEmployees(r.Context())
 		if err == nil {
 			var recipients []model.User
+			recipientIDs := map[string]struct{}{}
+			addRecipient := func(u model.User) {
+				if _, exists := recipientIDs[u.ID]; exists {
+					return
+				}
+				recipientIDs[u.ID] = struct{}{}
+				recipients = append(recipients, u)
+			}
+			stationLeadersCount := 0
 			for _, item := range employees {
-				if item.Role != model.RoleManager {
+				if item.Role != model.RoleManager && item.Role != model.RoleDirectionHead {
 					continue
 				}
 				if item.Station != nil && *item.Station == queriedStation {
-					recipients = append(recipients, item)
+					addRecipient(item)
+					stationLeadersCount++
 				}
 			}
-			// Fallback: if manager for this station is not found, notify all managers.
-			if len(recipients) == 0 {
+			// Always notify chief heads globally.
+			for _, item := range employees {
+				if item.Role == model.RoleChiefHead {
+					addRecipient(item)
+				}
+			}
+			// Fallback: if no station-scoped leaders found, notify all managers and direction heads.
+			if stationLeadersCount == 0 {
 				for _, item := range employees {
-					if item.Role == model.RoleManager {
-						recipients = append(recipients, item)
+					if item.Role == model.RoleManager || item.Role == model.RoleDirectionHead {
+						addRecipient(item)
 					}
 				}
 			}
