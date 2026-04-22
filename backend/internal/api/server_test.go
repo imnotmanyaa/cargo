@@ -46,6 +46,27 @@ func TestPilotLifecycleFlow(t *testing.T) {
 	receiverName := "Receiver Test"
 	receiverPhone := "+77010000000"
 
+	// Must reject "same city/station" even if formatted differently (spaces/case)
+	badCreateResp := performJSON(t, server.Router(), "POST", "/api/shipments", map[string]any{
+		"client_id":      clientID,
+		"client_name":    "Client",
+		"client_email":   "client@test",
+		"from_station":   originStation + " ",
+		"to_station":     originStation,
+		"departure_date": time.Now().UTC().Format(time.RFC3339),
+		"weight":         "25",
+		"dimensions":     "20x20x20",
+		"description":    "Laptop",
+		"value":          "150000",
+		"cost":           7000,
+		"quantity_places": 1,
+		"receiver_name":  receiverName,
+		"receiver_phone": receiverPhone,
+	}, operatorToken)
+	if badCreateResp.Code == http.StatusOK {
+		t.Fatalf("expected validation error for same from/to station, got %d %s", badCreateResp.Code, badCreateResp.Body.String())
+	}
+
 	createResp := performJSON(t, server.Router(), "POST", "/api/shipments", map[string]any{
 		"client_id":      clientID,
 		"client_name":    "Client",

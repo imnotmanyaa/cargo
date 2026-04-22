@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -51,6 +52,9 @@ type IssueRequest struct {
 }
 
 func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest) (model.Shipment, error) {
+	req.FromStation = strings.TrimSpace(req.FromStation)
+	req.ToStation = strings.TrimSpace(req.ToStation)
+
 	if err := validateCreateShipment(req); err != nil {
 		return model.Shipment{}, err
 	}
@@ -137,6 +141,9 @@ func (s *ShipmentService) Edit(ctx context.Context, shipment model.Shipment) (mo
 	if err != nil {
 		return model.Shipment{}, err
 	}
+	shipment.FromStation = strings.TrimSpace(shipment.FromStation)
+	shipment.ToStation = strings.TrimSpace(shipment.ToStation)
+
 	if current.ShipmentStatus != model.ShipmentCreated && current.ShipmentStatus != model.ShipmentDraft {
 		return model.Shipment{}, ErrForbidden
 	}
@@ -156,15 +163,12 @@ func (s *ShipmentService) CalculateTariff(ctx context.Context, id string) (model
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	weightSurcharge := 0.0
-	if shipment.Weight != "" {
-		var weight float64
-		fmt.Sscanf(shipment.Weight, "%f", &weight)
-		if weight > 20 {
-			weightSurcharge = (weight - 20) * 150
-		}
+	cost := calculateCostByTariff(shipment.FromStation, shipment.ToStation, shipment.Weight, shipment.Description)
+	if cost > 0 {
+		shipment.Cost = cost
+	} else if shipment.Cost == 0 {
+		shipment.Cost = 5000 // Fallback
 	}
-	shipment.Cost = 5000 + weightSurcharge
 	shipment.UpdatedAt = time.Now().UTC()
 	shipment.LastUpdatedAt = shipment.UpdatedAt
 	return s.repo.UpdateShipment(ctx, shipment)
@@ -368,10 +372,10 @@ func (s *ShipmentService) CorrectAfterPayment(ctx context.Context, id string, op
 		shipment.ClientEmail = *req.ClientEmail
 	}
 	if req.FromStation != nil {
-		shipment.FromStation = *req.FromStation
+		shipment.FromStation = strings.TrimSpace(*req.FromStation)
 	}
 	if req.ToStation != nil {
-		shipment.ToStation = *req.ToStation
+		shipment.ToStation = strings.TrimSpace(*req.ToStation)
 	}
 	if req.Weight != nil {
 		shipment.Weight = *req.Weight
@@ -558,6 +562,9 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 }
 
 func validateCreateShipment(req CreateShipmentRequest) error {
+	from := strings.TrimSpace(req.FromStation)
+	to := strings.TrimSpace(req.ToStation)
+
 	switch {
 	case req.ClientID == "":
 		return fmt.Errorf("%w: client_id is required", ErrValidation)
@@ -565,11 +572,11 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 		return fmt.Errorf("%w: client_name is required", ErrValidation)
 	case req.ClientEmail == "":
 		return fmt.Errorf("%w: client_email is required", ErrValidation)
-	case req.FromStation == "":
+	case from == "":
 		return fmt.Errorf("%w: from_station is required", ErrValidation)
-	case req.ToStation == "":
+	case to == "":
 		return fmt.Errorf("%w: to_station is required", ErrValidation)
-	case req.FromStation == req.ToStation:
+	case strings.EqualFold(from, to):
 		return fmt.Errorf("%w: route must include different stations", ErrValidation)
 	case req.Weight == "":
 		return fmt.Errorf("%w: weight is required", ErrValidation)
@@ -582,16 +589,19 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 }
 
 func validateEditableShipment(shipment model.Shipment) error {
+	from := strings.TrimSpace(shipment.FromStation)
+	to := strings.TrimSpace(shipment.ToStation)
+
 	switch {
 	case shipment.ClientName == "":
 		return fmt.Errorf("%w: client_name is required", ErrValidation)
 	case shipment.ClientEmail == "":
 		return fmt.Errorf("%w: client_email is required", ErrValidation)
-	case shipment.FromStation == "":
+	case from == "":
 		return fmt.Errorf("%w: from_station is required", ErrValidation)
-	case shipment.ToStation == "":
+	case to == "":
 		return fmt.Errorf("%w: to_station is required", ErrValidation)
-	case shipment.FromStation == shipment.ToStation:
+	case strings.EqualFold(from, to):
 		return fmt.Errorf("%w: route must include different stations", ErrValidation)
 	case shipment.Weight == "":
 		return fmt.Errorf("%w: weight is required", ErrValidation)
