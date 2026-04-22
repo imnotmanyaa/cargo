@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -194,14 +195,28 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 				recipientIDs[u.ID] = struct{}{}
 				recipients = append(recipients, u)
 			}
+			normalizeStation := func(v string) string {
+				return strings.ToLower(strings.TrimSpace(v))
+			}
+			targetStations := map[string]struct{}{}
+			if s := normalizeStation(queriedStation); s != "" {
+				targetStations[s] = struct{}{}
+			}
+			// Also notify leaders for the station where shipment is currently expected.
+			if s := normalizeStation(shipment.CurrentStation); s != "" {
+				targetStations[s] = struct{}{}
+			}
+
 			stationLeadersCount := 0
 			for _, item := range employees {
 				if item.Role != model.RoleManager && item.Role != model.RoleDirectionHead {
 					continue
 				}
-				if item.Station != nil && *item.Station == queriedStation {
+				if item.Station != nil {
+					if _, ok := targetStations[normalizeStation(*item.Station)]; ok {
 					addRecipient(item)
 					stationLeadersCount++
+					}
 				}
 			}
 			// Always notify chief heads and admins globally.
@@ -220,11 +235,12 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 			}
 
 			details := fmt.Sprintf(
-				"Несанкционированное сканирование груза %s\nВремя: %s\nСотрудник: %s\nСтанция: %s\nМаршрут: %s -> %s",
+				"Несанкционированное сканирование груза %s\nВремя: %s\nСотрудник: %s\nСтанция сканирования: %s\nТекущая станция груза: %s\nМаршрут: %s -> %s",
 				shipment.ShipmentNumber,
 				checkedAt.Format("02.01.2006 15:04:05"),
 				user.Name,
 				queriedStation,
+				shipment.CurrentStation,
 				shipment.FromStation,
 				shipment.ToStation,
 			)
