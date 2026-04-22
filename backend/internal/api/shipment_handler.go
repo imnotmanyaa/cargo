@@ -32,7 +32,11 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading); err != nil {
+	if err := s.requireRole(user,
+		model.RoleOperator, model.RoleManager, model.RoleAdmin,
+		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
+		model.RoleCorporate, model.RoleIndividual,
+	); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -56,9 +60,14 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if err := s.requireStation(user, req.FromStation); err != nil {
-		handleServiceError(w, err)
-		return
+	// Client roles (corporate/individual) have no assigned station — allow any from_station.
+	// Staff roles must work from their assigned station only.
+	isClientRole := user.Role == model.RoleCorporate || user.Role == model.RoleIndividual
+	if !isClientRole {
+		if err := s.requireStation(user, req.FromStation); err != nil {
+			handleServiceError(w, err)
+			return
+		}
 	}
 	departure := time.Now().UTC()
 	if req.DepartureDate != "" {
@@ -213,7 +222,11 @@ func (s *Server) handleGenerateQR(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user,
+		model.RoleOperator, model.RoleManager, model.RoleAdmin,
+		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
+		model.RoleCorporate, model.RoleIndividual,
+	); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -222,9 +235,13 @@ func (s *Server) handleGenerateQR(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	if err := s.requireStation(user, current.FromStation); err != nil {
-		handleServiceError(w, err)
-		return
+	// Client roles (corporate/individual) have no assigned station — bypass station check.
+	isClientRole := user.Role == model.RoleCorporate || user.Role == model.RoleIndividual
+	if !isClientRole {
+		if err := s.requireStation(user, current.FromStation); err != nil {
+			handleServiceError(w, err)
+			return
+		}
 	}
 	log.Printf("generate_qr shipment_id=%s", chi.URLParam(r, "id"))
 	code, shipment, err := s.services.Tracking.GenerateQRCode(r.Context(), chi.URLParam(r, "id"))
