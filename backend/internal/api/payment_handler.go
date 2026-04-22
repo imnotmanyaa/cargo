@@ -21,7 +21,7 @@ func (s *Server) handleCreatePayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -68,7 +68,7 @@ func (s *Server) handleConfirmPayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleAccounting, model.RoleManager, model.RoleAdmin, model.RoleOperator); err != nil {
+	if err := s.requireRole(user, model.RoleAccounting, model.RoleManager, model.RoleAdmin, model.RoleOperator, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -99,7 +99,7 @@ func (s *Server) handleTopUp(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleAdmin, model.RoleManager, model.RoleAccounting, model.RoleOperator, model.RoleCorporate); err != nil {
+	if err := s.requireRole(user, model.RoleAdmin, model.RoleManager, model.RoleAccounting, model.RoleOperator, model.RoleCorporate, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -123,7 +123,7 @@ func (s *Server) handleGetUserPayments(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleOperator); err != nil {
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleOperator, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
