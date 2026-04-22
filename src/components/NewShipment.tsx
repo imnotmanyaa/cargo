@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { calculateShipmentCost } from '../lib/tariff';
 import { useAuth } from '../contexts/AuthContext';
 import { ClientInfo } from './shipment-steps/ClientInfo';
 import { CargoDetails } from './shipment-steps/CargoDetails';
@@ -53,40 +54,28 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   };
 
   const calculateCost = () => {
-    if (!shipmentData.fromStation || !shipmentData.toStation || !shipmentData.weight) {
-      return 0;
-    }
-
-    const rates: Record<string, number> = {
-      'алматы-1-астана нұрлы жол': 976,
-      'астана нұрлы жол-алматы-1': 976,
-      'алматы-1-қарағанды': 825,
-      'қарағанды-алматы-1': 825,
-      'алматы-1-атырау': 1145,
-      'атырау-алматы-1': 1145,
-      'алматы-1-шымкент': 590,
-      'шымкент-алматы-1': 590,
-      'алматы-1-ақтөбе': 1114,
-      'ақтөбе-алматы-1': 1114,
-    };
-
-    const route = `${shipmentData.fromStation.toLowerCase()}-${shipmentData.toStation.toLowerCase()}`;
-    const baseRate = rates[route] || 5000; // Default fallback rate
-
-    const weight = parseFloat(shipmentData.weight) || 0;
-    // Calculation is exactly proportional: (weight / 10) * baseRate
-    let basePrice = (weight / 10) * baseRate;
-
-    if (shipmentData.isFragile) basePrice += 1000;
-    if (shipmentData.isOversized) basePrice += 2500;
-
-    if (shipmentData.hasTicket) {
-      basePrice = basePrice * 0.5;
-    }
-    return Math.round(basePrice);
+    return calculateShipmentCost({
+      fromStation: shipmentData.fromStation,
+      toStation: shipmentData.toStation,
+      weight: shipmentData.weight,
+      isFragile: shipmentData.value?.toLowerCase().includes('хрупк') || shipmentData.description?.toLowerCase().includes('хрупк'),
+      isOversized: shipmentData.value?.toLowerCase().includes('негабарит') || shipmentData.description?.toLowerCase().includes('негабарит'),
+      hasTicket: false // Currently not asked on single page form, left default
+    }) || 0;
   };
 
+  const normalizeStation = (v: string) => v.trim().toLowerCase();
+  const sameFromTo =
+    Boolean(shipmentData.fromStation) &&
+    Boolean(shipmentData.toStation) &&
+    normalizeStation(shipmentData.fromStation) === normalizeStation(shipmentData.toStation);
+
   const handleCreateShipment = async () => {
+    if (sameFromTo) {
+      alert('Пункты отправления и назначения не могут совпадать.');
+      return;
+    }
+
     const token = localStorage.getItem('token');
     const headers = {
       'Content-Type': 'application/json',

@@ -46,6 +46,12 @@ export function ClientInfo({
   const [isReceiverDifferent, setIsReceiverDifferent] = useState(() => !!data.receiverName || !!data.receiverPhone);
   const [corporateClients, setCorporateClients] = useState<CorporateClient[]>([]);
 
+  const normalizeStation = (v: string) => v.trim().toLowerCase();
+  const sameFromTo =
+    Boolean(data.fromStation) &&
+    Boolean(data.toStation) &&
+    normalizeStation(data.fromStation) === normalizeStation(data.toStation);
+
   // Update local state if data changes externally (e.g. going back/forward)
   useEffect(() => {
     if (data.receiverName || data.receiverPhone) {
@@ -438,7 +444,7 @@ export function ClientInfo({
         <div className={`pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('route')}</h3>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 {t('from')}
@@ -484,6 +490,12 @@ export function ClientInfo({
             </div>
           </div>
 
+          {sameFromTo && (
+            <div className="mb-4 text-sm text-red-600">
+              Пункты отправления и назначения не могут совпадать.
+            </div>
+          )}
+
           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {t('departureDate')}
@@ -504,7 +516,7 @@ export function ClientInfo({
               <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Время поезда
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${data.trainTime === '15:00'
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : isDark
@@ -546,7 +558,7 @@ export function ClientInfo({
         <div className="flex justify-end pt-4">
           <button
             onClick={onNext}
-            disabled={!data.clientName || !data.fromStation || !data.toStation || !data.departureDate || !data.trainTime}
+            disabled={!data.clientName || !data.fromStation || !data.toStation || !data.departureDate || !data.trainTime || sameFromTo}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}
