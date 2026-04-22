@@ -125,24 +125,9 @@ function AppContent() {
     );
   }
 
-  // Mobile Group — терминал для Zebra TSD, со стандартным TopBar
+  // Mobile Group — терминал для Zebra TSD (Android 4, WebView)
   if (user?.role === 'mobile_group') {
-    return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <TopBar
-          theme={theme}
-          onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          onToggleLeftSidebar={() => {}}
-          onToggleRightSidebar={() => {}}
-          hideSidebarButtons={true}
-        />
-        <main className={`overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-          <div className="p-4 max-w-xl mx-auto">
-            <ZebraTerminal theme={theme} />
-          </div>
-        </main>
-      </div>
-    );
+    return <ZebraTerminal />;
   }
 
 
