@@ -26,7 +26,7 @@ $SSH $SERVER "
   set -e
   DATABASE_URL=\${DATABASE_URL:-postgres://postgres:postgres@localhost:5432/cargotrans?sslmode=disable}
   psql \"\$DATABASE_URL\" -v ON_ERROR_STOP=1 <<'SQL'
-DO $$
+DO \$\$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
@@ -38,7 +38,7 @@ BEGIN
       CHECK (lower(btrim(from_station)) <> lower(btrim(to_station)));
   END IF;
 END
-$$;
+\$\$;
 SQL
 "
 
