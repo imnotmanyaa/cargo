@@ -120,7 +120,7 @@ export function ClientInfo({
     onUpdate({ clientSource: source });
 
     // Если выбран агрегатор, очищаем данные клиента для нового выбора
-    if (source === 'glovo' || source === 'choko' || source === 'other') {
+    if (source === 'glovo' || source === 'choko' || source.startsWith('other:')) {
       onUpdate({
         clientSource: source,
         aggregatorClientId: '',
@@ -151,8 +151,24 @@ export function ClientInfo({
     }
   };
 
-  const isAggregatorSource = data.clientSource === 'glovo' || data.clientSource === 'choko' || data.clientSource === 'other';
-  const currentAggregatorClients = isAggregatorSource ? frequentClients.filter(c => c.provider === data.clientSource) : [];
+  const isOtherCompanySource = typeof data.clientSource === 'string' && data.clientSource.startsWith('other:');
+  const selectedOtherCompany = isOtherCompanySource ? data.clientSource.slice('other:'.length) : '';
+  const isAggregatorSource = data.clientSource === 'glovo' || data.clientSource === 'choko' || isOtherCompanySource;
+  const currentAggregatorClients = isAggregatorSource
+    ? frequentClients.filter(c => {
+        if (!isOtherCompanySource) {
+          return c.provider === data.clientSource;
+        }
+        return c.provider === 'other' && (c.company_name || '') === selectedOtherCompany;
+      })
+    : [];
+  const otherCompanies = Array.from(
+    new Set(
+      frequentClients
+        .filter(c => c.provider === 'other' && c.company_name)
+        .map(c => c.company_name as string)
+    )
+  ).sort((a, b) => a.localeCompare(b));
 
   return (
     <div className={`rounded-lg shadow-sm border p-8 ${isDark
@@ -210,7 +226,9 @@ export function ClientInfo({
               <option value="">{t('selectSource')}</option>
               <option value="glovo">Glovo</option>
               <option value="choko">Choko</option>
-              <option value="other">Другая компания</option>
+              {otherCompanies.map(company => (
+                <option key={company} value={`other:${company}`}>{company}</option>
+              ))}
               <option value="direct">{t('directContact')}</option>
             </select>
           </div>
@@ -225,7 +243,7 @@ export function ClientInfo({
             <div className="flex items-center gap-2 mb-3">
               <Users className="w-5 h-5 text-blue-600" />
               <span className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-900'}`}>
-                Выберите клиента из {data.clientSource === 'glovo' ? 'Glovo' : data.clientSource === 'choko' ? 'Choko' : 'других компаний'}
+                Выберите клиента из {data.clientSource === 'glovo' ? 'Glovo' : data.clientSource === 'choko' ? 'Choko' : selectedOtherCompany}
               </span>
             </div>
             <select
