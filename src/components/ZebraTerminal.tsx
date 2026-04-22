@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type ScanResult = {
   ok: boolean;
@@ -51,8 +52,8 @@ const S = {
   topbar: {
     background: '#1a56db',
     color: '#fff',
-    padding: '0 12px',
-    height: '48px',
+    padding: '0 10px',
+    height: '50px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -60,14 +61,16 @@ const S = {
     position: 'sticky' as const,
     top: 0,
     zIndex: 100,
+    gap: '8px',
   } as React.CSSProperties,
 
   topbarLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '8px',
     minWidth: 0,
     overflow: 'hidden',
+    flex: '1 1 0',
   } as React.CSSProperties,
 
   logo: {
@@ -75,16 +78,15 @@ const S = {
     borderRadius: '6px',
     width: '32px',
     height: '32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    lineHeight: '32px',
+    textAlign: 'center' as const,
     fontWeight: 'bold',
     fontSize: '13px',
     flexShrink: 0,
   } as React.CSSProperties,
 
   topbarName: {
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: 'bold',
     overflow: 'hidden',
     whiteSpace: 'nowrap' as const,
@@ -92,24 +94,44 @@ const S = {
   } as React.CSSProperties,
 
   topbarStation: {
-    fontSize: '11px',
+    fontSize: '10px',
     opacity: 0.8,
     overflow: 'hidden',
     whiteSpace: 'nowrap' as const,
     textOverflow: 'ellipsis',
   } as React.CSSProperties,
 
-  logoutBtn: {
-    background: 'rgba(255,255,255,0.18)',
+  topbarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  iconBtn: {
+    background: 'rgba(255,255,255,0.15)',
     color: '#fff',
-    border: '1px solid rgba(255,255,255,0.35)',
+    border: '1px solid rgba(255,255,255,0.3)',
     borderRadius: '6px',
-    padding: '6px 12px',
+    padding: '6px 10px',
     fontSize: '13px',
     fontWeight: 'bold',
     cursor: 'pointer',
-    flexShrink: 0,
     WebkitAppearance: 'none' as const,
+    lineHeight: '1',
+  } as React.CSSProperties,
+
+  logoutBtn: {
+    background: 'rgba(220,38,38,0.75)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.3)',
+    borderRadius: '6px',
+    padding: '6px 10px',
+    fontSize: '13px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    WebkitAppearance: 'none' as const,
+    lineHeight: '1',
   } as React.CSSProperties,
 
   // ── СТАТИСТИКА ──────────────────────────────────────────
@@ -307,13 +329,21 @@ const S = {
 
 export function ZebraTerminal() {
   const { user, logout } = useAuth();
-  // Единственный input — одновременно работает и со сканером и с клавиатурой
+  const { language, setLanguage } = useLanguage();
+  const [isDark, setIsDark] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [scanValue, setScanValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [stats, setStats] = useState({ total: 0, ok: 0, fail: 0 });
+
+  const langLabel = language === 'ru' ? 'RU' : language === 'en' ? 'EN' : 'ҚЗ';
+  const nextLang = () => {
+    const order = ['ru', 'en', 'kk'] as const;
+    const idx = order.indexOf(language);
+    setLanguage(order[(idx + 1) % order.length]);
+  };
 
   // Фокус только при клике НЕ на input/button,
   // чтобы сканер ШК сразу писал в поле без лишних кликов.
@@ -402,10 +432,28 @@ export function ZebraTerminal() {
     : result.match ? '#059669'
     : '#d97706';
 
-  return (
-    <div style={S.root}>
+  // Применяем тему к корневым стилям
+  const rootStyle: React.CSSProperties = {
+    ...S.root,
+    background: isDark ? '#111827' : '#f0f0f0',
+    color: isDark ? '#f3f4f6' : '#111',
+  };
+  const cardStyle: React.CSSProperties = {
+    ...S.card,
+    background: isDark ? '#1f2937' : '#fff',
+    border: isDark ? '1px solid #374151' : '1px solid #ddd',
+  };
+  const inputStyle: React.CSSProperties = {
+    ...S.input,
+    background: isDark ? '#111827' : '#f8f8ff',
+    color: isDark ? '#f3f4f6' : '#111',
+    borderColor: '#1a56db',
+  };
 
-      {/* ── МИНИМАЛЬНЫЙ ТОПБАР ─────────────────────── */}
+  return (
+    <div style={rootStyle}>
+
+      {/* ── ТОПБАР ─────────────────────────────────── */}
       <div style={S.topbar}>
         <div style={S.topbarLeft}>
           <div style={S.logo}>CT</div>
@@ -414,7 +462,16 @@ export function ZebraTerminal() {
             <div style={S.topbarStation}>{user?.station || 'Станция не задана'}</div>
           </div>
         </div>
-        <button style={S.logoutBtn} onClick={logout}>Выход</button>
+        <div style={S.topbarRight}>
+          {/* Смена языка */}
+          <button style={S.iconBtn} onClick={nextLang}>{langLabel}</button>
+          {/* Тема */}
+          <button style={S.iconBtn} onClick={() => setIsDark(d => !d)}>
+            {isDark ? '☀' : '☾'}
+          </button>
+          {/* Выход */}
+          <button style={S.logoutBtn} onClick={logout}>Выход</button>
+        </div>
       </div>
 
       {/* ── СТАТИСТИКА ─────────────────────────────── */}
@@ -467,7 +524,7 @@ export function ZebraTerminal() {
         )}
 
         {/* Ввод кода */}
-        <div style={S.card}>
+        <div style={cardStyle}>
           <label style={S.label}>Код груза</label>
 
           {/* Один input — работает и со сканером и с руками */}
@@ -487,7 +544,7 @@ export function ZebraTerminal() {
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
-            style={S.input}
+            style={inputStyle}
           />
 
           <button
@@ -503,7 +560,7 @@ export function ZebraTerminal() {
 
         {/* Журнал */}
         {history.length > 0 && (
-          <div style={S.card}>
+          <div style={cardStyle}>
             <p style={S.historyTitle}>Журнал</p>
             {history.map(item => (
               <div key={item.id} style={{ ...S.histItem, ...(item.ok ? S.histItemOk : S.histItemFail) }}>
