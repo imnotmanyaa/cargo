@@ -12,7 +12,6 @@ import { ActiveShipments } from './components/ActiveShipments';
 import { Transit } from './components/Transit';
 import { Arrival } from './components/Arrival';
 import { Reports } from './components/Reports';
-import { WMS } from './components/WMS';
 import { Settings } from './components/Settings';
 import { CorporateClients } from './components/CorporateClients';
 import { AuditLog } from './components/AuditLog';
@@ -204,8 +203,6 @@ function AppContent() {
         return <Arrival theme={theme} />;
       case 'reports':
         return <Reports theme={theme} />;
-      case 'wms':
-        return <WMS theme={theme} />;
       case 'settings':
         return <Settings theme={theme} />;
       case 'corporate':
@@ -232,7 +229,7 @@ function AppContent() {
         {/* Backdrop для закрытия левого сайдбара на мобильных (невидимый) */}
         {leftSidebarOpen && (
           <div
-            className="fixed inset-0 z-30 lg:hidden"
+            className="fixed inset-0 z-30 lg:hidden bg-black/30"
             style={{ top: '64px' }}
             onClick={() => setLeftSidebarOpen(false)}
           />
@@ -240,7 +237,7 @@ function AppContent() {
 
         {/* Левый сайдбар - показываем только когда открыт ИЛИ на десктопе */}
         {leftSidebarOpen && (
-          <div className="fixed lg:static z-40 lg:z-0 h-full">
+          <div className="fixed lg:static z-40 lg:z-0 left-0 top-16 bottom-0 shadow-xl lg:shadow-none">
             <LeftSidebar
               currentPage={currentPage}
               userRole={user?.role}
