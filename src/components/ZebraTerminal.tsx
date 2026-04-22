@@ -1,10 +1,12 @@
 /**
- * ZebraTerminal — изолированный терминал для Zebra TSD (Android 4, WebView).
- * Только inline-стили, совместимые с Android 4.x WebView.
+ * ZebraTerminal — страница для мобильной группы (Zebra TSD).
+ * Дизайн совпадает с остальными страницами сайта.
+ * Один input работает и со сканером штрихкода, и с ручным вводом.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { Package, CheckCircle, XCircle, AlertTriangle, Scan, MapPin } from 'lucide-react';
 
 type ScanResult = {
   ok: boolean;
@@ -20,317 +22,25 @@ type ScanResult = {
 type HistoryItem = {
   id: string;
   code: string;
+  match: boolean;
   ok: boolean;
   time: string;
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  CREATED: 'Создан',
-  PAYMENT_PENDING: 'Ожидает оплаты',
-  PAID: 'Оплачен',
-  READY_FOR_LOADING: 'Готов к погрузке',
-  LOADED: 'Погружен',
-  IN_TRANSIT: 'В пути',
-  ARRIVED: 'Прибыл',
-  READY_FOR_ISSUE: 'Готов к выдаче',
-  ISSUED: 'Выдан',
-  CLOSED: 'Закрыт',
-  CANCELLED: 'Отменён',
+  CREATED: 'Создан', PAYMENT_PENDING: 'Ожидает оплаты', PAID: 'Оплачен',
+  READY_FOR_LOADING: 'Готов к погрузке', LOADED: 'Погружен', IN_TRANSIT: 'В пути',
+  ARRIVED: 'Прибыл', READY_FOR_ISSUE: 'Готов к выдаче', ISSUED: 'Выдан',
+  CLOSED: 'Закрыт', CANCELLED: 'Отменён',
 };
 
-const S = {
-  root: {
-    margin: 0,
-    padding: 0,
-    fontFamily: 'Arial, Helvetica, sans-serif',
-    fontSize: '16px',
-    background: '#f0f0f0',
-    minHeight: '100vh',
-  } as React.CSSProperties,
+interface ZebraTerminalProps {
+  theme?: 'light' | 'dark';
+}
 
-  // ── ТОПБАР ──────────────────────────────────────────────
-  topbar: {
-    background: '#1a56db',
-    color: '#fff',
-    padding: '0 10px',
-    height: '50px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottom: '2px solid #1340a8',
-    position: 'sticky' as const,
-    top: 0,
-    zIndex: 100,
-    gap: '8px',
-  } as React.CSSProperties,
-
-  topbarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    minWidth: 0,
-    overflow: 'hidden',
-    flex: '1 1 0',
-  } as React.CSSProperties,
-
-  logo: {
-    background: 'rgba(255,255,255,0.25)',
-    borderRadius: '6px',
-    width: '32px',
-    height: '32px',
-    lineHeight: '32px',
-    textAlign: 'center' as const,
-    fontWeight: 'bold',
-    fontSize: '13px',
-    flexShrink: 0,
-  } as React.CSSProperties,
-
-  topbarName: {
-    fontSize: '13px',
-    fontWeight: 'bold',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap' as const,
-    textOverflow: 'ellipsis',
-  } as React.CSSProperties,
-
-  topbarStation: {
-    fontSize: '10px',
-    opacity: 0.8,
-    overflow: 'hidden',
-    whiteSpace: 'nowrap' as const,
-    textOverflow: 'ellipsis',
-  } as React.CSSProperties,
-
-  topbarRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    flexShrink: 0,
-  } as React.CSSProperties,
-
-  iconBtn: {
-    background: 'rgba(255,255,255,0.15)',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.3)',
-    borderRadius: '6px',
-    padding: '6px 10px',
-    fontSize: '13px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    WebkitAppearance: 'none' as const,
-    lineHeight: '1',
-  } as React.CSSProperties,
-
-  logoutBtn: {
-    background: 'rgba(220,38,38,0.75)',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.3)',
-    borderRadius: '6px',
-    padding: '6px 10px',
-    fontSize: '13px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    WebkitAppearance: 'none' as const,
-    lineHeight: '1',
-  } as React.CSSProperties,
-
-  // ── СТАТИСТИКА ──────────────────────────────────────────
-  statsRow: {
-    background: '#1340a8',
-    padding: '8px 12px',
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap' as const,
-  } as React.CSSProperties,
-
-  statBox: {
-    background: 'rgba(255,255,255,0.15)',
-    borderRadius: '6px',
-    padding: '4px 12px',
-    color: '#fff',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    textAlign: 'center' as const,
-    flex: '1 1 auto',
-  } as React.CSSProperties,
-
-  statNum: {
-    display: 'block',
-    fontSize: '20px',
-    fontWeight: 'bold',
-    lineHeight: '1.2',
-  } as React.CSSProperties,
-
-  // ── BODY ────────────────────────────────────────────────
-  body: {
-    padding: '12px',
-  } as React.CSSProperties,
-
-  card: {
-    background: '#fff',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    padding: '14px',
-    marginBottom: '12px',
-  } as React.CSSProperties,
-
-  label: {
-    display: 'block',
-    fontSize: '13px',
-    color: '#555',
-    marginBottom: '6px',
-    fontWeight: 'bold',
-  } as React.CSSProperties,
-
-  input: {
-    display: 'block',
-    width: '100%',
-    boxSizing: 'border-box' as const,
-    padding: '14px 12px',
-    fontSize: '20px',
-    fontFamily: 'monospace',
-    border: '2px solid #1a56db',
-    borderRadius: '6px',
-    background: '#f8f8ff',
-    color: '#111',
-    outline: 'none',
-    marginBottom: '10px',
-    WebkitAppearance: 'none' as const,
-  } as React.CSSProperties,
-
-  btnPrimary: {
-    display: 'block',
-    width: '100%',
-    boxSizing: 'border-box' as const,
-    padding: '16px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    background: '#1a56db',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    marginBottom: '8px',
-    WebkitAppearance: 'none' as const,
-  } as React.CSSProperties,
-
-  btnDisabled: {
-    display: 'block',
-    width: '100%',
-    boxSizing: 'border-box' as const,
-    padding: '16px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    background: '#aaa',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'default',
-    marginBottom: '8px',
-    WebkitAppearance: 'none' as const,
-  } as React.CSSProperties,
-
-  hint: {
-    fontSize: '11px',
-    color: '#888',
-    textAlign: 'center' as const,
-    marginTop: '4px',
-  } as React.CSSProperties,
-
-  resultOk: {
-    background: '#d1fae5',
-    border: '2px solid #059669',
-    borderRadius: '8px',
-    padding: '16px',
-    marginBottom: '12px',
-    textAlign: 'center' as const,
-  } as React.CSSProperties,
-
-  resultFail: {
-    background: '#fee2e2',
-    border: '2px solid #dc2626',
-    borderRadius: '8px',
-    padding: '16px',
-    marginBottom: '12px',
-    textAlign: 'center' as const,
-  } as React.CSSProperties,
-
-  resultWarn: {
-    background: '#fef3c7',
-    border: '2px solid #d97706',
-    borderRadius: '8px',
-    padding: '16px',
-    marginBottom: '12px',
-    textAlign: 'center' as const,
-  } as React.CSSProperties,
-
-  resultTitle: {
-    fontSize: '22px',
-    fontWeight: 'bold',
-    margin: '0 0 8px 0',
-  } as React.CSSProperties,
-
-  resultMsg: {
-    fontSize: '14px',
-    margin: '0 0 10px 0',
-    wordBreak: 'break-word' as const,
-  } as React.CSSProperties,
-
-  infoGrid: {
-    borderTop: '1px solid rgba(0,0,0,0.1)',
-    paddingTop: '10px',
-    marginTop: '4px',
-    textAlign: 'left' as const,
-  } as React.CSSProperties,
-
-  infoRow: {
-    fontSize: '13px',
-    marginBottom: '5px',
-    overflow: 'hidden',
-  } as React.CSSProperties,
-
-  infoKey: {
-    color: '#666',
-    display: 'inline-block',
-    minWidth: '90px',
-  } as React.CSSProperties,
-
-  infoVal: {
-    fontWeight: 'bold',
-    color: '#111',
-  } as React.CSSProperties,
-
-  historyTitle: {
-    fontSize: '12px',
-    fontWeight: 'bold',
-    color: '#666',
-    marginBottom: '8px',
-    textTransform: 'uppercase' as const,
-  } as React.CSSProperties,
-
-  histItem: {
-    padding: '7px 10px',
-    borderRadius: '5px',
-    marginBottom: '4px',
-    fontSize: '13px',
-    overflow: 'hidden',
-  } as React.CSSProperties,
-
-  histItemOk: {
-    background: '#d1fae5',
-    borderLeft: '4px solid #059669',
-  } as React.CSSProperties,
-
-  histItemFail: {
-    background: '#fee2e2',
-    borderLeft: '4px solid #dc2626',
-  } as React.CSSProperties,
-};
-
-export function ZebraTerminal() {
-  const { user, logout } = useAuth();
-  const { language, setLanguage } = useLanguage();
-  const [isDark, setIsDark] = useState(false);
+export function ZebraTerminal({ theme = 'light' }: ZebraTerminalProps) {
+  const { user } = useAuth();
+  const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [scanValue, setScanValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -338,20 +48,20 @@ export function ZebraTerminal() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [stats, setStats] = useState({ total: 0, ok: 0, fail: 0 });
 
-  const langLabel = language === 'ru' ? 'RU' : language === 'en' ? 'EN' : 'ҚЗ';
-  const nextLang = () => {
-    const order = ['ru', 'en', 'kk'] as const;
-    const idx = order.indexOf(language);
-    setLanguage(order[(idx + 1) % order.length]);
-  };
+  const isDark = theme === 'dark';
+  const cardBg = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
+  const textPrimary = isDark ? 'text-gray-100' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const inputCls = isDark
+    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400';
 
-  // Фокус только при клике НЕ на input/button,
-  // чтобы сканер ШК сразу писал в поле без лишних кликов.
+  // Фокус на input при клике не на кнопку/input (для сканера ШК)
   useEffect(() => {
     inputRef.current?.focus();
     const handler = (e: Event) => {
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag !== 'INPUT' && tag !== 'BUTTON' && tag !== 'TEXTAREA') {
+      if (tag !== 'INPUT' && tag !== 'BUTTON' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
         inputRef.current?.focus();
       }
     };
@@ -382,197 +92,199 @@ export function ZebraTerminal() {
         const s = data.shipment;
         const match: boolean = data.station_match;
         setResult({
-          ok: true,
-          match,
+          ok: true, match,
           shipmentNumber: s.shipment_number,
           fromStation: s.from_station,
           toStation: s.to_station,
           currentStation: s.current_station,
           status: s.shipment_status,
-          message: match ? 'Груз на правильной станции' : 'Груз НЕ на этой станции',
+          message: match
+            ? t('mobileGroupChecked') + ' — ' + s.shipment_number
+            : `⚠️ ${s.shipment_number} (${s.current_station})`,
         });
         setHistory(prev => [{
           id: String(Date.now()),
           code: s.shipment_number || trimmed,
-          ok: match,
+          match, ok: true,
           time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-        }, ...prev].slice(0, 10));
-        setStats(prev => ({
-          total: prev.total + 1,
-          ok: match ? prev.ok + 1 : prev.ok,
-          fail: match ? prev.fail : prev.fail + 1,
-        }));
+        }, ...prev].slice(0, 12));
+        setStats(prev => ({ total: prev.total + 1, ok: match ? prev.ok + 1 : prev.ok, fail: match ? prev.fail : prev.fail + 1 }));
       } else if (res.status === 404) {
-        setResult({ ok: false, match: false, message: 'Груз не найден: ' + trimmed });
+        setResult({ ok: false, match: false, message: `❌ ${trimmed} — ${t('mobileGroupRejected')}` });
         setHistory(prev => [{
-          id: String(Date.now()),
-          code: trimmed,
-          ok: false,
+          id: String(Date.now()), code: trimmed, match: false, ok: false,
           time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-        }, ...prev].slice(0, 10));
+        }, ...prev].slice(0, 12));
         setStats(prev => ({ ...prev, total: prev.total + 1, fail: prev.fail + 1 }));
       } else {
-        setResult({ ok: false, match: false, message: 'Ошибка сервера (' + res.status + ')' });
+        setResult({ ok: false, match: false, message: `❌ Ошибка сервера (${res.status})` });
       }
     } catch {
-      setResult({ ok: false, match: false, message: 'Нет связи с сервером' });
+      setResult({ ok: false, match: false, message: '❌ Нет связи с сервером' });
     } finally {
       setIsLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [isLoading, user]);
+  }, [isLoading, user, t]);
 
-  const resultStyle = !result ? null
-    : !result.ok ? S.resultFail
-    : result.match ? S.resultOk
-    : S.resultWarn;
-
-  const resultColor = !result ? '#111'
-    : !result.ok ? '#dc2626'
-    : result.match ? '#059669'
-    : '#d97706';
-
-  // Применяем тему к корневым стилям
-  const rootStyle: React.CSSProperties = {
-    ...S.root,
-    background: isDark ? '#111827' : '#f0f0f0',
-    color: isDark ? '#f3f4f6' : '#111',
-  };
-  const cardStyle: React.CSSProperties = {
-    ...S.card,
-    background: isDark ? '#1f2937' : '#fff',
-    border: isDark ? '1px solid #374151' : '1px solid #ddd',
-  };
-  const inputStyle: React.CSSProperties = {
-    ...S.input,
-    background: isDark ? '#111827' : '#f8f8ff',
-    color: isDark ? '#f3f4f6' : '#111',
-    borderColor: '#1a56db',
+  const resultBlock = () => {
+    if (!result) return null;
+    if (!result.ok) return (
+      <div className="rounded-lg border-2 border-red-400 bg-red-50 p-4 mb-5 text-center">
+        <p className="text-xl font-bold text-red-600 mb-1">{t('mobileGroupError')}</p>
+        <p className="text-sm text-red-700">{result.message}</p>
+      </div>
+    );
+    if (result.match) return (
+      <div className="rounded-lg border-2 border-green-400 bg-green-50 p-4 mb-5">
+        <p className="text-xl font-bold text-green-600 mb-2 text-center">{t('mobileGroupSuccess')}</p>
+        <InfoGrid result={result} />
+      </div>
+    );
+    return (
+      <div className="rounded-lg border-2 border-yellow-400 bg-yellow-50 p-4 mb-5">
+        <p className="text-xl font-bold text-yellow-700 mb-2 text-center">⚠️ {t('mobileGroupMismatch')}</p>
+        <InfoGrid result={result} />
+      </div>
+    );
   };
 
   return (
-    <div style={rootStyle}>
-
-      {/* ── ТОПБАР ─────────────────────────────────── */}
-      <div style={S.topbar}>
-        <div style={S.topbarLeft}>
-          <div style={S.logo}>CT</div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={S.topbarName}>{user?.name || 'Сотрудник'}</div>
-            <div style={S.topbarStation}>{user?.station || 'Станция не задана'}</div>
-          </div>
-        </div>
-        <div style={S.topbarRight}>
-          {/* Смена языка */}
-          <button style={S.iconBtn} onClick={nextLang}>{langLabel}</button>
-          {/* Тема */}
-          <button style={S.iconBtn} onClick={() => setIsDark(d => !d)}>
-            {isDark ? '☀' : '☾'}
-          </button>
-          {/* Выход */}
-          <button style={S.logoutBtn} onClick={logout}>Выход</button>
+    <div>
+      {/* Заголовок страницы */}
+      <div className="mb-6">
+        <h1 className={`text-xl md:text-2xl font-semibold mb-1 ${textPrimary}`}>
+          {t('mobileGroupTitle')}
+        </h1>
+        <div className={`flex items-center gap-2 text-sm ${textSecondary}`}>
+          <MapPin className="w-4 h-4 shrink-0" />
+          <span>{user?.name} · {user?.station || t('mobileGroupStationNotSet')}</span>
         </div>
       </div>
 
-      {/* ── СТАТИСТИКА ─────────────────────────────── */}
-      <div style={S.statsRow}>
-        <div style={S.statBox}>
-          <span style={S.statNum}>{stats.total}</span>
-          Проверено
+      {/* Статистика */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white text-center">
+          <div className="flex justify-center mb-1">
+            <Package className="w-5 h-5 opacity-80" />
+          </div>
+          <p className="text-2xl font-bold">{stats.total}</p>
+          <p className="text-xs opacity-90">{t('mobileGroupChecked')}</p>
         </div>
-        <div style={S.statBox}>
-          <span style={{ ...S.statNum, color: '#86efac' }}>{stats.ok}</span>
-          Верных
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white text-center">
+          <div className="flex justify-center mb-1">
+            <CheckCircle className="w-5 h-5 opacity-80" />
+          </div>
+          <p className="text-2xl font-bold">{stats.ok}</p>
+          <p className="text-xs opacity-90">{t('mobileGroupApproved')}</p>
         </div>
-        <div style={S.statBox}>
-          <span style={{ ...S.statNum, color: '#fca5a5' }}>{stats.fail}</span>
-          Ошибок
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-4 text-white text-center">
+          <div className="flex justify-center mb-1">
+            <XCircle className="w-5 h-5 opacity-80" />
+          </div>
+          <p className="text-2xl font-bold">{stats.fail}</p>
+          <p className="text-xs opacity-90">{t('mobileGroupRejected')}</p>
         </div>
       </div>
 
-      {/* ── КОНТЕНТ ────────────────────────────────── */}
-      <div style={S.body}>
+      {/* Результат */}
+      {resultBlock()}
 
-        {/* Результат */}
-        {result && (
-          <div style={resultStyle!}>
-            <p style={{ ...S.resultTitle, color: resultColor }}>
-              {!result.ok ? '❌ ОШИБКА' : result.match ? '✅ OK' : '⚠️ НЕСОВПАДЕНИЕ'}
-            </p>
-            <p style={S.resultMsg}>{result.message}</p>
-            {result.shipmentNumber && (
-              <div style={S.infoGrid}>
-                <div style={S.infoRow}>
-                  <span style={S.infoKey}>Номер:</span>
-                  <span style={S.infoVal}>{result.shipmentNumber}</span>
-                </div>
-                <div style={S.infoRow}>
-                  <span style={S.infoKey}>Маршрут:</span>
-                  <span style={S.infoVal}>{result.fromStation} → {result.toStation}</span>
-                </div>
-                <div style={S.infoRow}>
-                  <span style={S.infoKey}>Сейчас:</span>
-                  <span style={S.infoVal}>{result.currentStation}</span>
-                </div>
-                <div style={S.infoRow}>
-                  <span style={S.infoKey}>Статус:</span>
-                  <span style={S.infoVal}>{STATUS_LABELS[result.status || ''] || result.status}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Ввод кода */}
-        <div style={cardStyle}>
-          <label style={S.label}>Код груза</label>
-
-          {/* Один input — работает и со сканером и с руками */}
-          <input
-            ref={inputRef}
-            type="text"
-            value={scanValue}
-            onChange={e => setScanValue(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && scanValue.trim()) {
-                doScan(scanValue);
-              }
-            }}
-            placeholder="Сканируйте или введите..."
-            disabled={isLoading}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            style={inputStyle}
-          />
-
-          <button
-            style={isLoading ? S.btnDisabled : S.btnPrimary}
-            disabled={isLoading}
-            onClick={() => { if (scanValue.trim()) doScan(scanValue); }}
-          >
-            {isLoading ? 'Проверяется...' : 'Проверить'}
-          </button>
-
-          <p style={S.hint}>Enter или кнопка для проверки</p>
+      {/* Поле ввода */}
+      <div className={`rounded-lg shadow-sm border p-4 mb-5 ${cardBg}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Scan className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+          <h3 className={`font-semibold text-base ${textPrimary}`}>{t('mobileGroupScanTitle')}</h3>
         </div>
+        <p className={`text-sm mb-3 ${textSecondary}`}>{t('mobileGroupScanDesc')}</p>
 
-        {/* Журнал */}
-        {history.length > 0 && (
-          <div style={cardStyle}>
-            <p style={S.historyTitle}>Журнал</p>
+        <input
+          ref={inputRef}
+          type="text"
+          value={scanValue}
+          onChange={e => setScanValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && scanValue.trim()) {
+              doScan(scanValue);
+            }
+          }}
+          placeholder={isLoading ? t('mobileGroupChecking') : t('mobileGroupScanPlaceholder')}
+          disabled={isLoading}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          className={`w-full px-4 py-3 text-lg font-mono rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors mb-3 ${
+            isLoading ? `${isDark ? 'border-gray-600' : 'border-gray-200'} opacity-60` : `border-blue-500 ${inputCls}`
+          }`}
+        />
+
+        <button
+          onClick={() => { if (scanValue.trim()) doScan(scanValue); }}
+          disabled={isLoading || !scanValue.trim()}
+          className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 text-base"
+        >
+          <Package className="w-5 h-5" />
+          {isLoading ? t('mobileGroupChecking') : t('mobileGroupCheckButton')}
+        </button>
+
+        <p className={`text-xs text-center mt-2 ${textSecondary}`}>{t('mobileGroupReadOnly')}</p>
+      </div>
+
+      {/* Журнал */}
+      {history.length > 0 && (
+        <div className={`rounded-lg shadow-sm border ${cardBg}`}>
+          <div className={`px-4 py-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+            <h3 className={`font-semibold text-sm ${textPrimary}`}>{t('mobileGroupHistory')}</h3>
+          </div>
+          <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
             {history.map(item => (
-              <div key={item.id} style={{ ...S.histItem, ...(item.ok ? S.histItemOk : S.histItemFail) }}>
-                <span style={{ float: 'right', color: '#888', fontSize: '11px' }}>{item.time}</span>
-                <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
-                  {item.ok ? '✓' : '✗'} {item.code}
+              <div
+                key={item.id}
+                className={`flex items-center justify-between px-4 py-2.5 border-l-4 ${
+                  !item.ok ? 'border-red-500' : item.match ? 'border-green-500' : 'border-yellow-500'
+                } ${isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}
+              >
+                <span className={`text-sm font-mono font-semibold ${textPrimary}`}>
+                  {!item.ok ? '✗' : item.match ? '✓' : '⚠'} {item.code}
                 </span>
+                <span className={`text-xs ${textSecondary}`}>{item.time}</span>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InfoGrid({ result }: { result: ScanResult }) {
+  return (
+    <div className="text-sm space-y-1 mt-2 text-left">
+      {result.shipmentNumber && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">Номер:</span>
+          <span className="font-bold">{result.shipmentNumber}</span>
+        </div>
+      )}
+      {result.fromStation && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">Маршрут:</span>
+          <span className="font-bold">{result.fromStation} → {result.toStation}</span>
+        </div>
+      )}
+      {result.currentStation && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">Сейчас:</span>
+          <span className="font-bold">{result.currentStation}</span>
+        </div>
+      )}
+      {result.status && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">Статус:</span>
+          <span className="font-bold">{STATUS_LABELS[result.status] || result.status}</span>
+        </div>
+      )}
     </div>
   );
 }
