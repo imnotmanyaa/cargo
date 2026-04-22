@@ -58,7 +58,8 @@ CREATE TABLE IF NOT EXISTS shipments (
 	last_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	created_by TEXT,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	CONSTRAINT shipments_from_to_station_check CHECK (lower(btrim(from_station)) <> lower(btrim(to_station)))
 );
 
 CREATE TABLE IF NOT EXISTS payments (
