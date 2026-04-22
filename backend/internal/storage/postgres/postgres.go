@@ -373,7 +373,7 @@ func (r *Repository) ListUsers(ctx context.Context) ([]model.User, error) {
 }
 
 func (r *Repository) ListEmployees(ctx context.Context) ([]model.User, error) {
-	rows, err := r.pool.Query(ctx, userSelect+` WHERE role IN ('admin','manager','direction_head','chief_head','operator','receiver','loading_operator','transit_operator','issue_operator','accounting', 'mobile_group') ORDER BY created_at DESC`)
+	rows, err := r.pool.Query(ctx, userSelect+` WHERE role IN ('admin','manager','direction_head','chief_head','receiver','loading_operator','transit_operator','issue_operator','accounting', 'mobile_group') ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -507,6 +507,18 @@ func (r *Repository) CreateStation(ctx context.Context, station model.Station) (
 
 func (r *Repository) UpdateStation(ctx context.Context, station model.Station) (model.Station, error) {
 	_, err := r.pool.Exec(ctx, `UPDATE stations SET name = $2, city = $3, code = $4, is_active = $5 WHERE id = $1`, station.ID, station.Name, station.City, station.Code, station.IsActive)
+	return station, err
+}
+
+func (r *Repository) UpsertStationByCode(ctx context.Context, station model.Station) (model.Station, error) {
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO stations (id, name, city, code, is_active)
+		VALUES ($1,$2,$3,$4,$5)
+		ON CONFLICT (code) DO UPDATE SET
+			name = EXCLUDED.name,
+			city = EXCLUDED.city,
+			is_active = EXCLUDED.is_active
+	`, station.ID, station.Name, station.City, station.Code, station.IsActive)
 	return station, err
 }
 
@@ -856,7 +868,7 @@ func (r *Repository) GetDashboardReport(ctx context.Context) (model.DashboardRep
 	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM shipments WHERE shipment_status NOT IN ('ISSUED','CLOSED')`).Scan(&report.ActiveContracts); err != nil {
 		return report, err
 	}
-	rows, err := r.pool.Query(ctx, `SELECT from_station, to_station, COALESCE(SUM(cost),0), COUNT(*) FROM shipments WHERE created_at >= $1 GROUP BY from_station, to_station ORDER BY 3 DESC LIMIT 5`, start)
+	rows, err := r.pool.Query(ctx, `SELECT from_station, to_station, COALESCE(SUM(cost),0), COUNT(*) FROM shipments WHERE created_at >= $1 GROUP BY from_station, to_station ORDER BY 3 DESC`, start)
 	if err != nil {
 		return report, err
 	}
@@ -877,6 +889,48 @@ func (r *Repository) GetDashboardReport(ctx context.Context) (model.DashboardRep
 			report.RevenueByRoute[i].Percentage = int(report.RevenueByRoute[i].Revenue / total * 100)
 		}
 	}
+
+	// Revenue by month (last 6 months, confirmed payments).
+	revRows, err := r.pool.Query(ctx, `
+		SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month,
+		       COALESCE(SUM(amount), 0) AS revenue
+		FROM payments
+		WHERE status = 'CONFIRMED'
+		  AND created_at >= date_trunc('month', now()) - interval '5 months'
+		GROUP BY 1
+		ORDER BY 1
+	`)
+	if err != nil {
+		return report, err
+	}
+	defer revRows.Close()
+	for revRows.Next() {
+		var item model.RevenueByMonthItem
+		if err := revRows.Scan(&item.Month, &item.Revenue); err != nil {
+			return report, err
+		}
+		report.RevenueByMonth = append(report.RevenueByMonth, item)
+	}
+	if err := revRows.Err(); err != nil {
+		return report, err
+	}
+
+	// Wagons by status.
+	wRows, err := r.pool.Query(ctx, `SELECT status, COUNT(*) FROM wagons GROUP BY status ORDER BY status`)
+	if err == nil {
+		defer wRows.Close()
+		for wRows.Next() {
+			var item model.CountByStatusItem
+			if err := wRows.Scan(&item.Status, &item.Count); err != nil {
+				return report, err
+			}
+			report.WagonsByStatus = append(report.WagonsByStatus, item)
+		}
+		if err := wRows.Err(); err != nil {
+			return report, err
+		}
+	}
+
 	return report, rows.Err()
 }
 

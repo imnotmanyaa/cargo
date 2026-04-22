@@ -147,7 +147,7 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse responsive-table-card">
             <thead className={theme === 'dark' ? 'bg-gray-900/50' : 'bg-gray-50'}>
               <tr>
                 <th className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{t('waybill')}</th>
@@ -160,13 +160,19 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
               </tr>
             </thead>
             <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
-              {filteredShipments.map((shipment) => (
+              {filteredShipments.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
+                    {loading ? 'Загрузка...' : 'Нет отправок'}
+                  </td>
+                </tr>
+              ) : filteredShipments.map((shipment) => (
                 <tr
                   key={shipment.id}
                   onClick={() => setSelectedShipment(shipment)}
-                  className={`cursor-pointer transition-colors ${theme === 'dark' ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}
+                  className={`cursor-pointer transition-colors ${theme === 'dark' ? 'hover:bg-gray-750 dark-row' : 'hover:bg-gray-50'}`}
                 >
-                  <td className="px-6 py-4">
+                  <td data-label="Накладная" className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
                         <Package className={`w-5 h-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
@@ -174,8 +180,8 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
                       <span className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{shipment.shipment_number}</span>
                     </div>
                   </td>
-                  <td className={`px-6 py-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.client}</td>
-                  <td className="px-6 py-4">
+                  <td data-label="Клиент" className={`px-6 py-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.client}</td>
+                  <td data-label="Маршрут" className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-gray-400" />
@@ -187,18 +193,18 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td data-label="Статус" className="px-6 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${shipment.statusColor}`}>
                       {getStatus(shipment.status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td data-label="Дата" className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Clock className="w-4 h-4" />
                       <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{shipment.date}</span>
                     </div>
                   </td>
-                  <td className={`px-6 py-4 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.weight}</td>
+                  <td data-label="Вес" className={`px-6 py-4 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.weight}</td>
                   <td className="px-6 py-4 text-right">
                     <button className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
                       <QrCode className="w-5 h-5" />

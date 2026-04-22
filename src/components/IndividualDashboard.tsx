@@ -54,7 +54,7 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-start justify-between mb-4">
             <div>

@@ -1,5 +1,6 @@
 import { ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { calculateShipmentCost } from '../../lib/tariff';
 
 interface CargoDetailsProps {
   data: any;
@@ -12,37 +13,14 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
   const { t } = useLanguage();
 
   const calculatePrice = () => {
-    if (!data.fromStation || !data.toStation || !data.weight) {
-      return null;
-    }
-    
-    const rates: Record<string, number> = {
-      'алматы-1-астана нұрлы жол': 976,
-      'астана нұрлы жол-алматы-1': 976,
-      'алматы-1-қарағанды': 825,
-      'қарағанды-алматы-1': 825,
-      'алматы-1-атырау': 1145,
-      'атырау-алматы-1': 1145,
-      'алматы-1-шымкент': 590,
-      'шымкент-алматы-1': 590,
-      'алматы-1-ақтөбе': 1114,
-      'ақтөбе-алматы-1': 1114,
-    };
-
-    const route = `${data.fromStation.toLowerCase()}-${data.toStation.toLowerCase()}`;
-    const baseRate = rates[route] || 5000;
-
-    const weight = parseFloat(data.weight) || 0;
-    let basePrice = (weight / 10) * baseRate;
-    
-    if (data.isFragile) basePrice += 1000;
-    if (data.isOversized) basePrice += 2500;
-    
-    if (data.hasTicket) {
-      basePrice = basePrice * 0.5;
-    }
-    
-    return Math.round(basePrice);
+    return calculateShipmentCost({
+      fromStation: data.fromStation,
+      toStation: data.toStation,
+      weight: data.weight,
+      isFragile: data.isFragile,
+      isOversized: data.isOversized,
+      hasTicket: data.hasTicket
+    });
   };
 
   const price = calculatePrice();
@@ -84,7 +62,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t('weight')}

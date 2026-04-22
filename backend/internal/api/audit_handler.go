@@ -17,7 +17,7 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleAdmin, model.RoleManager, model.RoleOperator); err != nil {
+	if err := s.requireRole(user, model.RoleAdmin, model.RoleManager); err != nil {
 		handleServiceError(w, err)
 		return
 	}

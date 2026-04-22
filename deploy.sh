@@ -61,6 +61,17 @@ CREATE TABLE IF NOT EXISTS frequent_clients (
 SQL
 "
 
+echo "🧩 Migrating operator -> manager..."
+$SSH $SERVER "
+  set -e
+  DATABASE_URL=\${DATABASE_URL:-postgres://postgres:postgres@localhost:5432/cargotrans?sslmode=disable}
+  psql \"\$DATABASE_URL\" -v ON_ERROR_STOP=1 <<'SQL'
+UPDATE users
+SET role = 'manager'
+WHERE role = 'operator';
+SQL
+"
+
 echo "🔧 Building and restarting backend..."
 $SSH $SERVER "
   cd /home/ubuntu/cargo/backend &&

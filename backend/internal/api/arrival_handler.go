@@ -34,7 +34,7 @@ func (s *Server) handleArriveShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleReceiver, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -65,7 +65,7 @@ func (s *Server) handleReadyForIssue(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager, model.RoleOperator, model.RoleReceiver); err != nil {
+	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager, model.RoleReceiver); err != nil {
 		handleServiceError(w, err)
 		return
 	}

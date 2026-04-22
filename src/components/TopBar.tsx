@@ -112,8 +112,10 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
     }
   };
 
-  // Проверяем, нужно ли показывать станцию и имя оператора
-  const showStationInfo = user?.role === 'operator' || user?.role === 'receiver';
+  // Проверяем, нужно ли показывать станцию и имя сотрудника (станционных ролей)
+  const showStationInfo =
+    user?.role === 'receiver' ||
+    user?.role === 'mobile_group';
 
   return (
     <div className={`relative z-[70] h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-2 sm:px-3 md:px-6`}>

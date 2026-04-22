@@ -58,7 +58,7 @@ const STATUS_LABELS: Record<string, string> = {
  * Позволяет сканировать грузы и проверять их данные/маршрут
  * без изменения статуса.
  */
-export function AuditorTerminal() {
+export function AuditorTerminal({ embedded = false }: { embedded?: boolean }) {
   const { user, logout } = useAuth();
   const { language, setLanguage } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -192,9 +192,10 @@ export function AuditorTerminal() {
     '#ef4444';
 
   return (
-    <div style={{ minHeight: '100vh', background: bg, display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', userSelect: 'none' }}>
+    <div style={{ minHeight: embedded ? 'auto' : '100vh', background: embedded ? 'transparent' : bg, display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', userSelect: 'none' }}>
 
-      {/* TOP TOOLBAR */}
+      {/* TOP TOOLBAR (standalone mode only) */}
+      {!embedded && (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: cardBg, borderBottom: isDark ? '1px solid #334155' : '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100, gap: 8, minHeight: 52 }}>
         {/* Back Button — icon + text on wide, icon-only on narrow */}
         <button
@@ -249,6 +250,7 @@ export function AuditorTerminal() {
           </button>
         </div>
       </div>
+      )}
 
       {/* MAIN CONTENT */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>

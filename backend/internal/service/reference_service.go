@@ -21,3 +21,7 @@ func (s *ReferenceService) CreateStation(ctx context.Context, station model.Stat
 func (s *ReferenceService) UpdateStation(ctx context.Context, station model.Station) (model.Station, error) {
 	return s.repo.UpdateStation(ctx, station)
 }
+
+func (s *ReferenceService) UpsertStationByCode(ctx context.Context, station model.Station) (model.Station, error) {
+	return s.repo.UpsertStationByCode(ctx, station)
+}

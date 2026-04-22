@@ -41,7 +41,7 @@ func newMemoryRepo() *memoryRepo {
 		frequentClients: map[string]model.FrequentClient{},
 		roles: []model.RoleRecord{
 			{ID: "admin", Name: "admin", Description: "Administrator"},
-			{ID: "operator", Name: "operator", Description: "Operator"},
+			{ID: "manager", Name: "manager", Description: "Manager"},
 			{ID: "receiver", Name: "receiver", Description: "Receiver"},
 			{ID: "individual", Name: "individual", Description: "Client"},
 			{ID: "corporate", Name: "corporate", Description: "Corporate"},
@@ -193,6 +193,21 @@ func (m *memoryRepo) CreateStation(_ context.Context, station model.Station) (mo
 func (m *memoryRepo) UpdateStation(_ context.Context, station model.Station) (model.Station, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.stations[station.ID] = station
+	return station, nil
+}
+
+func (m *memoryRepo) UpsertStationByCode(_ context.Context, station model.Station) (model.Station, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// Upsert by unique code
+	for id, existing := range m.stations {
+		if existing.Code == station.Code {
+			station.ID = id
+			m.stations[id] = station
+			return station, nil
+		}
+	}
 	m.stations[station.ID] = station
 	return station, nil
 }

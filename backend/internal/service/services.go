@@ -8,7 +8,7 @@ import (
 	"cargo/backend/internal/model"
 )
 
-var stationsOrder = []string{"Шымкент", "Алматы-1", "Қарағанды", "Астана Нұрлы Жол", "Ақтөбе"}
+var stationsOrder = []string{"Шымкент", "Алматы-1", "Қарағанды", "Астана Нұрлы Жол", "Ақтөбе", "Атырау"}
 
 var (
 	ErrUnauthorized       = errors.New("unauthorized")

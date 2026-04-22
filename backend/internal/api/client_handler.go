@@ -32,7 +32,7 @@ func (s *Server) handleCreateCorporateClient(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	if err := s.requireRole(authUser, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -73,7 +73,7 @@ func (s *Server) handleCreateFrequentClient(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	if err := s.requireRole(authUser, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -118,7 +118,7 @@ func (s *Server) handleUpdateCorporateClient(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	if err := s.requireRole(authUser, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -146,7 +146,7 @@ func (s *Server) handleDeleteCorporateClient(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	if err := s.requireRole(authUser, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}

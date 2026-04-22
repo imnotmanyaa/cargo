@@ -5,7 +5,6 @@
 INSERT INTO roles (id, name, description) VALUES
     ('admin', 'admin', 'Administrator'),
     ('manager', 'manager', 'Manager'),
-    ('operator', 'operator', 'Reception operator'),
     ('receiver', 'receiver', 'Destination receiver'),
     ('loading_operator', 'loading_operator', 'Loading employee'),
     ('transit_operator', 'transit_operator', 'Transit operator'),

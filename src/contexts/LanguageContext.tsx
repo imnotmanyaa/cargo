@@ -209,7 +209,7 @@ const translations = {
     newShipmentButton: 'Новая отправка',
 
     // Manager Dashboard
-    managerDashboard: 'Панель руководителя',
+    managerDashboard: 'Панель менеджера',
     managerDashboardDesc: 'Аналитика и статистика работы системы',
     monthlyShipments: 'Запланировано перевозок',
     completedShipments: 'Выполнено перевозок',
@@ -276,7 +276,7 @@ const translations = {
     operator: 'Менеджер',
     receiver: 'Приёмщик',
     roleAdmin: 'Администратор',
-    roleManager: 'Руководитель',
+    roleManager: 'Менеджер',
     roleAuditor: 'Ревизор',
     roleMobileGroup: 'Мобильная группа',
 
@@ -577,7 +577,7 @@ const translations = {
     newShipmentButton: 'New Shipment',
 
     // Manager Dashboard
-    managerDashboard: 'Manager Dashboard',
+    managerDashboard: 'Manager Panel',
     managerDashboardDesc: 'Analytics and system performance statistics',
     monthlyShipments: 'Planned shipments',
     completedShipments: 'Completed shipments',
@@ -945,7 +945,7 @@ const translations = {
     newShipmentButton: 'Жаңа жөнелту',
 
     // Manager Dashboard
-    managerDashboard: 'Басқару панелі',
+    managerDashboard: 'Менеджер панелі',
     managerDashboardDesc: 'Аналитика және жүйенің іштету статистикасы',
     monthlyShipments: 'Айлық жөнелтулер',
     completedShipments: 'Жүргізілген жөнелтулер',
@@ -1012,7 +1012,7 @@ const translations = {
     operator: 'Менеджер',
     receiver: 'Қабылдаушы',
     roleAdmin: 'Әкімші',
-    roleManager: 'Басшы',
+    roleManager: 'Менеджер',
     roleAuditor: 'Ревизор',
     roleMobileGroup: 'Мобильді топ',
 
@@ -1117,14 +1117,23 @@ const translations = {
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>('ru');
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem('lang');
+    if (saved === 'ru' || saved === 'en' || saved === 'kk') return saved;
+    return 'ru';
+  });
+
+  const handleSetLanguage = (lang: Language) => {
+    localStorage.setItem('lang', lang);
+    setLanguage(lang);
+  };
 
   const t = (key: string): string => {
     return translations[language][key as keyof typeof translations.ru] || key;
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -20,7 +20,7 @@ func (s *Server) handleDashboardReport(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+	if err := s.requireRole(user, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -45,7 +45,7 @@ func (s *Server) handleFinanceReport(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleAccounting, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleAccounting, model.RoleAdmin, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -62,7 +62,7 @@ func (s *Server) handleStatusSummary(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleAccounting, model.RoleAdmin, model.RoleManager, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+	if err := s.requireRole(user, model.RoleAccounting, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}

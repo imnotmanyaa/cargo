@@ -27,6 +27,7 @@ import { DailySheet } from './components/DailySheet';
 import { FrequentClients } from './components/FrequentClients';
 
 import { AuditorTerminal } from './components/AuditorTerminal';
+import { LeaderOverview } from './components/LeaderOverview';
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
@@ -35,7 +36,7 @@ function AppContent() {
       const saved = localStorage.getItem('currentPage');
       if (saved) return saved;
     }
-    return user?.role === 'manager' || user?.role === 'admin' || user?.role === 'direction_head' || user?.role === 'chief_head' ? 'dashboard' : 'new-shipment';
+    return user?.role === 'admin' || user?.role === 'direction_head' || user?.role === 'chief_head' ? 'dashboard' : 'new-shipment';
   });
   // На мобильных закрыты по умолчанию, на десктопе открыты (оба на lg - 1024px)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
@@ -46,6 +47,25 @@ function AppContent() {
   // Check for public tracking URL
   const [trackingId, setTrackingId] = useState<string | null>(null);
   const [shipmentActionId, setShipmentActionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.role) return;
+    const allowedByRole: Record<string, string[]> = {
+      manager: ['new-shipment', 'active-shipments', 'transit', 'arrival', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients'],
+      direction_head: ['dashboard'],
+      chief_head: ['dashboard'],
+      receiver: ['receiver'],
+      mobile_group: ['auditor'],
+      corporate: ['corporate-dashboard'],
+      individual: ['dashboard', 'new-shipment'],
+    };
+    const allowed = allowedByRole[user.role] || ['new-shipment'];
+    if (!allowed.includes(currentPage)) {
+      setCurrentPage(allowed[0]);
+      localStorage.setItem('currentPage', allowed[0]);
+    }
+  }, [user?.role, currentPage]);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -107,7 +127,24 @@ function AppContent() {
 
   // Mobile Group Dashboard
   if (user?.role === 'mobile_group') {
-    return <AuditorTerminal />;
+    return (
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <TopBar
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+          onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+          hideSidebarButtons={true}
+        />
+        <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
+          <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <div className="p-4 md:p-8">
+              <AuditorTerminal embedded />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
   }
 
 
@@ -178,6 +215,28 @@ function AppContent() {
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
             <div className="p-4 md:p-8">
               <ReceiverDashboard theme={theme} />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Leadership view: single page (dashboard + reports), no other navigation.
+  if (user?.role === 'direction_head' || user?.role === 'chief_head') {
+    return (
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <TopBar
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          onToggleLeftSidebar={() => {}}
+          onToggleRightSidebar={() => {}}
+          hideSidebarButtons={true}
+        />
+        <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
+          <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <div className="p-4 md:p-6 lg:p-8 min-w-0">
+              <LeaderOverview theme={theme} />
             </div>
           </main>
         </div>

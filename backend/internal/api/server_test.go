@@ -37,7 +37,7 @@ func TestPilotLifecycleFlow(t *testing.T) {
 
 	originStation := "Алматы-1"
 	destStation := "Ақтөбе"
-	operatorToken := createEmployeeAndLogin(t, server, services, "Origin Operator", "operator@test", "secret123", model.RoleOperator, &originStation)
+	operatorToken := createEmployeeAndLogin(t, server, services, "Origin Manager", "manager@test", "secret123", model.RoleManager, &originStation)
 	loadingToken := createEmployeeAndLogin(t, server, services, "Loader", "loader@test", "secret123", model.RoleLoading, &originStation)
 	transitStation := "Қарағанды"
 	transitToken := createEmployeeAndLogin(t, server, services, "Transit", "transit@test", "secret123", model.RoleTransit, &transitStation)
@@ -218,7 +218,7 @@ func TestTrackingAndReportsEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create payment: %v", err)
 	}
-	if _, _, err := services.Payments.Confirm(context.Background(), payment.ID, "operator-1"); err != nil {
+	if _, _, err := services.Payments.Confirm(context.Background(), payment.ID, "manager-1"); err != nil {
 		t.Fatalf("confirm payment: %v", err)
 	}
 

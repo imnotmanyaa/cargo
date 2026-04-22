@@ -24,6 +24,7 @@ type Repository interface {
 	ListStations(ctx context.Context) ([]model.Station, error)
 	CreateStation(ctx context.Context, station model.Station) (model.Station, error)
 	UpdateStation(ctx context.Context, station model.Station) (model.Station, error)
+	UpsertStationByCode(ctx context.Context, station model.Station) (model.Station, error)
 
 	CreateShipment(ctx context.Context, shipment model.Shipment) (model.Shipment, error)
 	GetShipmentByID(ctx context.Context, id string) (model.Shipment, error)

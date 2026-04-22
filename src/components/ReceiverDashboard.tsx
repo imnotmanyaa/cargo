@@ -10,6 +10,7 @@ interface Shipment {
   from_station: string;
   to_station: string;
   status: string;
+  shipment_status?: string;
   weight: string;
   dimensions: string;
   description: string;
@@ -99,7 +100,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         // Add loaded state based on status
         const shipmentsWithLoaded = data.map((s: Shipment) => ({
           ...s,
-          loaded: s.status === 'Погружен'
+          loaded: s.shipment_status === 'LOADED' || s.status === 'Погружен'
         }));
         setShipments(shipmentsWithLoaded);
       }
@@ -199,16 +200,14 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     try {
       const token = localStorage.getItem('token');
       // Backend now handles both UUID and ShipmentNumber (SH-XXXXXX)
-      const response = await fetch(`/api/shipments/${shipmentId}/transit`, {
+      const response = await fetch(`/api/shipments/${shipmentId}/arrive`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          current_station: user.station,
-          operator_id: user.id,
-          operator_name: user.name
+          current_station: user.station
         })
       });
 

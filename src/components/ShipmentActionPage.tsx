@@ -21,7 +21,7 @@ interface Shipment {
 
 interface ActionContext {
     shipment: Shipment;
-    userRole: 'sender' | 'origin-receiver' | 'destination-receiver' | 'none' | 'guest';
+    userRole: 'sender' | 'origin-receiver' | 'destination-receiver' | 'staff' | 'none' | 'guest';
     allowedActions: string[];
     requiresAuth: boolean;
 }
@@ -230,6 +230,57 @@ export function ShipmentActionPage() {
         );
     }
     if (userRole === 'sender') {
+        return (
+            <div className="min-h-screen bg-gray-50 py-8 px-4">
+                <div className="max-w-2xl mx-auto">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Package className="w-8 h-8 text-blue-600" />
+                            <div>
+                                <h1 className="text-2xl font-semibold text-gray-900">Информация о грузе</h1>
+                                <p className="text-sm text-gray-600">{shipment.shipment_number}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <h3 className="text-sm font-semibold text-gray-900 mb-2">Маршрут</h3>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <MapPin className="w-4 h-4 text-green-600" />
+                                    <span>{shipment.from_station}</span>
+                                    <span className="text-gray-400">→</span>
+                                    <MapPin className="w-4 h-4 text-red-600" />
+                                    <span>{shipment.to_station}</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <h3 className="text-sm font-semibold text-gray-900 mb-2">Статус</h3>
+                                <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-700">
+                                    {shipment.status}
+                                </span>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <h3 className="text-sm font-semibold text-gray-900 mb-2">Детали</h3>
+                                <div className="space-y-1 text-sm text-gray-700">
+                                    <p><strong>Вес:</strong> {shipment.weight} кг</p>
+                                    <p><strong>Размеры:</strong> {shipment.dimensions}</p>
+                                    <p><strong>Описание:</strong> {shipment.description}</p>
+                                    {shipment.receiver_name && (
+                                        <p><strong>Получатель:</strong> {shipment.receiver_name}</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Staff view (managers/heads) or generic view-only access
+    if (context.allowedActions.includes('view')) {
         return (
             <div className="min-h-screen bg-gray-50 py-8 px-4">
                 <div className="max-w-2xl mx-auto">

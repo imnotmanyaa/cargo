@@ -83,7 +83,7 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleLoading, model.RoleTransit, model.RoleReceiver, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleLoading, model.RoleTransit, model.RoleReceiver, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -235,9 +235,9 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-			// Always notify chief heads and admins globally.
+			// Always notify chief heads globally (admins are excluded).
 			for _, item := range employees {
-				if item.Role == model.RoleChiefHead || item.Role == model.RoleAdmin {
+				if item.Role == model.RoleChiefHead {
 					addRecipient(item)
 				}
 			}

@@ -33,7 +33,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.requireRole(user,
-		model.RoleOperator, model.RoleManager, model.RoleAdmin,
+		model.RoleManager, model.RoleAdmin,
 		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
 		model.RoleCorporate, model.RoleIndividual,
 	); err != nil {
@@ -119,7 +119,7 @@ func (s *Server) handleListShipments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.requireRole(user,
-		model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead,
+		model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead,
 		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
 		model.RoleCorporate, model.RoleIndividual, model.RoleMobileGroup,
 	); err != nil {
@@ -152,7 +152,7 @@ func (s *Server) handleShipmentsByStation(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleReceiver, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -176,7 +176,7 @@ func (s *Server) handleUpdateShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -202,7 +202,7 @@ func (s *Server) handleCalculateTariff(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -228,7 +228,7 @@ func (s *Server) handleSendToPayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -255,7 +255,7 @@ func (s *Server) handleGenerateQR(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.requireRole(user,
-		model.RoleOperator, model.RoleManager, model.RoleAdmin,
+		model.RoleManager, model.RoleAdmin,
 		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
 		model.RoleCorporate, model.RoleIndividual,
 	); err != nil {
@@ -291,7 +291,7 @@ func (s *Server) handleCancelShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}

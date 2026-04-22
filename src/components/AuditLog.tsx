@@ -19,6 +19,7 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
   const { t } = useLanguage();
   const isDark = theme === 'dark';
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -49,17 +50,42 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
     return action.replace(/_/g, ' ');
   };
 
+  const filteredLogs = logs.filter(log => {
+    const q = searchQuery.toLowerCase();
+    return (
+      log.shipment_number?.toLowerCase().includes(q) ||
+      log.entity_id?.toLowerCase().includes(q) ||
+      log.action?.toLowerCase().includes(q) ||
+      log.user_id?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div>
-      <div className="mb-8">
-        <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('auditLog')}</h1>
-        <p className="text-gray-600">{t('userActions')}</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('auditLog')}</h1>
+          <p className="text-gray-600">{t('userActions')}</p>
+        </div>
+        <div className="w-full md:w-72">
+          <input
+            type="text"
+            placeholder="Поиск по ID груза, действию..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={`w-full px-4 py-2 rounded-lg border ${
+              isDark 
+                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500' 
+                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+            } outline-none transition-colors`}
+          />
+        </div>
       </div>
 
       <div className={`rounded-lg shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {isLoading ? (
           <div className="p-8 text-center text-gray-500">Загрузка...</div>
-        ) : logs.length === 0 ? (
+        ) : filteredLogs.length === 0 ? (
           <div className="p-8 text-center text-gray-500">Нет записей в журнале.</div>
         ) : (
           <div className="overflow-x-auto">
@@ -73,7 +99,7 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                 </tr>
               </thead>
               <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                {logs.map(log => (
+                {filteredLogs.map(log => (
                   <tr key={log.id} className={`transition-colors ${isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                       <div className="flex items-center gap-2">

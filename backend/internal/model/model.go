@@ -9,7 +9,6 @@ const (
 	RoleManager    Role = "manager"
 	RoleDirectionHead Role = "direction_head"
 	RoleChiefHead     Role = "chief_head"
-	RoleOperator   Role = "operator"
 	RoleReceiver   Role = "receiver"
 	RoleMobileGroup Role = "mobile_group" // Мобильная инспекционная группа: выездная проверка груза
 	RoleLoading    Role = "loading_operator"
@@ -220,11 +219,23 @@ type RouteRevenue struct {
 	Percentage int     `json:"percentage,omitempty"`
 }
 
+type RevenueByMonthItem struct {
+	Month   string  `json:"month"` // YYYY-MM
+	Revenue float64 `json:"revenue"`
+}
+
+type CountByStatusItem struct {
+	Status string `json:"status"`
+	Count  int    `json:"count"`
+}
+
 type DashboardReport struct {
 	MonthlyShipments   int            `json:"monthlyShipments"`
 	CompletedShipments int            `json:"completedShipments"`
 	ActiveContracts    int            `json:"activeContracts"`
 	RevenueByRoute     []RouteRevenue `json:"revenueByRoute"`
+	RevenueByMonth     []RevenueByMonthItem `json:"revenueByMonth,omitempty"`
+	WagonsByStatus     []CountByStatusItem  `json:"wagonsByStatus,omitempty"`
 }
 
 type FinanceReport struct {

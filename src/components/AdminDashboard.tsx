@@ -6,7 +6,7 @@ interface Employee {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'operator' | 'receiver' | 'mobile_group';
+  role: 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group';
   station: string;
   createdAt: string;
   status: 'active' | 'inactive';
@@ -56,14 +56,14 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: '',
-    role: 'operator' as Employee['role'],
+    role: 'manager' as Employee['role'],
     station: ''
   });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'operator' as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'operator' | 'receiver' | 'mobile_group',
+    role: 'manager' as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group',
     station: ''
   });
 
@@ -91,7 +91,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
           name: '',
           email: '',
           password: '',
-          role: 'operator' as 'admin' | 'manager' | 'operator' | 'receiver' | 'mobile_group',
+          role: 'manager' as 'admin' | 'manager' | 'receiver' | 'mobile_group',
           station: ''
         });
         alert(t('employeeCreatedSuccess'));
@@ -221,7 +221,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
             <div>
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('operators')}</p>
               <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-                {employees.filter(e => e.role === 'operator').length}
+                {employees.filter(e => e.role === 'manager').length}
               </p>
             </div>
           </div>
@@ -325,7 +325,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 </label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'operator' | 'receiver' | 'mobile_group' })}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group' })}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'
                     }`}
                   required
@@ -334,7 +334,6 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <option value="manager">{t('roleManager')}</option>
                   <option value="direction_head">Руководитель по направлению</option>
                   <option value="chief_head">Главный руководитель</option>
-                  <option value="operator">{t('operator')}</option>
                   <option value="receiver">{t('receiver')}</option>
                   <option value="mobile_group">{t('roleMobileGroup')}</option>
                 </select>
@@ -353,7 +352,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   onChange={(e) => setFormData({ ...formData, station: e.target.value })}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'
                     }`}
-                  required
+                  required={formData.role !== 'chief_head'}
                 >
                   <option value="">{t('selectStation')}</option>
                   {stations.map(station => (
@@ -432,14 +431,12 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        employee.role === 'operator' ? 'bg-blue-100 text-blue-800' :
                         employee.role === 'receiver' ? 'bg-orange-100 text-orange-800' :
                         employee.role === 'admin' ? 'bg-purple-100 text-purple-800' :
                         employee.role === 'mobile_group' ? 'bg-amber-100 text-amber-800' :
                         'bg-green-100 text-green-800'
                       }`}>
-                      {employee.role === 'operator' ? t('operator') :
-                        employee.role === 'receiver' ? t('receiver') :
+                      {employee.role === 'receiver' ? t('receiver') :
                         employee.role === 'admin' ? t('roleAdmin') :
                         employee.role === 'direction_head' ? 'Руководитель по направлению' :
                         employee.role === 'chief_head' ? 'Главный руководитель' :
@@ -528,7 +525,6 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <option value="manager">{t('roleManager')}</option>
                   <option value="direction_head">Руководитель по направлению</option>
                   <option value="chief_head">Главный руководитель</option>
-                  <option value="operator">{t('operator')}</option>
                   <option value="receiver">{t('receiver')}</option>
                   <option value="mobile_group">{t('roleMobileGroup')}</option>
                 </select>

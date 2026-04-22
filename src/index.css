@@ -2,7 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html, body, #root {
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  input, button, select, textarea {
+    font-family: inherit;
+    font-size: 16px; /* Prevent iOS zoom on focus */
+  }
+}
+
 @layer utilities {
+  /* Hide scrollbar but keep scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Bottom safe area padding for iOS notch devices */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  /* Responsive table: cards on mobile, table on desktop */
+  @media (max-width: 767px) {
+    .responsive-table-card thead {
+      display: none;
+    }
+    .responsive-table-card tbody tr {
+      display: block;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+    }
+    .responsive-table-card tbody tr.dark-row {
+      border-color: #374151;
+    }
+    .responsive-table-card tbody td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 4px;
+      border: none;
+      font-size: 14px;
+    }
+    .responsive-table-card tbody td::before {
+      content: attr(data-label);
+      font-weight: 600;
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
+  }
+
   @media print {
     body * {
       visibility: hidden;
@@ -18,4 +84,3 @@
     }
   }
 }
-

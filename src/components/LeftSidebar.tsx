@@ -12,24 +12,48 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
   const isDark = theme === 'dark';
   const { t } = useLanguage();
 
-  const menuItems = [
-    ...(userRole === 'manager' || userRole === 'admin' || userRole === 'direction_head' || userRole === 'chief_head' ? [{ id: 'dashboard', label: 'Дашборд', icon: Package }] : []),
-    { id: 'new-shipment', label: t('newShipment'), icon: Package },
-    { id: 'active-shipments', label: t('activeShipments'), icon: List },
-    { id: 'transit', label: t('transit'), icon: Truck },
-    { id: 'arrival', label: t('arrival'), icon: MapPin },
-    { id: 'reports', label: t('reports'), icon: FileText },
-  ];
+  // Leadership roles use a dedicated single-page UI (dashboard + reports).
+  // Keep the sidebar for other roles only.
+  const isLeadership = userRole === 'direction_head' || userRole === 'chief_head';
 
-  const pages = [
-    ...(userRole === 'operator' || userRole === 'manager' || userRole === 'admin' ? [
-      { id: 'audit', label: t('auditLog'), icon: Activity },
-      { id: 'payments', label: t('paymentLog'), icon: CreditCard },
-      { id: 'frequent-clients', label: 'Быстрые клиенты', icon: Users },
-    ] : []),
-    { id: 'settings', label: t('settings'), icon: SettingsIcon },
-    { id: 'corporate', label: t('corporate'), icon: Building2 },
-  ];
+  const isManager = userRole === 'manager';
+  const menuItems = isManager
+    ? [
+        { id: 'new-shipment', label: t('newShipment'), icon: Package },
+        { id: 'active-shipments', label: t('activeShipments'), icon: List },
+        { id: 'transit', label: t('transit'), icon: Truck },
+        { id: 'arrival', label: t('arrival'), icon: MapPin },
+      ]
+    : [
+        ...(userRole === 'admin' ? [{ id: 'dashboard', label: 'Дашборд', icon: Package }] : []),
+        { id: 'new-shipment', label: t('newShipment'), icon: Package },
+        { id: 'active-shipments', label: t('activeShipments'), icon: List },
+        { id: 'transit', label: t('transit'), icon: Truck },
+        { id: 'arrival', label: t('arrival'), icon: MapPin },
+        { id: 'reports', label: t('reports'), icon: FileText },
+      ];
+
+  const pages = isManager
+    ? [
+        { id: 'payments', label: t('paymentLog'), icon: CreditCard },
+        { id: 'audit', label: t('auditLog'), icon: Activity },
+        { id: 'frequent-clients', label: 'Быстрые клиенты', icon: Users },
+        { id: 'settings', label: t('settings'), icon: SettingsIcon },
+        { id: 'corporate', label: t('corporate'), icon: Building2 },
+      ]
+    : [
+        ...(userRole === 'admin' ? [
+          { id: 'audit', label: t('auditLog'), icon: Activity },
+          { id: 'payments', label: t('paymentLog'), icon: CreditCard },
+          { id: 'frequent-clients', label: 'Быстрые клиенты', icon: Users },
+        ] : []),
+        { id: 'settings', label: t('settings'), icon: SettingsIcon },
+        { id: 'corporate', label: t('corporate'), icon: Building2 },
+      ];
+
+  if (isLeadership) {
+    return null;
+  }
 
   return (
     <div className={`w-64 h-full border-r ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} overflow-y-auto`}>

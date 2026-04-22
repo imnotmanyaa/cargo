@@ -460,6 +460,23 @@ func (s *ShipmentService) ActionContext(ctx context.Context, id string, user *Au
 		result.AllowedActions = []string{"view"}
 		return result, nil
 	}
+	// Management roles can view shipments across the whole route/network.
+	// Direction head can view shipments that are relevant to their station (route/from/to/current/next).
+	if user.Role == model.RoleAdmin || user.Role == model.RoleManager || user.Role == model.RoleChiefHead {
+		result.UserRole = "staff"
+		result.AllowedActions = []string{"view"}
+		return result, nil
+	}
+	if user.Role == model.RoleDirectionHead {
+		station := strings.TrimSpace(user.Station)
+		if station != "" {
+			if station == shipment.FromStation || station == shipment.ToStation || station == shipment.CurrentStation || (shipment.NextStation != nil && station == *shipment.NextStation) || indexOf(shipment.Route, station) != -1 {
+				result.UserRole = "staff"
+				result.AllowedActions = []string{"view"}
+				return result, nil
+			}
+		}
+	}
 	if user.ID == shipment.ClientID {
 		result.UserRole = "sender"
 		result.AllowedActions = []string{"view"}

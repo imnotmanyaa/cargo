@@ -13,6 +13,8 @@ interface DashboardData {
   completedShipments: number;
   activeContracts: number;
   revenueByRoute: { route: string; revenue: number; percentage: number }[];
+  revenueByMonth?: { month: string; revenue: number }[];
+  wagonsByStatus?: { status: string; count: number }[];
 }
 
 export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
@@ -49,7 +51,9 @@ export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
             monthlyShipments: result.monthlyShipments,
             completedShipments: result.completedShipments,
             activeContracts: result.activeContracts,
-            revenueByRoute: revenueWithPercent
+            revenueByRoute: revenueWithPercent,
+            revenueByMonth: Array.isArray(result.revenueByMonth) ? result.revenueByMonth : [],
+            wagonsByStatus: Array.isArray(result.wagonsByStatus) ? result.wagonsByStatus : [],
           });
         }
       } catch (error) {
@@ -62,45 +66,41 @@ export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const wagonStatus = [
-    { statusKey: 'underCargo', count: 45, color: '#3B82F6' },
-    { statusKey: 'inTransit', count: 32, color: '#10B981' },
-    { statusKey: 'atStation', count: 18, color: '#F59E0B' },
-    { statusKey: 'inIdle', count: 8, color: '#EF4444' },
-    { statusKey: 'inRepair', count: 5, color: '#6B7280' },
-  ];
+  const wagonStatus = (data.wagonsByStatus || []).map((w) => ({
+    statusKey: w.status,
+    count: w.count,
+    color:
+      w.status === 'EMPTY' ? '#6B7280' :
+      w.status === 'LOADING' ? '#3B82F6' :
+      w.status === 'LOADED' ? '#10B981' :
+      w.status === 'IN_TRANSIT' ? '#F59E0B' :
+      w.status === 'ARRIVED' ? '#8B5CF6' :
+      w.status === 'UNLOADING' ? '#EF4444' :
+      '#64748B'
+  }));
 
-  const monthlyRevenue = [
-    { month: 'Янв', planned: 3200000, actual: 3450000 },
-    { month: 'Фев', planned: 3100000, actual: 2980000 },
-    { month: 'Мар', planned: 3500000, actual: 3620000 },
-    { month: 'Апр', planned: 3300000, actual: 3150000 },
-    { month: 'Май', planned: 3600000, actual: 3890000 },
-    { month: 'Июн', planned: 3800000, actual: 4100000 },
-  ];
+  const monthlyRevenue = (data.revenueByMonth || []).map((m) => ({
+    month: m.month,
+    actual: m.revenue,
+  }));
 
   const totalRevenue = data.revenueByRoute.reduce((sum, item) => sum + item.revenue, 0);
+  const totalRouteShipments = data.revenueByRoute.reduce((sum, item) => sum + item.count, 0);
+  const averageRoutePrice = totalRouteShipments > 0 ? totalRevenue / totalRouteShipments : 0;
   const totalWagons = wagonStatus.reduce((sum, item) => sum + item.count, 0);
-  const roleLabel =
+  const wagonsWithCargo = wagonStatus.find(w => w.statusKey === 'LOADED')?.count ?? 0;
+  const dashboardTitle =
     user?.role === 'chief_head'
-      ? 'Главный руководитель'
+      ? 'Панель главного руководителя'
       : user?.role === 'direction_head'
-      ? 'Руководитель по направлению'
-      : t('roleManager');
+      ? 'Панель руководителя по направлению'
+      : t('managerDashboard');
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className={`text-xl md:text-2xl font-semibold mb-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('managerDashboard')}</h1>
+        <h1 className={`text-xl md:text-2xl font-semibold mb-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{dashboardTitle}</h1>
         <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('managerDashboardDesc')}</p>
-      </div>
-
-      <div className={`rounded-lg shadow-sm border p-4 mb-6 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        <div className={`text-xs uppercase tracking-wider mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Роль пользователя</div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className={isDark ? 'text-gray-400' : 'text-gray-600'}>Текущая роль</div>
-          <div className={isDark ? 'text-gray-100 font-medium' : 'text-gray-900 font-medium'}>{roleLabel}</div>
-        </div>
       </div>
 
       {/* Основные показатели */}
@@ -134,11 +134,11 @@ export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <FileText className="w-6 h-6 text-purple-600" />
             </div>
-            <span className="text-xs font-medium">{t('active')}</span>
+            <span className="text-xs font-medium">{user?.role === 'chief_head' ? 'Все направления' : 'Моё направление'}</span>
           </div>
-          <p className="text-xs opacity-90 mb-1">{t('activeContracts')}</p>
-          <p className="text-2xl font-bold">{data.activeContracts}</p>
-          <p className="text-xs mt-2 opacity-75">+8 {t('newPerWeek')}</p>
+          <p className="text-xs opacity-90 mb-1">Средняя цена по направлению</p>
+          <p className="text-2xl font-bold">{Math.round(averageRoutePrice).toLocaleString('ru-RU')} ₸</p>
+          <p className="text-xs mt-2 opacity-75">{data.revenueByRoute.length} направлений</p>
         </div>
 
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-sm p-5 text-white">
@@ -148,9 +148,9 @@ export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
             </div>
             <span className="text-xs font-medium">{t('total')}</span>
           </div>
-          <p className="text-xs opacity-90 mb-1">{t('wagonsInWork')}</p>
-          <p className="text-2xl font-bold">{totalWagons}</p>
-          <p className="text-xs mt-2 opacity-75">Из них {wagonStatus[0].count} {t('withCargo')}</p>
+          <p className="text-xs opacity-90 mb-1">{t('totalRevenue')}</p>
+          <p className="text-2xl font-bold">{(totalRevenue / 1000000).toFixed(2)} млн ₸</p>
+          <p className="text-xs mt-2 opacity-75">Грузовых вагонов: {wagonsWithCargo}</p>
         </div>
       </div>
 
@@ -267,52 +267,50 @@ export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={monthlyRevenue}>
-            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#E5E7EB'} />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: isDark ? '#9CA3AF' : '#6B7280' }} />
-            <YAxis tick={{ fontSize: 11, fill: isDark ? '#9CA3AF' : '#6B7280' }} />
-            <Tooltip
-              formatter={(value: any) => `${(Number(value) / 1000000).toFixed(2)} млн ₸`}
-              contentStyle={{
-                borderRadius: '8px',
-                border: '1px solid #E5E7EB',
-                backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-                color: isDark ? '#F3F4F6' : '#111827'
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: '12px' }} />
-            <Line
-              type="monotone"
-              dataKey="planned"
-              stroke={isDark ? '#6B7280' : '#9CA3AF'}
-              strokeWidth={2}
-              name={t('planned')}
-              strokeDasharray="5 5"
-            />
-            <Line
-              type="monotone"
-              dataKey="actual"
-              stroke="#3B82F6"
-              strokeWidth={2.5}
-              name={t('actual')}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {monthlyRevenue.length === 0 ? (
+          <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Нет данных по подтвержденным платежам.</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={monthlyRevenue}>
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#E5E7EB'} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: isDark ? '#9CA3AF' : '#6B7280' }} />
+              <YAxis tick={{ fontSize: 11, fill: isDark ? '#9CA3AF' : '#6B7280' }} />
+              <Tooltip
+                formatter={(value: any) => `${(Number(value) / 1000000).toFixed(2)} млн ₸`}
+                contentStyle={{
+                  borderRadius: '8px',
+                  border: '1px solid #E5E7EB',
+                  backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+                  color: isDark ? '#F3F4F6' : '#111827'
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Line
+                type="monotone"
+                dataKey="actual"
+                stroke="#10B981"
+                strokeWidth={2.5}
+                name={t('actualRevenue')}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
 
         {/* Итоговые показатели */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-750' : 'bg-gray-50'}`}>
             <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('halfYearPlan')}</p>
-            <p className={`text-xl font-bold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>20.5 млн ₸</p>
+            <p className={`text-xl font-bold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>—</p>
           </div>
           <div className={`p-3 rounded-lg ${isDark ? 'bg-green-900 bg-opacity-30' : 'bg-green-50'}`}>
             <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('actualRevenue')}</p>
-            <p className={`text-xl font-bold ${isDark ? 'text-green-400' : 'text-green-700'}`}>21.2 млн ₸</p>
+            <p className={`text-xl font-bold ${isDark ? 'text-green-400' : 'text-green-700'}`}>
+              {(monthlyRevenue.reduce((acc, i) => acc + (i.actual || 0), 0) / 1000000).toFixed(2)} млн ₸
+            </p>
           </div>
           <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-900 bg-opacity-30' : 'bg-blue-50'}`}>
             <p className={`text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('planExecution')}</p>
-            <p className={`text-xl font-bold ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>103.4%</p>
+            <p className={`text-xl font-bold ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>—</p>
           </div>
         </div>
       </div>

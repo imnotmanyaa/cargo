@@ -27,7 +27,7 @@ func (s *Server) handleCreateWagon(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -111,7 +111,7 @@ func (s *Server) handleAssignShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -136,7 +136,7 @@ func (s *Server) handleRemoveShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -213,7 +213,7 @@ func (s *Server) handleDispatchWagon(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
