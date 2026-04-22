@@ -13,30 +13,15 @@ export function Login() {
   const [showRegister, setShowRegister] = useState(false);
 
   const roles = [
-    { id: 'operator' as UserRole, name: 'Менеджер', icon: User, demo: 'operator@mail.kz' },
-    { id: 'receiver' as UserRole, name: 'Приёмосдатчик', icon: Package, demo: 'receiver@mail.kz' },
-    { id: 'manager' as UserRole, name: 'Руководитель', icon: BarChart3, demo: 'manager@mail.kz' },
-    { id: 'admin' as UserRole, name: 'Администратор', icon: Shield, demo: 'admin@mail.kz' },
+    { id: 'operator' as UserRole, name: 'Менеджер', icon: User },
+    { id: 'receiver' as UserRole, name: 'Приёмосдатчик', icon: Package },
+    { id: 'manager' as UserRole, name: 'Руководитель', icon: BarChart3 },
+    { id: 'admin' as UserRole, name: 'Администратор', icon: Shield },
   ];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(email, password, selectedRole);
-
-    // Check for redirect param and navigate if present
-    const params = new URLSearchParams(window.location.search);
-    const redirect = params.get('redirect');
-    if (redirect) {
-      window.location.href = redirect;
-    }
-  };
-
-  const handleDemoLogin = async (demoEmail: string, role: UserRole) => {
-    setEmail(demoEmail);
-    setPassword('demo');
-    setSelectedRole(role);
-    // Немедленно входим
-    await login(demoEmail, 'demo', role);
 
     // Check for redirect param and navigate if present
     const params = new URLSearchParams(window.location.search);
@@ -102,7 +87,7 @@ export function Login() {
                   const Icon = role.icon;
                   return (
                     <div key={role.id}>
-                      <label className={`flex items-center justify-between p-3 border-2 rounded-lg cursor-pointer transition-all ${selectedRole === role.id
+                      <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${selectedRole === role.id
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                         }`}>
@@ -118,16 +103,6 @@ export function Login() {
                           <Icon className="w-5 h-5 text-gray-600" />
                           <span className="text-sm font-medium text-gray-900">{role.name}</span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleDemoLogin(role.demo, role.id);
-                          }}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 hover:bg-blue-100 rounded"
-                        >
-                          Демо
-                        </button>
                       </label>
                     </div>
                   );
