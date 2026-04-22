@@ -39,18 +39,25 @@ function playBeep(frequency: number, duration = 150) {
   } catch { /* no AudioContext */ }
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  CREATED: 'Создан',
-  PAYMENT_PENDING: 'Ожидает оплаты',
-  PAID: 'Оплачен',
-  READY_FOR_LOADING: 'Готов к погрузке',
-  LOADED: 'Погружен',
-  IN_TRANSIT: 'В пути',
-  ARRIVED: 'Прибыл',
-  READY_FOR_ISSUE: 'Готов к выдаче',
-  ISSUED: 'Выдан',
-  CLOSED: 'Закрыт',
-  CANCELLED: 'Отменён',
+const STATUS_LABELS: Record<string, Record<string, string>> = {
+  ru: {
+    CREATED: 'Создан', PAYMENT_PENDING: 'Ожидает оплаты', PAID: 'Оплачен',
+    READY_FOR_LOADING: 'Готов к погрузке', LOADED: 'Погружен', IN_TRANSIT: 'В пути',
+    ARRIVED: 'Прибыл', READY_FOR_ISSUE: 'Готов к выдаче', ISSUED: 'Выдан',
+    CLOSED: 'Закрыт', CANCELLED: 'Отменён',
+  },
+  en: {
+    CREATED: 'Created', PAYMENT_PENDING: 'Payment pending', PAID: 'Paid',
+    READY_FOR_LOADING: 'Ready for loading', LOADED: 'Loaded', IN_TRANSIT: 'In transit',
+    ARRIVED: 'Arrived', READY_FOR_ISSUE: 'Ready for issue', ISSUED: 'Issued',
+    CLOSED: 'Closed', CANCELLED: 'Cancelled',
+  },
+  kk: {
+    CREATED: 'Жасалды', PAYMENT_PENDING: 'Төлем күтілуде', PAID: 'Төленді',
+    READY_FOR_LOADING: 'Тиеуге дайын', LOADED: 'Тиелді', IN_TRANSIT: 'Жолда',
+    ARRIVED: 'Келді', READY_FOR_ISSUE: 'Беруге дайын', ISSUED: 'Берілді',
+    CLOSED: 'Жабылды', CANCELLED: 'Болдырылмады',
+  },
 };
 
 interface AuditorTerminalProps {
@@ -65,7 +72,7 @@ interface AuditorTerminalProps {
  */
 export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
   const { user } = useAuth();
-  const { } = useLanguage();
+  const { t, language } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [scanValue, setScanValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -77,6 +84,9 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
   const cardBg = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
   const textPrimary = isDark ? 'text-gray-100' : 'text-gray-900';
   const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+
+  const statusLabel = (key: string) =>
+    STATUS_LABELS[language]?.[key] || STATUS_LABELS['ru'][key] || key;
 
   useEffect(() => {
     function isInteractiveEl(el: HTMLElement | null): boolean {
@@ -102,8 +112,8 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
 
   useEffect(() => {
     if (!result) return;
-    const t = setTimeout(() => setResult(null), 6000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setResult(null), 6000);
+    return () => clearTimeout(timer);
   }, [result]);
 
   const addToHistory = (item: Omit<HistoryItem, 'id' | 'time'>) => {
@@ -145,8 +155,8 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
           status: s.shipment_status,
           stationMatch: sm,
           message: sm
-            ? `✅ Груз найден — ${s.shipment_number}`
-            : `⚠️ Груз не на этой станции (сейчас: ${s.current_station})`,
+            ? `✅ ${t('mobileGroupApproved')} — ${s.shipment_number}`
+            : `⚠️ ${s.shipment_number} (${s.current_station})`,
         };
         setResult(auditResult);
         addToHistory({
@@ -162,25 +172,25 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
         }));
       } else if (res.status === 404) {
         playBeep(220, 500);
-        setResult({ type: 'not-found', shipmentId: trimmed, message: `❌ Груз ${trimmed} не найден в системе` });
-        addToHistory({ shipmentId: trimmed, type: 'not-found', info: 'Не найден' });
+        setResult({ type: 'not-found', shipmentId: trimmed, message: `❌ ${trimmed}` });
+        addToHistory({ shipmentId: trimmed, type: 'not-found', info: t('mobileGroupRejected') });
         setStats(prev => ({ ...prev, total: prev.total + 1, rejected: prev.rejected + 1 }));
       } else if (res.status === 403) {
         playBeep(220, 400);
-        setResult({ type: 'error', shipmentId: trimmed, message: '🚫 Нет доступа — только для мобильной группы' });
+        setResult({ type: 'error', shipmentId: trimmed, message: '🚫 Access denied' });
         setStats(prev => ({ ...prev, total: prev.total + 1, rejected: prev.rejected + 1 }));
       } else {
         playBeep(220, 400);
-        setResult({ type: 'error', shipmentId: trimmed, message: '⚠️ Ошибка сервера' });
+        setResult({ type: 'error', shipmentId: trimmed, message: '⚠️ Server error' });
       }
     } catch {
       playBeep(220, 400);
-      setResult({ type: 'error', shipmentId: trimmed, message: '⚠️ Ошибка сети' });
+      setResult({ type: 'error', shipmentId: trimmed, message: '⚠️ Network error' });
     } finally {
       setIsProcessing(false);
       inputRef.current?.focus();
     }
-  }, [isProcessing, user]);
+  }, [isProcessing, user, t]);
 
   const resultOverlayBg =
     result?.type === 'found' ? 'bg-green-600' :
@@ -194,27 +204,27 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
 
   return (
     <div>
-      {/* Page Header — matches ManagerDashboard style */}
+      {/* Page Header */}
       <div className="mb-6">
         <h1 className={`text-xl md:text-2xl font-semibold mb-1 ${textPrimary}`}>
-          Мобильная группа
+          {t('mobileGroupTitle')}
         </h1>
         <div className={`flex items-center gap-2 text-sm ${textSecondary}`}>
           <MapPin className="w-4 h-4 shrink-0" />
-          <span>{user?.name} · {user?.station || 'Станция не задана'}</span>
+          <span>{user?.name} · {user?.station || t('mobileGroupStationNotSet')}</span>
         </div>
       </div>
 
-      {/* Stats — matches ManagerDashboard card grid */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm p-5 text-white">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <Package className="w-6 h-6 text-blue-600" />
             </div>
-            <span className="text-xs font-medium">Смена</span>
+            <span className="text-xs font-medium">{t('mobileGroupShift')}</span>
           </div>
-          <p className="text-xs opacity-90 mb-1">Проверено</p>
+          <p className="text-xs opacity-90 mb-1">{t('mobileGroupChecked')}</p>
           <p className="text-2xl font-bold">{stats.total}</p>
         </div>
 
@@ -223,9 +233,9 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
-            <span className="text-xs font-medium">Смена</span>
+            <span className="text-xs font-medium">{t('mobileGroupShift')}</span>
           </div>
-          <p className="text-xs opacity-90 mb-1">Одобрено</p>
+          <p className="text-xs opacity-90 mb-1">{t('mobileGroupApproved')}</p>
           <p className="text-2xl font-bold">{stats.approved}</p>
         </div>
 
@@ -234,9 +244,9 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <QrCode className="w-6 h-6 text-red-600" />
             </div>
-            <span className="text-xs font-medium">Смена</span>
+            <span className="text-xs font-medium">{t('mobileGroupShift')}</span>
           </div>
-          <p className="text-xs opacity-90 mb-1">Отклонено</p>
+          <p className="text-xs opacity-90 mb-1">{t('mobileGroupRejected')}</p>
           <p className="text-2xl font-bold">{stats.rejected}</p>
         </div>
 
@@ -245,9 +255,9 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <AlertTriangle className="w-6 h-6 text-yellow-600" />
             </div>
-            <span className="text-xs font-medium">Смена</span>
+            <span className="text-xs font-medium">{t('mobileGroupShift')}</span>
           </div>
-          <p className="text-xs opacity-90 mb-1">Несовп. станции</p>
+          <p className="text-xs opacity-90 mb-1">{t('mobileGroupMismatch')}</p>
           <p className="text-2xl font-bold">{stats.mismatch}</p>
         </div>
       </div>
@@ -256,11 +266,9 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
       <div className={`rounded-lg shadow-sm border p-5 mb-6 ${cardBg}`}>
         <div className="flex items-center gap-2 mb-4">
           <Scan className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-          <h3 className={`text-base font-semibold ${textPrimary}`}>Сканирование груза</h3>
+          <h3 className={`text-base font-semibold ${textPrimary}`}>{t('mobileGroupScanTitle')}</h3>
         </div>
-        <p className={`text-sm mb-4 ${textSecondary}`}>
-          Введите номер отправки вручную или используйте сканер штрихкода — нажмите Enter для проверки
-        </p>
+        <p className={`text-sm mb-4 ${textSecondary}`}>{t('mobileGroupScanDesc')}</p>
 
         {/* Hidden real input for barcode scanners */}
         <input
@@ -294,7 +302,7 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
             }
           }}
           disabled={isProcessing}
-          placeholder={isProcessing ? 'Проверка...' : 'Наведите сканер или введите номер...'}
+          placeholder={isProcessing ? t('mobileGroupChecking') : t('mobileGroupScanPlaceholder')}
           className={`w-full px-4 py-3 text-base font-mono rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
             isProcessing
               ? isDark ? 'border-gray-600 bg-gray-700 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-400'
@@ -308,10 +316,10 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
           className="mt-3 w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
         >
           <Package className="w-5 h-5" />
-          {isProcessing ? 'Проверяется...' : 'Проверить груз'}
+          {isProcessing ? t('mobileGroupChecking') : t('mobileGroupCheckButton')}
         </button>
         <p className={`text-xs text-center mt-2 ${textSecondary}`}>
-          Режим только чтения — статус груза не изменяется
+          {t('mobileGroupReadOnly')}
         </p>
       </div>
 
@@ -319,7 +327,7 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
       {history.length > 0 && (
         <div className={`rounded-lg shadow-sm border ${cardBg}`}>
           <div className={`px-5 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-            <h3 className={`text-base font-semibold ${textPrimary}`}>Журнал проверок</h3>
+            <h3 className={`text-base font-semibold ${textPrimary}`}>{t('mobileGroupHistory')}</h3>
           </div>
           <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
             {history.map((item) => (
@@ -347,7 +355,7 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
               )}
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-              {result.type === 'found' ? 'УСПЕХ' : 'ОШИБКА'}
+              {result.type === 'found' ? t('mobileGroupSuccess') : t('mobileGroupError')}
             </h2>
             <div className="text-xl md:text-2xl font-bold text-white mb-6">
               {result.message}
@@ -355,16 +363,16 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
             {result.shipmentNumber && (
               <div className="w-full bg-black bg-opacity-20 p-6 rounded-2xl text-left border border-white border-opacity-20 shadow-xl">
                 <div className="flex justify-between text-base text-gray-200 mb-3">
-                  <span>Маршрут:</span>
+                  <span>{t('mobileGroupRoute')}</span>
                   <span className="font-bold text-white">{result.fromStation} → {result.toStation}</span>
                 </div>
                 <div className="flex justify-between text-base text-gray-200 mb-3">
-                  <span>Текущая станция:</span>
+                  <span>{t('mobileGroupCurrentStation')}</span>
                   <span className="font-bold text-white">{result.currentStation}</span>
                 </div>
                 <div className="flex justify-between text-base text-gray-200">
-                  <span>Статус:</span>
-                  <span className="font-bold text-white">{STATUS_LABELS[result.status || ''] || result.status}</span>
+                  <span>{t('status')}:</span>
+                  <span className="font-bold text-white">{statusLabel(result.status || '')}</span>
                 </div>
               </div>
             )}

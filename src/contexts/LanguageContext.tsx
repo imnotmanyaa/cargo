@@ -377,6 +377,27 @@ const translations = {
     noCargoToLoad: 'Нет грузов для погрузки',
     scanQrPlaceholder: 'Сканируй QR-код...',
     loadButton: 'Погрузить',
+
+    // Mobile Group (AuditorTerminal)
+    mobileGroupTitle: 'Мобильная группа',
+    mobileGroupSubtitle: 'Станция',
+    mobileGroupStationNotSet: 'Станция не задана',
+    mobileGroupChecked: 'Проверено',
+    mobileGroupApproved: 'Одобрено',
+    mobileGroupRejected: 'Отклонено',
+    mobileGroupMismatch: 'Несовп. станции',
+    mobileGroupShift: 'Смена',
+    mobileGroupScanTitle: 'Сканирование груза',
+    mobileGroupScanDesc: 'Введите номер отправки вручную или используйте сканер штрихкода — нажмите Enter для проверки',
+    mobileGroupScanPlaceholder: 'Наведите сканер или введите номер...',
+    mobileGroupChecking: 'Проверка...',
+    mobileGroupCheckButton: 'Проверить груз',
+    mobileGroupReadOnly: 'Режим только чтения — статус груза не изменяется',
+    mobileGroupHistory: 'Журнал проверок',
+    mobileGroupSuccess: 'УСПЕХ',
+    mobileGroupError: 'ОШИБКА',
+    mobileGroupRoute: 'Маршрут:',
+    mobileGroupCurrentStation: 'Текущая станция:',
   },
 
   en: {
@@ -745,6 +766,27 @@ const translations = {
     noCargoToLoad: 'No cargo to load',
     scanQrPlaceholder: 'Scan QR code...',
     loadButton: 'Load',
+
+    // Mobile Group (AuditorTerminal)
+    mobileGroupTitle: 'Mobile Group',
+    mobileGroupSubtitle: 'Station',
+    mobileGroupStationNotSet: 'Station not set',
+    mobileGroupChecked: 'Checked',
+    mobileGroupApproved: 'Approved',
+    mobileGroupRejected: 'Rejected',
+    mobileGroupMismatch: 'Station mismatch',
+    mobileGroupShift: 'Shift',
+    mobileGroupScanTitle: 'Cargo scanning',
+    mobileGroupScanDesc: 'Enter shipment number manually or use a barcode scanner — press Enter to check',
+    mobileGroupScanPlaceholder: 'Point scanner or enter number...',
+    mobileGroupChecking: 'Checking...',
+    mobileGroupCheckButton: 'Check cargo',
+    mobileGroupReadOnly: 'Read-only mode — cargo status is not changed',
+    mobileGroupHistory: 'Inspection log',
+    mobileGroupSuccess: 'SUCCESS',
+    mobileGroupError: 'ERROR',
+    mobileGroupRoute: 'Route:',
+    mobileGroupCurrentStation: 'Current station:',
   },
 
   kk: {
@@ -1113,6 +1155,27 @@ const translations = {
     noCargoToLoad: 'Жүктеуге жүк жоқ',
     scanQrPlaceholder: 'QR-код сканерлеңіз...',
     loadButton: 'Жүктеу',
+
+    // Mobile Group (AuditorTerminal)
+    mobileGroupTitle: 'Мобильді топ',
+    mobileGroupSubtitle: 'Станция',
+    mobileGroupStationNotSet: 'Станция белгіленбеген',
+    mobileGroupChecked: 'Тексерілді',
+    mobileGroupApproved: 'Мақұлданды',
+    mobileGroupRejected: 'Қабылданбады',
+    mobileGroupMismatch: 'Станция сәйкессіздігі',
+    mobileGroupShift: 'Ауысым',
+    mobileGroupScanTitle: 'Жүкті сканерлеу',
+    mobileGroupScanDesc: 'Жөнелту нөмірін қолмен енгізіңіз немесе сканерді пайдаланыңыз — тексеру үшін Enter басыңыз',
+    mobileGroupScanPlaceholder: 'Сканерді бағыттаңыз немесе нөмірді енгізіңіз...',
+    mobileGroupChecking: 'Тексерілуде...',
+    mobileGroupCheckButton: 'Жүкті тексеру',
+    mobileGroupReadOnly: 'Тек оқу режимі — жүктің мәртебесі өзгермейді',
+    mobileGroupHistory: 'Тексеру журналы',
+    mobileGroupSuccess: 'СӘТТІ',
+    mobileGroupError: 'ҚАТЕ',
+    mobileGroupRoute: 'Бағыт:',
+    mobileGroupCurrentStation: 'Ағымдағы станция:',
   }
 };
 

@@ -156,18 +156,20 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-shrink-0">
-        {/* Поиск - скрываем на очень маленьких экранах */}
-        <div className={`relative hidden md:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder={t('search')}
-            className={`pl-10 pr-4 py-2 rounded-lg border w-32 lg:w-auto ${isDark
-              ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
-              : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          />
-        </div>
+        {/* Поиск — скрываем для мобильной группы и на маленьких экранах */}
+        {user?.role !== 'mobile_group' && (
+          <div className={`relative hidden md:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder={t('search')}
+              className={`pl-10 pr-4 py-2 rounded-lg border w-32 lg:w-auto ${isDark
+                ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500'
+                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+          </div>
+        )}
 
         <div ref={notifRef} className="relative">
           <button
