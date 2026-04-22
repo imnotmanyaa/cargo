@@ -206,6 +206,23 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 			if s := normalizeStation(shipment.CurrentStation); s != "" {
 				targetStations[s] = struct{}{}
 			}
+			if shipment.NextStation != nil {
+				if s := normalizeStation(*shipment.NextStation); s != "" {
+					targetStations[s] = struct{}{}
+				}
+			}
+			if s := normalizeStation(shipment.FromStation); s != "" {
+				targetStations[s] = struct{}{}
+			}
+			if s := normalizeStation(shipment.ToStation); s != "" {
+				targetStations[s] = struct{}{}
+			}
+			// Include all stations across the route.
+			for _, routeStation := range shipment.Route {
+				if s := normalizeStation(routeStation); s != "" {
+					targetStations[s] = struct{}{}
+				}
+			}
 
 			stationLeadersCount := 0
 			for _, item := range employees {
@@ -235,12 +252,18 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 			}
 
 			details := fmt.Sprintf(
-				"Несанкционированное сканирование груза %s\nВремя: %s\nСотрудник: %s\nСтанция сканирования: %s\nТекущая станция груза: %s\nМаршрут: %s -> %s",
+				"Несанкционированное сканирование груза %s\nВремя: %s\nСотрудник: %s\nСтанция сканирования: %s\nТекущая станция груза: %s\nСледующая станция: %s\nМаршрут: %s -> %s",
 				shipment.ShipmentNumber,
 				checkedAt.Format("02.01.2006 15:04:05"),
 				user.Name,
 				queriedStation,
 				shipment.CurrentStation,
+				func() string {
+					if shipment.NextStation == nil {
+						return "не определена"
+					}
+					return *shipment.NextStation
+				}(),
 				shipment.FromStation,
 				shipment.ToStation,
 			)
