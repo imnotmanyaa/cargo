@@ -29,7 +29,12 @@ export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/reports/dashboard');
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/reports/dashboard', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (res.ok) {
           const result = await res.json();
 
