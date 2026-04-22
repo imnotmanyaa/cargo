@@ -26,7 +26,7 @@ import { ScannerTerminal } from './components/ScannerTerminal';
 import { DailySheet } from './components/DailySheet';
 import { FrequentClients } from './components/FrequentClients';
 
-import { AuditorTerminal } from './components/AuditorTerminal';
+import { ZebraTerminal } from './components/ZebraTerminal';
 import { LeaderOverview } from './components/LeaderOverview';
 
 function AppContent() {
@@ -96,7 +96,7 @@ function AppContent() {
     return <DailySheet />;
   }
   if (path === '/auditor' && isAuthenticated) {
-    return <AuditorTerminal />;
+    return <ZebraTerminal />;
   }
 
   if (!isAuthenticated) {
@@ -125,26 +125,9 @@ function AppContent() {
     );
   }
 
-  // Mobile Group Dashboard
+  // Mobile Group — простой терминал для Zebra TSD (Android 4, WebView)
   if (user?.role === 'mobile_group') {
-    return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <TopBar
-          theme={theme}
-          onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
-          onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
-          hideSidebarButtons={true}
-        />
-        <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
-          <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-            <div className="p-4 md:p-8">
-              <AuditorTerminal embedded />
-            </div>
-          </main>
-        </div>
-      </div>
-    );
+    return <ZebraTerminal />;
   }
 
 
