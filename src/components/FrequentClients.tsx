@@ -37,10 +37,15 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
       const res = await fetch('/api/clients/frequent', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
+      if (res.status === 401) {
+        throw new Error('Сессия истекла. Войдите заново.');
+      }
       if (!res.ok) throw new Error('Не удалось загрузить быстрых клиентов');
-      setItems(await res.json());
+      const payload = await res.json().catch(() => []);
+      setItems(Array.isArray(payload) ? payload : []);
     } catch (e: any) {
       setError(e?.message || 'Ошибка загрузки');
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -86,6 +91,9 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
         },
         body: JSON.stringify(payload),
       });
+      if (res.status === 401) {
+        throw new Error('Сессия истекла. Войдите заново.');
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || 'Не удалось сохранить клиента');

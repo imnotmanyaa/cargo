@@ -73,10 +73,14 @@ export function ClientInfo({
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           if (frequentRes.ok) {
-            setFrequentClients(await frequentRes.json());
+            const frequentPayload = await frequentRes.json().catch(() => []);
+            setFrequentClients(Array.isArray(frequentPayload) ? frequentPayload : []);
+          } else {
+            setFrequentClients([]);
           }
         } catch (error) {
           console.error(error);
+          setFrequentClients([]);
         }
       };
       fetchClients();
