@@ -54,9 +54,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * AuditorTerminal — терминал для роли «Ревизор».
+ * AuditorTerminal — терминал проверки для mobile_group.
  * Позволяет сканировать грузы и проверять их данные/маршрут
- * БЕЗ изменения статуса (ТЗ п.4, п.7).
+ * без изменения статуса.
  */
 export function AuditorTerminal() {
   const { user, logout } = useAuth();
@@ -164,7 +164,7 @@ export function AuditorTerminal() {
         setStats(prev => ({ ...prev, total: prev.total + 1, rejected: prev.rejected + 1 }));
       } else if (res.status === 403) {
         playBeep(220, 400);
-        setResult({ type: 'error', shipmentId: trimmed, message: '🚫 Нет доступа — только для ревизора' });
+        setResult({ type: 'error', shipmentId: trimmed, message: '🚫 Нет доступа — только для мобильной группы' });
         setStats(prev => ({ ...prev, total: prev.total + 1, rejected: prev.rejected + 1 }));
       } else {
         playBeep(220, 400);
@@ -208,7 +208,7 @@ export function AuditorTerminal() {
 
         {/* Title — truncate on small screens */}
         <div style={{ color: textPrimary, fontWeight: 700, fontSize: 13, textAlign: 'center', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-          {user?.role === 'mobile_group' ? '🔍 Моб. группа' : '📋 Ревизор'}
+          🔍 Моб. группа
         </div>
 
         {/* Right Controls */}
@@ -304,7 +304,6 @@ export function AuditorTerminal() {
             padding: '4px 12px',
             borderRadius: 999,
             marginBottom: 12,
-            boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)'
           }}>
             🔍 Мобильная группа
           </div>
@@ -436,7 +435,8 @@ export function AuditorTerminal() {
             </div>
           ))}
         </div>
-      )}\n    </div>  {/* close MAIN CONTENT */}
-    </div>  /* close root */
+      )}
+    </div>
+    </div>
   );
 }

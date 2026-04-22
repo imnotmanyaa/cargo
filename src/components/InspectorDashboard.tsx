@@ -153,7 +153,7 @@ export function InspectorDashboard({ theme }: ThemeProps) {
         toast.error(`Груз «${code}» не найден в системе`);
       } else if (res.status === 403) {
         playBeep(220, 400);
-        toast.error('Нет доступа — только для ревизора');
+        toast.error('Нет доступа — только для мобильной группы');
       } else if (res.status === 401) {
         toast.error('Необходима авторизация');
       } else {
@@ -264,7 +264,7 @@ export function InspectorDashboard({ theme }: ThemeProps) {
                 {user?.name}
               </CardTitle>
               <CardDescription className={`text-sm ${textSecondary}`}>
-                Ревизор · Проверка легитимности груза
+                Мобильная группа · Проверка легитимности груза
               </CardDescription>
             </div>
             <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100 shrink-0">

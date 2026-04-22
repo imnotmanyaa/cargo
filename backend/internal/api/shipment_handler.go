@@ -121,7 +121,7 @@ func (s *Server) handleListShipments(w http.ResponseWriter, r *http.Request) {
 	if err := s.requireRole(user,
 		model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead,
 		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
-		model.RoleCorporate, model.RoleIndividual, model.RoleAuditor, model.RoleMobileGroup,
+		model.RoleCorporate, model.RoleIndividual, model.RoleMobileGroup,
 	); err != nil {
 		handleServiceError(w, err)
 		return

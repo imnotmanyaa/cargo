@@ -373,7 +373,7 @@ func (r *Repository) ListUsers(ctx context.Context) ([]model.User, error) {
 }
 
 func (r *Repository) ListEmployees(ctx context.Context) ([]model.User, error) {
-	rows, err := r.pool.Query(ctx, userSelect+` WHERE role IN ('admin','manager','direction_head','chief_head','operator','receiver','loading_operator','transit_operator','issue_operator','accounting', 'auditor', 'mobile_group') ORDER BY created_at DESC`)
+	rows, err := r.pool.Query(ctx, userSelect+` WHERE role IN ('admin','manager','direction_head','chief_head','operator','receiver','loading_operator','transit_operator','issue_operator','accounting', 'mobile_group') ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}

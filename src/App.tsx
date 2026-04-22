@@ -105,12 +105,7 @@ function AppContent() {
     );
   }
 
-  // Inspector/Auditor Dashboard (ревизор — проверка легитимности груза)
-  if (user?.role === 'auditor') {
-    return <AuditorTerminal />;
-  }
-
-  // Mobile Group Dashboard (мобильная инспекционная группа — такой же интерфейс как у ревизора)
+  // Mobile Group Dashboard
   if (user?.role === 'mobile_group') {
     return <AuditorTerminal />;
   }

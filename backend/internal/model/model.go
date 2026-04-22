@@ -11,7 +11,6 @@ const (
 	RoleChiefHead     Role = "chief_head"
 	RoleOperator   Role = "operator"
 	RoleReceiver   Role = "receiver"
-	RoleAuditor     Role = "auditor"      // Ревизор: проверка без изменения статуса (ТЗ п.4, п.7)
 	RoleMobileGroup Role = "mobile_group" // Мобильная инспекционная группа: выездная проверка груза
 	RoleLoading    Role = "loading_operator"
 	RoleTransit    Role = "transit_operator"

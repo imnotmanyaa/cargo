@@ -16,7 +16,7 @@ func (s *Server) mountTransitRoutes(r chi.Router) {
 	r.Get("/transit/outgoing", s.handleTransitOutgoing)
 	r.Post("/shipments/{id}/mark-transit", s.handleMarkTransit)
 	r.Post("/shipments/{id}/transit", s.handleLegacyTransit)
-	// Ревизор: только чтение, без изменения статуса (ТЗ п.4, п.7)
+	// Mobile group: проверка без изменения статуса.
 	r.Get("/shipments/{id}/auditor-check", s.handleAuditorCheck)
 }
 
@@ -152,15 +152,14 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, shipment)
 }
 
-// handleAuditorCheck — ревизор сканирует груз только для проверки (без изменения статуса).
+// handleAuditorCheck — mobile group сканирует груз только для проверки (без изменения статуса).
 // GET /api/shipments/{id}/auditor-check?station=<station>
 func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 	user, ok := s.mustAuth(w, r)
 	if !ok {
 		return
 	}
-	// Ревизор и мобильная группа имеют право проверки (ТЗ п.7)
-	if err := s.requireRole(user, model.RoleAuditor, model.RoleMobileGroup, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleMobileGroup, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
