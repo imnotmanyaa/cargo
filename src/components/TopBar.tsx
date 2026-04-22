@@ -1,7 +1,7 @@
 import { Sun, Moon, Menu, Search, Globe, LogOut, Bell } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface TopBarProps {
   theme: 'light' | 'dark';
@@ -25,6 +25,10 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   const currentTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [langOpen, setLangOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -77,6 +81,16 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       console.error(e);
     }
   };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const getLanguageCode = () => {
     switch (language) {
@@ -142,8 +156,9 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           />
         </div>
 
-        <div className="relative group">
+        <div ref={notifRef} className="relative">
           <button
+            onClick={() => { setNotifOpen(o => !o); setLangOpen(false); }}
             className={`p-2 rounded-lg relative ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
           >
             <Bell className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
@@ -152,67 +167,60 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
             )}
           </button>
 
-          <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <div className={`p-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h3 className={`font-semibold ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('notifications')}</h3>
+          {notifOpen && (
+            <div
+              className={`fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-80 max-h-[70vh] sm:max-h-96 overflow-y-auto rounded-lg shadow-lg border z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+            >
+              <div className={`p-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                <h3 className={`font-semibold ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('notifications') || 'Уведомления'}</h3>
+              </div>
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">Нет новых уведомлений</div>
+              ) : (
+                notifications.map(n => (
+                  <div
+                    key={n.id}
+                    className={`p-3 border-b last:border-0 cursor-pointer ${!n.read ? (isDark ? 'bg-blue-900/20' : 'bg-blue-50') : ''} ${isDark ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'}`}
+                    onClick={() => markAsRead(n.id)}
+                  >
+                    <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{n.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                  </div>
+                ))
+              )}
             </div>
-            {notifications.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 text-sm">Нет новых уведомлений</div>
-            ) : (
-              notifications.map(n => (
-                <div
-                  key={n.id}
-                  className={`p-3 border-b last:border-0 hover:bg-opacity-50 ${!n.read ? (isDark ? 'bg-blue-900/20' : 'bg-blue-50') : ''} ${isDark ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'}`}
-                  onClick={() => markAsRead(n.id)}
-                >
-                  <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{n.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
-                </div>
-              ))
-            )}
-          </div>
+          )}
         </div>
 
-        <div className="relative group">
+        <div ref={langRef} className="relative">
           <button
+            onClick={() => { setLangOpen(o => !o); setNotifOpen(false); }}
             className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
           >
             <Globe className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
-            <span className={`text-xs md:text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{getLanguageCode()}</span>
+            <span className={`text-xs md:text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{getLanguageCode()}</span>
           </button>
 
-          <div className={`absolute right-0 mt-2 w-40 rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-            }`}>
-            <div className="py-1">
-              <button
-                onClick={() => setLanguage('ru')}
-                className={`w-full px-4 py-2 text-left text-sm ${language === 'ru'
-                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                  }`}
-              >
-                Русский
-              </button>
-              <button
-                onClick={() => setLanguage('en')}
-                className={`w-full px-4 py-2 text-left text-sm ${language === 'en'
-                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                  }`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => setLanguage('kk')}
-                className={`w-full px-4 py-2 text-left text-sm ${language === 'kk'
-                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                  }`}
-              >
-                Қазақша
-              </button>
+          {langOpen && (
+            <div className={`fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-40 rounded-lg shadow-lg border z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <div className="py-1">
+                {(['ru', 'en', 'kk'] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => { setLanguage(lang); setLangOpen(false); }}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
+                      language === lang
+                        ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
+                        : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
+                    }`}
+                  >
+                    {language === lang && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
+                    {lang === 'ru' ? 'Русский' : lang === 'en' ? 'English' : 'Қазақша'}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <button
