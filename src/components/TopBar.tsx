@@ -116,7 +116,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   const showStationInfo = user?.role === 'operator' || user?.role === 'receiver';
 
   return (
-    <div className={`h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-2 sm:px-3 md:px-6 overflow-x-hidden`}>
+    <div className={`relative z-[70] h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-2 sm:px-3 md:px-6`}>
       <div className="flex items-center gap-1 sm:gap-2 md:gap-4 min-w-0">
         {!hideSidebarButtons && (
           <button
@@ -180,7 +180,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
 
           {notifOpen && (
             <div
-              className={`fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-80 max-h-[70vh] sm:max-h-96 overflow-y-auto rounded-lg shadow-lg border z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+              className={`fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-80 max-h-[70vh] sm:max-h-96 overflow-y-auto rounded-lg shadow-lg border z-[90] ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
             >
               <div className={`p-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                 <h3 className={`font-semibold ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('notifications') || 'Уведомления'}</h3>
@@ -216,7 +216,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           </button>
 
           {langOpen && (
-            <div className={`fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-40 rounded-lg shadow-lg border z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-40 rounded-lg shadow-lg border z-[90] ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <div className="py-1">
                 {(['ru', 'en', 'kk'] as const).map((lang) => (
                   <button
