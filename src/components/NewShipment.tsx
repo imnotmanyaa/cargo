@@ -383,7 +383,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
 
       {currentStep !== 'documents' && (
         <div className="mb-8">
-          <div className="flex items-center justify-between max-w-3xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between max-w-3xl gap-3">
             <div className="flex items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'client' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
                 }`}>
@@ -397,7 +397,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               </span>
             </div>
 
-            <div className="flex-1 h-px bg-gray-200 mx-4" />
+            <div className="hidden sm:block flex-1 h-px bg-gray-200 mx-4" />
 
             <div className="flex items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'cargo' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
@@ -410,7 +410,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               </span>
             </div>
 
-            <div className="flex-1 h-px bg-gray-200 mx-4" />
+            <div className="hidden sm:block flex-1 h-px bg-gray-200 mx-4" />
 
             <div className="flex items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'payment' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
