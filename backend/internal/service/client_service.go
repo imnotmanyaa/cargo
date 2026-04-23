@@ -37,6 +37,7 @@ func (s *ClientService) CreateFrequentClient(ctx context.Context, provider, clie
 	item := model.FrequentClient{
 		ID:             uuid.NewString(),
 		Provider:       provider,
+		ClientSegment:  model.ClientSegmentLegalEntity,
 		CompanyName:    companyName,
 		ClientName:     clientName,
 		Phone:          phone,
@@ -67,6 +68,7 @@ func (s *ClientService) CreateCorporateClient(ctx context.Context, name, email, 
 		Email:          email,
 		PasswordHash:   string(hash),
 		Role:           model.RoleCorporate,
+		ClientSegment:  model.ClientSegmentLegalEntity,
 		Company:        &company,
 		DepositBalance: deposit,
 		ContractNumber: &contractNumber,
@@ -94,6 +96,7 @@ func (s *ClientService) UpdateCorporateClient(ctx context.Context, id, name, com
 	if is_active != nil {
 		user.IsActive = *is_active
 	}
+	user.ClientSegment = model.ClientSegmentLegalEntity
 
 	return s.repo.UpdateUser(ctx, user)
 }

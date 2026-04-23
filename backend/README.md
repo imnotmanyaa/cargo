@@ -32,6 +32,12 @@ export JWT_SECRET="dev-secret"
 export PORT="8080"
 # Optional: comma-separated browser origins (production). Default * = allow all (dev only).
 # export CORS_ALLOWED_ORIGINS="http://localhost:5173,http://141.148.236.58"
+
+## Где лежат данные
+
+Одна база PostgreSQL с именем **`cargotrans`** (на сервере — обычно `localhost:5432` у того же хоста, что и API). Логическое разделение: поле **`users.client_segment`** (`staff` | `individual` | `legal_entity`) и **`frequent_clients.client_segment`** (всегда `legal_entity`). В DBeaver удобно открыть представления **`v_clients_staff`**, **`v_clients_individual`**, **`v_clients_legal_users`**, **`v_clients_legal_frequent`** (после миграции `006_client_segments_and_views.up.sql`).
+
+Очистка всех данных кроме `admin@cargotrans.kz` — только вручную: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/scripts/wipe_keep_admin.sql`.
 ```
 
 3. Run the server:

@@ -334,10 +334,13 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 }
 
 func (r *Repository) CreateUser(ctx context.Context, user model.User) (model.User, error) {
+	if user.ClientSegment == "" {
+		user.ClientSegment = model.ClientSegmentForRole(user.Role)
+	}
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO users (id, name, email, password_hash, role, company, deposit_balance, contract_number, phone, station, is_active, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-	`, user.ID, user.Name, user.Email, user.PasswordHash, user.Role, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive, user.CreatedAt)
+		INSERT INTO users (id, name, email, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+	`, user.ID, user.Name, user.Email, user.PasswordHash, user.Role, user.ClientSegment, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive, user.CreatedAt)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -345,10 +348,13 @@ func (r *Repository) CreateUser(ctx context.Context, user model.User) (model.Use
 }
 
 func (r *Repository) UpdateUser(ctx context.Context, user model.User) (model.User, error) {
+	if user.ClientSegment == "" {
+		user.ClientSegment = model.ClientSegmentForRole(user.Role)
+	}
 	_, err := r.pool.Exec(ctx, `
-		UPDATE users SET name = $2, email = $3, role = $4, company = $5, deposit_balance = $6, contract_number = $7, phone = $8, station = $9, is_active = $10
+		UPDATE users SET name = $2, email = $3, role = $4, client_segment = $5, company = $6, deposit_balance = $7, contract_number = $8, phone = $9, station = $10, is_active = $11
 		WHERE id = $1
-	`, user.ID, user.Name, user.Email, user.Role, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive)
+	`, user.ID, user.Name, user.Email, user.Role, user.ClientSegment, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -417,7 +423,7 @@ func (r *Repository) TopUpDeposit(ctx context.Context, userID string, amount flo
 
 func (r *Repository) ListFrequentClients(ctx context.Context, provider string) ([]model.FrequentClient, error) {
 	query := `
-		SELECT id, provider, company_name, client_name, phone, contract_number, notes, is_active, created_at
+		SELECT id, provider, client_segment, company_name, client_name, phone, contract_number, notes, is_active, created_at
 		FROM frequent_clients
 		WHERE is_active = TRUE
 	`
@@ -440,6 +446,7 @@ func (r *Repository) ListFrequentClients(ctx context.Context, provider string) (
 		if err := rows.Scan(
 			&item.ID,
 			&item.Provider,
+			&item.ClientSegment,
 			&item.CompanyName,
 			&item.ClientName,
 			&item.Phone,
@@ -456,10 +463,13 @@ func (r *Repository) ListFrequentClients(ctx context.Context, provider string) (
 }
 
 func (r *Repository) CreateFrequentClient(ctx context.Context, client model.FrequentClient) (model.FrequentClient, error) {
+	if client.ClientSegment == "" {
+		client.ClientSegment = model.ClientSegmentLegalEntity
+	}
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO frequent_clients (id, provider, company_name, client_name, phone, contract_number, notes, is_active, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-	`, client.ID, client.Provider, client.CompanyName, client.ClientName, client.Phone, client.ContractNumber, client.Notes, client.IsActive, client.CreatedAt)
+		INSERT INTO frequent_clients (id, provider, client_segment, company_name, client_name, phone, contract_number, notes, is_active, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+	`, client.ID, client.Provider, client.ClientSegment, client.CompanyName, client.ClientName, client.Phone, client.ContractNumber, client.Notes, client.IsActive, client.CreatedAt)
 	if err != nil {
 		return model.FrequentClient{}, err
 	}
@@ -965,12 +975,12 @@ func (r *Repository) GetStatusSummary(ctx context.Context) ([]model.StatusSummar
 	return items, rows.Err()
 }
 
-const userSelect = `SELECT id, name, email, password_hash, role, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
+const userSelect = `SELECT id, name, email, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
 const shipmentSelect = `SELECT id, shipment_number, client_id, client_name, client_email, from_station, to_station, current_station, next_station, route, status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, train_time, tracking_code, qr_code_id, transport_unit_id, last_updated_at, created_by, created_at, updated_at FROM shipments`
 
 func scanUser(row pgx.Row) (model.User, error) {
 	var user model.User
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.ClientSegment, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.User{}, service.ErrNotFound
 	}
@@ -981,7 +991,7 @@ func collectUsers(rows pgx.Rows) ([]model.User, error) {
 	items := []model.User{}
 	for rows.Next() {
 		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.ClientSegment, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, user)

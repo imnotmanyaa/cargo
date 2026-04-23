@@ -60,6 +60,9 @@ func (m *memoryRepo) CreateUser(_ context.Context, user model.User) (model.User,
 	if user.CreatedAt.IsZero() {
 		user.CreatedAt = time.Now().UTC()
 	}
+	if user.ClientSegment == "" {
+		user.ClientSegment = model.ClientSegmentForRole(user.Role)
+	}
 	m.users[user.ID] = user
 	return user, nil
 }

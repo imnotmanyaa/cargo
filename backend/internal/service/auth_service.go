@@ -26,15 +26,16 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 		return model.User{}, "", err
 	}
 	user := model.User{
-		ID:           uuid.NewString(),
-		Name:         name,
-		Email:        email,
-		PasswordHash: string(hash),
-		Role:         role,
-		Company:      company,
-		Phone:        phone,
-		IsActive:     true,
-		CreatedAt:    time.Now().UTC(),
+		ID:             uuid.NewString(),
+		Name:           name,
+		Email:          email,
+		PasswordHash:   string(hash),
+		Role:           role,
+		ClientSegment:  model.ClientSegmentForRole(role),
+		Company:        company,
+		Phone:          phone,
+		IsActive:       true,
+		CreatedAt:      time.Now().UTC(),
 	}
 	created, err := s.repo.CreateUser(ctx, user)
 	if err != nil {

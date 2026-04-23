@@ -4,6 +4,27 @@ import "time"
 
 type Role string
 
+// ClientSegment — логическое разделение в одной БД cargotrans (не три отдельных инстанса PostgreSQL).
+type ClientSegment string
+
+const (
+	ClientSegmentLegalEntity ClientSegment = "legal_entity" // юрлица (роль corporate) + быстрые клиенты
+	ClientSegmentIndividual  ClientSegment = "individual"  // физлица
+	ClientSegmentStaff       ClientSegment = "staff"      // сотрудники и служебные роли
+)
+
+// ClientSegmentForRole выставляет сегмент по роли пользователя.
+func ClientSegmentForRole(r Role) ClientSegment {
+	switch r {
+	case RoleCorporate:
+		return ClientSegmentLegalEntity
+	case RoleIndividual:
+		return ClientSegmentIndividual
+	default:
+		return ClientSegmentStaff
+	}
+}
+
 const (
 	RoleAdmin      Role = "admin"
 	RoleManager    Role = "manager"
@@ -48,12 +69,13 @@ const (
 )
 
 type User struct {
-	ID             string    `json:"id"`
-	Name           string    `json:"name"`
-	Email          string    `json:"email"`
-	PasswordHash   string    `json:"-"`
-	Role           Role      `json:"role"`
-	Company        *string   `json:"company,omitempty"`
+	ID             string        `json:"id"`
+	Name           string        `json:"name"`
+	Email          string        `json:"email"`
+	PasswordHash   string        `json:"-"`
+	Role           Role          `json:"role"`
+	ClientSegment  ClientSegment `json:"client_segment,omitempty"`
+	Company        *string       `json:"company,omitempty"`
 	DepositBalance float64   `json:"deposit_balance,omitempty"`
 	ContractNumber *string   `json:"contract_number,omitempty"`
 	Phone          *string   `json:"phone,omitempty"`
@@ -63,9 +85,10 @@ type User struct {
 }
 
 type FrequentClient struct {
-	ID             string    `json:"id"`
-	Provider       string    `json:"provider"` // glovo, choko, other
-	CompanyName    *string   `json:"company_name,omitempty"`
+	ID             string        `json:"id"`
+	Provider       string        `json:"provider"` // glovo, choko, other
+	ClientSegment  ClientSegment `json:"client_segment,omitempty"` // всегда legal_entity (юрлица / B2B)
+	CompanyName    *string       `json:"company_name,omitempty"`
 	ClientName     string    `json:"client_name"`
 	Phone          *string   `json:"phone,omitempty"`
 	ContractNumber *string   `json:"contract_number,omitempty"`

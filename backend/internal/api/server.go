@@ -247,6 +247,7 @@ func withToken(user model.User, token string) map[string]any {
 		"name":            user.Name,
 		"email":           user.Email,
 		"role":            user.Role,
+		"client_segment":  user.ClientSegment,
 		"company":         user.Company,
 		"deposit_balance": user.DepositBalance,
 		"contract_number": user.ContractNumber,

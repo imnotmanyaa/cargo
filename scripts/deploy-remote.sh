@@ -79,6 +79,8 @@ SET role = 'manager'
 WHERE role = 'operator';
 SQL
 
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f /home/ubuntu/cargo/backend/migrations/006_client_segments_and_views.up.sql
+
 cd /home/ubuntu/cargo/backend
 export PATH="$PATH:/usr/local/go/bin"
 go build -o server ./cmd/server
