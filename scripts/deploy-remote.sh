@@ -14,8 +14,14 @@ fi
 chmod 600 "$KEY"
 
 SERVER="${DEPLOY_SERVER:-ubuntu@141.148.236.58}"
-SSH=(ssh -i "$KEY" -o StrictHostKeyChecking=no)
-RSYNC=(rsync -avz --delete -e "ssh -i ${KEY} -o StrictHostKeyChecking=no")
+# DEPLOY_SSH_STRICT_HOST_KEY=1: do not disable host key check (add host via ssh-keyscan first, e.g. in CI).
+if [[ "${DEPLOY_SSH_STRICT_HOST_KEY:-0}" == "1" ]]; then
+  SSH=(ssh -i "$KEY")
+  RSYNC=(rsync -avz --delete -e "ssh -i ${KEY}")
+else
+  SSH=(ssh -i "$KEY" -o StrictHostKeyChecking=no)
+  RSYNC=(rsync -avz --delete -e "ssh -i ${KEY} -o StrictHostKeyChecking=no")
+fi
 
 if [[ "${SKIP_NPM_BUILD:-}" == "1" ]]; then
   echo "Skipping npm run build (SKIP_NPM_BUILD=1)"

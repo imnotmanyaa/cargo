@@ -45,13 +45,32 @@ func (s *Server) Router() http.Handler {
 	return s.router
 }
 
+// parseCORSAllowedOrigins splits CORS_ALLOWED_ORIGINS (comma-separated). Empty or "*" => wildcard.
+func parseCORSAllowedOrigins(value string) []string {
+	t := strings.TrimSpace(value)
+	if t == "" || t == "*" {
+		return []string{"*"}
+	}
+	var out []string
+	for _, part := range strings.Split(t, ",") {
+		p := strings.TrimSpace(part)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return []string{"*"}
+	}
+	return out
+}
+
 func (s *Server) routes() chi.Router {
 	r := chi.NewRouter()
 	r.Use(s.requestLogger)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: parseCORSAllowedOrigins(s.cfg.CORSAllowedOrigins),
 		AllowedMethods: []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-User-ID", "X-User-Role", "X-User-Station"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type"},
 	}))
 
 	r.Get("/health", s.handleHealth)
@@ -122,13 +141,6 @@ func (s *Server) authenticatedUser(r *http.Request) *service.AuthenticatedUser {
 		user, err := s.services.Auth.ParseToken(strings.TrimPrefix(authHeader, "Bearer "))
 		if err == nil {
 			return &user
-		}
-	}
-	if id := r.Header.Get("X-User-ID"); id != "" {
-		return &service.AuthenticatedUser{
-			ID:      id,
-			Role:    model.Role(r.Header.Get("X-User-Role")),
-			Station: r.Header.Get("X-User-Station"),
 		}
 	}
 	return nil

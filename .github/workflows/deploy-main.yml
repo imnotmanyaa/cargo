@@ -37,8 +37,12 @@ jobs:
           echo "$ORACLE_SSH_PRIVATE_KEY" > ~/.ssh/oracle_deploy.pem
           chmod 600 ~/.ssh/oracle_deploy.pem
 
+      - name: Trust Oracle host key (strict SSH)
+        run: mkdir -p ~/.ssh && ssh-keyscan -H 141.148.236.58 >> ~/.ssh/known_hosts
+
       - name: Rsync + remote build
         run: |
           export DEPLOY_SSH_KEY_PATH="${HOME}/.ssh/oracle_deploy.pem"
+          export DEPLOY_SSH_STRICT_HOST_KEY=1
           export SKIP_NPM_BUILD=1
           bash scripts/deploy-remote.sh
