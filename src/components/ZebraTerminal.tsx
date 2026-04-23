@@ -105,7 +105,7 @@ export function ZebraTerminal() {
         setStats((p) => ({ ...p, total: p.total + 1, fail: p.fail + 1 }));
       }
     } catch {
-      setResult({ ok: false, match: false, message: 'Ошибка сети' });
+      setResult({ ok: false, match: false, message: t('networkError') });
     } finally {
       setIsLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -208,31 +208,31 @@ export function ZebraTerminal() {
       <div style={s.topControls}>
         <button style={s.controlBtn} onClick={cycleLang}>{language.toUpperCase()}</button>
         <button style={s.controlBtn} onClick={() => setIsDark(!isDark)}>{isDark ? '☀' : '☾'}</button>
-        <button style={{...s.controlBtn, background: '#ef4444', color: '#fff'}} onClick={logout}>Выход</button>
+        <button style={{...s.controlBtn, background: '#ef4444', color: '#fff'}} onClick={logout}>{t('logoutBtn')}</button>
       </div>
 
       {/* Синий бадж */}
       <div style={s.badge}>
         <Search size={16} />
-        МОБИЛЬНАЯ ГРУППА
+        {t('mobileGroupTitle').toUpperCase()}
       </div>
 
       {/* Заголовок */}
       <div style={s.title}>
-        Мобильная Группа {user?.station || 'Караганда'} · {language === 'kk' ? 'Қарағанды' : 'Қарағанды'}
+        {t('mobileGroupTitle')} {user?.station || ''}
       </div>
 
       {/* Статистика */}
       <div style={s.statsContainer}>
-        <div style={s.statCapsule('#dbeafe', '#1e40af')}>Проверено: {stats.total}</div>
-        <div style={s.statCapsule('#dcfce7', '#166534')}>Одобрено: {stats.ok}</div>
-        <div style={s.statCapsule('#fee2e2', '#991b1b')}>Отклонено: {stats.fail}</div>
-        <div style={s.statCapsule('#fef3c7', '#92400e')}>Несовп. станции: {stats.mismatch}</div>
+        <div style={s.statCapsule('#dbeafe', '#1e40af')}>{t('mobileGroupChecked')}: {stats.total}</div>
+        <div style={s.statCapsule('#dcfce7', '#166534')}>{t('mobileGroupApproved')}: {stats.ok}</div>
+        <div style={s.statCapsule('#fee2e2', '#991b1b')}>{t('mobileGroupRejected')}: {stats.fail}</div>
+        <div style={s.statCapsule('#fef3c7', '#92400e')}>{t('mobileGroupMismatch')}: {stats.mismatch}</div>
       </div>
 
       {/* Карточка статуса */}
       <div style={s.statusCard}>
-        {isLoading ? 'Проверка...' : result ? result.message : 'Готов к сканированию'}
+        {isLoading ? t('mobileGroupChecking') : result ? result.message : t('mobileGroupReady')}
         {result?.shipmentNumber && <div style={{fontSize: '12px', marginTop: '5px'}}>№ {result.shipmentNumber}</div>}
       </div>
 
@@ -243,7 +243,7 @@ export function ZebraTerminal() {
         value={scanValue}
         onChange={(e) => setScanValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter' && scanValue.trim()) doScan(scanValue); }}
-        placeholder="Наведите сканер.."
+        placeholder={t('mobileGroupScanPlaceholder')}
         disabled={isLoading}
         style={s.inputBox}
         autoFocus

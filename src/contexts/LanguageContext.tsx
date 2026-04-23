@@ -385,6 +385,9 @@ const translations = {
     loadButton: 'Погрузить',
 
     // Mobile Group (AuditorTerminal)
+    logoutBtn: 'Выход',
+    networkError: 'Ошибка сети',
+    mobileGroupReady: 'Готов к сканированию',
     mobileGroupTitle: 'Мобильная группа',
     mobileGroupSubtitle: 'Станция',
     mobileGroupStationNotSet: 'Станция не задана',
@@ -780,6 +783,9 @@ const translations = {
     loadButton: 'Load',
 
     // Mobile Group (AuditorTerminal)
+    logoutBtn: 'Logout',
+    networkError: 'Network Error',
+    mobileGroupReady: 'Ready to scan',
     mobileGroupTitle: 'Mobile Group',
     mobileGroupSubtitle: 'Station',
     mobileGroupStationNotSet: 'Station not set',
@@ -1175,6 +1181,9 @@ const translations = {
     loadButton: 'Жүктеу',
 
     // Mobile Group (AuditorTerminal)
+    logoutBtn: 'Шығу',
+    networkError: 'Желі қатесі',
+    mobileGroupReady: 'Сканерлеуге дайын',
     mobileGroupTitle: 'Мобильді топ',
     mobileGroupSubtitle: 'Станция',
     mobileGroupStationNotSet: 'Станция белгіленбеген',
