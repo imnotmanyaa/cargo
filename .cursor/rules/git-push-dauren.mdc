@@ -1,0 +1,11 @@
+---
+description: После правок в коде — коммит и push в dauren; прод через GitHub Actions.
+alwaysApply: true
+---
+
+# Git и хостинг
+
+- Целевая ветка: **dauren** (`git push origin dauren`).
+- Когда задача меняет код (не чисто вопрос/объяснение): в конце сделать `git add -A`, осмысленный `git commit -m "…"`, затем `git push origin dauren`.
+- После push на GitHub срабатывает workflow **Deploy dauren to Oracle** (нужен секрет репозитория `ORACLE_SSH_PRIVATE_KEY`).
+- Ключи `.pem`, пароли и `.env` в репозиторий не коммитить.
