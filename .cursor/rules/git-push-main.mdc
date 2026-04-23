@@ -1,0 +1,11 @@
+---
+description: После правок в коде — коммит и push в main; прод через GitHub Actions на Oracle.
+alwaysApply: true
+---
+
+# Git и хостинг
+
+- Репозиторий: **origin** → `https://github.com/imnotmanyaa/cargo.git`, ветка **main** (`git push origin main`).
+- Когда задача меняет код: в конце `git add -A`, осмысленный `git commit -m "…"`, затем `git push origin main`.
+- После push срабатывает workflow **Deploy main to Oracle** (секрет `ORACLE_SSH_PRIVATE_KEY` в настройках репозитория на GitHub).
+- Ключи `.pem`, пароли и `.env` в репозиторий не коммитить.

@@ -1,10 +1,10 @@
-# After every push to branch `dauren`, build and deploy to Oracle (same as scripts/deploy-remote.sh).
-# Required repo secret: ORACLE_SSH_PRIVATE_KEY — full contents of ssh-key-cargo.pem (Settings → Secrets → Actions).
-name: Deploy dauren to Oracle
+# После каждого push в ветку main — сборка и деплой на Oracle (scripts/deploy-remote.sh).
+# Секрет репозитория: ORACLE_SSH_PRIVATE_KEY — полный текст ssh-key-cargo.pem (Settings → Secrets → Actions).
+name: Deploy main to Oracle
 
 on:
   push:
-    branches: [dauren]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
