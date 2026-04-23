@@ -302,7 +302,7 @@ function AppContent() {
         {/* Backdrop для закрытия правого сайдбара на мобильных (невидимй) */}
         {rightSidebarOpen && (
           <div
-            className="fixed inset-0 z-30 lg:hidden"
+            className="fixed inset-0 z-30 lg:hidden bg-black/30"
             style={{ top: '64px' }}
             onClick={() => setRightSidebarOpen(false)}
           />
@@ -311,7 +311,7 @@ function AppContent() {
         {/* Правый сайдбар - показываем только когда открыт ИЛИ на десктопе */}
         {rightSidebarOpen && (
           <div className="fixed lg:static z-40 lg:z-0 right-0 h-full">
-            <RightSidebar currentPage={currentPage} theme={theme} />
+            <RightSidebar currentPage={currentPage} theme={theme} onClose={() => setRightSidebarOpen(false)} />
           </div>
         )}
       </div>

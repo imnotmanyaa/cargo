@@ -1,4 +1,4 @@
-import { Sun, Moon, Menu, Search, Globe, LogOut, Bell } from 'lucide-react';
+import { Sun, Moon, Menu, Search, Globe, LogOut, Bell, Info } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useRef } from 'react';
@@ -263,9 +263,10 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
         {!hideSidebarButtons && (
           <button
             onClick={onToggleRightSidebar}
-            className={`hidden lg:inline-flex p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+            className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+            title="Инструкция"
           >
-            <Menu className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
+            <Info className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
           </button>
         )}
       </div>
