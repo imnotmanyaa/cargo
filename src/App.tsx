@@ -242,7 +242,7 @@ function AppContent() {
       case 'reports':
         return <Reports theme={theme} />;
       case 'settings':
-        return <Settings theme={theme} />;
+        return <Settings theme={theme} setTheme={setTheme} />;
       case 'corporate':
         return <CorporateClients theme={theme} />;
       case 'audit':

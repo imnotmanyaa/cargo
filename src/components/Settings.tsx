@@ -1,7 +1,7 @@
 import { useLanguage } from '../contexts/LanguageContext';
 import { Save } from 'lucide-react';
 
-export function Settings({ theme }: { theme?: 'light' | 'dark' }) {
+export function Settings({ theme, setTheme }: { theme?: 'light' | 'dark', setTheme?: (theme: 'light' | 'dark') => void }) {
   const { t, language, setLanguage } = useLanguage();
   const isDark = theme === 'dark';
 
@@ -83,7 +83,8 @@ export function Settings({ theme }: { theme?: 'light' | 'dark' }) {
                   type="radio"
                   name="theme"
                   value="light"
-                  defaultChecked={!isDark}
+                  checked={theme === 'light'}
+                  onChange={() => setTheme?.('light')}
                   className="w-4 h-4 text-blue-600"
                 />
                 <span className={`ml-3 text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('light')}</span>
@@ -97,7 +98,8 @@ export function Settings({ theme }: { theme?: 'light' | 'dark' }) {
                   type="radio"
                   name="theme"
                   value="dark"
-                  defaultChecked={isDark}
+                  checked={theme === 'dark'}
+                  onChange={() => setTheme?.('dark')}
                   className="w-4 h-4 text-blue-600"
                 />
                 <span className={`ml-3 text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('dark')}</span>
@@ -136,7 +138,7 @@ export function Settings({ theme }: { theme?: 'light' | 'dark' }) {
 
           {/* Save Button */}
           <div className="pt-6">
-            <button className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
               <Save className="w-5 h-5" />
               {t('saveSettings')}
             </button>
