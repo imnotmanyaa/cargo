@@ -70,7 +70,7 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
         <div className="w-full md:w-72">
           <input
             type="text"
-            placeholder="Поиск по ID груза, действию..."
+            placeholder={t('searchLogs')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={`w-full px-4 py-2 rounded-lg border ${
@@ -84,9 +84,9 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
 
       <div className={`rounded-lg shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {isLoading ? (
-          <div className="p-8 text-center text-gray-500">Загрузка...</div>
+          <div className="p-8 text-center text-gray-500">{t('loading')}</div>
         ) : filteredLogs.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">Нет записей в журнале.</div>
+          <div className="p-8 text-center text-gray-500">{t('noLogs')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -94,8 +94,8 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                 <tr className={`text-left border-b ${isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
                   <th className="px-6 py-4 font-medium">{t('date')}</th>
                   <th className="px-6 py-4 font-medium">{t('action')}</th>
-                  <th className="px-6 py-4 font-medium">Сущность</th>
-                  <th className="px-6 py-4 font-medium">Подробнее</th>
+                  <th className="px-6 py-4 font-medium">{t('entity')}</th>
+                  <th className="px-6 py-4 font-medium">{t('details')}</th>
                 </tr>
               </thead>
               <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
@@ -124,7 +124,7 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {log.new_value ? (
-                        <span>Новое значение: {log.new_value}</span>
+                        <span>{t('newValue')}{log.new_value}</span>
                       ) : (
                         <span>{log.reason || '-'}</span>
                       )}
