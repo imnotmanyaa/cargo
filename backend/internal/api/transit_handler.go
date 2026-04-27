@@ -179,6 +179,15 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 		shipment.ToStation == queriedStation
 
 	checkedAt := time.Now().UTC()
+	alreadyScannedAtStation := false
+	var lastScannedAt *time.Time
+
+	if stationMatch {
+		if ts, tsErr := s.services.Shipments.LastTransitAtStation(r.Context(), shipment.ID, queriedStation); tsErr == nil && ts != nil {
+			alreadyScannedAtStation = true
+			lastScannedAt = ts
+		}
+	}
 
 	// Point 5: if unauthorized cargo is scanned by mobile group,
 	// managers must receive a detailed notification.
@@ -282,9 +291,11 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"shipment":      shipment,
-		"station_match": stationMatch,
-		"checked_at":    checkedAt,
-		"auditor":       user.Name,
+		"shipment":                   shipment,
+		"station_match":              stationMatch,
+		"already_scanned_at_station": alreadyScannedAtStation,
+		"last_scanned_at":            lastScannedAt,
+		"checked_at":                 checkedAt,
+		"auditor":                    user.Name,
 	})
 }

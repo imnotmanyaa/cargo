@@ -36,7 +36,6 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     departureDate: '',
     trainTime: '',
     weight: '',
-    dimensions: '',
     isFragile: false,
     isOversized: false,
     packaging: '',
@@ -96,7 +95,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           to_station: shipmentData.toStation,
           departure_date: shipmentData.departureDate ? new Date(shipmentData.departureDate).toISOString() : new Date().toISOString(),
           weight: shipmentData.weight,
-          dimensions: shipmentData.dimensions,
+          dimensions: '',
           description: shipmentData.description,
           value: shipmentData.value,
           cost: calculateCost(),
@@ -176,6 +175,29 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
 
     const printWindow = window.open('', '_blank');
     if (printWindow && createdShipmentNumber) {
+      const totalPlaces = Math.max(1, Number(shipmentData.quantityPlaces) || 1);
+      const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
+        const placeNum = idx + 1;
+        const stickerCode = `${createdShipmentNumber}-${totalPlaces}`;
+        return `
+          <section class="label">
+            <div class="header">CargoTrans</div>
+            <div class="shipment-id">${stickerCode}</div>
+            <div class="qr-container">${qrSvg}</div>
+            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
+              ${shipmentData.fromStation} -> ${shipmentData.toStation}
+            </div>
+            <div class="row info">
+              <span>Вес:</span>
+              <span>${shipmentData.weight} кг</span>
+            </div>
+            <div class="row info">
+              <span>Место:</span>
+              <span>${placeNum} из ${totalPlaces}</span>
+            </div>
+          </section>
+        `;
+      }).join('');
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -189,6 +211,13 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 padding: 5px;
                 color: black;
                 background: white;
+              }
+              .label {
+                page-break-after: always;
+                margin-bottom: 8px;
+              }
+              .label:last-child {
+                page-break-after: auto;
               }
               .header {
                 text-align: center;
@@ -229,24 +258,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
             </style>
           </head>
           <body>
-            <div class="header">CargoTrans</div>
-            <div class="shipment-id">${createdShipmentNumber}</div>
-            <div class="qr-container">${qrSvg}</div>
-            
-            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
-              ${shipmentData.fromStation} -> ${shipmentData.toStation}
-            </div>
-            
-            <div class="row info">
-              <span>Вес:</span>
-              <span>${shipmentData.weight} кг</span>
-            </div>
-            
-            ${shipmentData.dimensions ? `
-            <div class="row info">
-              <span>Габариты:</span>
-              <span>${shipmentData.dimensions}</span>
-            </div>` : ''}
+            ${labelsHtml}
           </body>
         </html>
       `);
@@ -338,7 +350,6 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       departureDate: '',
                       trainTime: '',
                       weight: '',
-                      dimensions: '',
                       isFragile: false,
                       isOversized: false,
                       packaging: '',
