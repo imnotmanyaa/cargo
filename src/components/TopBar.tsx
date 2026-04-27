@@ -2,6 +2,7 @@ import { Sun, Moon, Menu, Search, Globe, LogOut, Bell } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useRef } from 'react';
+import { withApiBase, wsBaseFromApi } from '../lib/api-base';
 
 interface TopBarProps {
   theme: 'light' | 'dark';
@@ -39,8 +40,9 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       const poll = window.setInterval(fetchNotifications, 15000);
 
       // Setup socket listener
-      const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const socket = new WebSocket(socketProtocol + '//' + window.location.host + '/ws');
+      const wsBase = wsBaseFromApi();
+      const socketUrl = wsBase ? `${wsBase}/ws` : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+      const socket = new WebSocket(socketUrl);
       socket.onopen = () => {
         socket.send(JSON.stringify({ action: 'join-user', room: user.id.toString() }));
       };
@@ -71,7 +73,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch(`/api/notifications?userId=${user?.id}`);
+      const res = await fetch(withApiBase(`/api/notifications?userId=${user?.id}`));
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -85,7 +87,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
 
   const markAsRead = async (id: number) => {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+      await fetch(withApiBase(`/api/notifications/${id}/read`), { method: 'PATCH' });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {

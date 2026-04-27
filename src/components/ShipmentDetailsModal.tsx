@@ -13,7 +13,7 @@ interface ShipmentDetailsModalProps {
     status: string;
     date: string;
     weight: string;
-    dimensions?: string;
+    quantity_places?: number;
     description?: string;
     value?: string;
     departure_date?: string;
@@ -49,6 +49,29 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
 
     const printWindow = window.open('', '_blank');
     if (printWindow) {
+      const totalPlaces = Math.max(1, Number(shipment.quantity_places) || 1);
+      const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
+        const placeNum = idx + 1;
+        const stickerCode = `${shipment.shipment_number}-${totalPlaces}`;
+        return `
+          <section class="label">
+            <div class="header">CargoTrans</div>
+            <div class="shipment-id">${stickerCode}</div>
+            <div class="qr-container">${qrSvg}</div>
+            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
+              ${shipment.from} -> ${shipment.to}
+            </div>
+            <div class="row info">
+              <span>Вес:</span>
+              <span>${shipment.weight}</span>
+            </div>
+            <div class="row info">
+              <span>Место:</span>
+              <span>${placeNum} из ${totalPlaces}</span>
+            </div>
+          </section>
+        `;
+      }).join('');
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -62,6 +85,13 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
                 padding: 5px;
                 color: black;
                 background: white;
+              }
+              .label {
+                page-break-after: always;
+                margin-bottom: 8px;
+              }
+              .label:last-child {
+                page-break-after: auto;
               }
               .header {
                 text-align: center;
@@ -102,26 +132,7 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
             </style>
           </head>
           <body>
-            <div class="header">CargoTrans</div>
-            
-            <div class="shipment-id">${shipment.shipment_number}</div>
-            
-            <div class="qr-container">${qrSvg}</div>
-            
-            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
-              ${shipment.from} -> ${shipment.to}
-            </div>
-            
-            <div class="row info">
-              <span>Вес:</span>
-              <span>${shipment.weight} кг</span>
-            </div>
-            
-            ${shipment.dimensions ? `
-            <div class="row info">
-              <span>Габариты:</span>
-              <span>${shipment.dimensions}</span>
-            </div>` : ''}
+            ${labelsHtml}
           </body>
         </html>
       `);
@@ -236,13 +247,11 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
                 <span className="text-sm text-gray-600">{t('weight')}:</span>
                 <span className="text-sm font-medium text-gray-900">{shipment.weight}</span>
               </div>
-              {shipment.dimensions && (
-                <div className="flex items-center gap-3">
-                  <Package className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">{t('dimensions')}:</span>
-                  <span className="text-sm font-medium text-gray-900">{shipment.dimensions}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                <Package className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-600">Количество мест:</span>
+                <span className="text-sm font-medium text-gray-900">{Math.max(1, Number(shipment.quantity_places) || 1)}</span>
+              </div>
               {shipment.description && (
                 <div className="flex items-center gap-3">
                   <Package className="w-4 h-4 text-gray-500" />

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { withApiBase } from '../lib/api-base';
 
 type UserRole = 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'mobile_group';
 
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, _role?: string) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(withApiBase('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -82,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: RegisterData) => {
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(withApiBase('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -131,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const originalFetch = window.fetch.bind(window);
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const normalizedUrl = withApiBase(url);
       const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
       const isApiRequest = url.includes('/api/');
       const token = localStorage.getItem('token');
@@ -145,7 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         nextInit = { ...init, headers };
       }
 
-      const response = await originalFetch(input, nextInit);
+      const finalInput = input instanceof Request ? new Request(withApiBase(input.url), input) : normalizedUrl;
+      const response = await originalFetch(finalInput, nextInit);
 
       if (response.status === 401 && !isAuthEndpoint && token) {
         logout();

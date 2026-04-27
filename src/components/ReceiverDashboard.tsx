@@ -12,7 +12,7 @@ interface Shipment {
   status: string;
   shipment_status?: string;
   weight: string;
-  dimensions: string;
+  quantity_places?: number;
   description: string;
   departure_date: string;
   train_time?: string;

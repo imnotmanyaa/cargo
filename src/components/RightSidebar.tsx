@@ -25,10 +25,10 @@ export function RightSidebar({ currentPage, theme }: RightSidebarProps) {
               number: 1,
               title: language === 'ru' ? 'Система автоматически рассчитывает стоимость' : language === 'en' ? 'System automatically calculates cost' : 'Жүйе құнды автоматты түрде есептейді',
               description: language === 'ru' 
-                ? 'Стоимость рассчитывается на основе маршрута, веса/габаритов и не касается посторонних параметров.'
+                ? 'Стоимость рассчитывается на основе маршрута и веса груза.'
                 : language === 'en'
-                ? 'Cost is calculated based on route, weight/dimensions and does not involve extraneous parameters.'
-                : 'Құн бағыт, салмақ/өлшемдер негізінде есептеледі және бөгде параметрлерге қатысты емес.'
+                ? 'Cost is calculated based on route and shipment weight.'
+                : 'Құн бағыт пен жүк салмағына қарай есептеледі.'
             },
             {
               number: 2,
