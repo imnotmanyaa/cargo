@@ -43,6 +43,7 @@ function AppContent() {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [individualPage, setIndividualPage] = useState<'dashboard' | 'new-shipment'>('dashboard');
+  const [corporatePage, setCorporatePage] = useState<'dashboard' | 'new-shipment'>('dashboard');
 
   // Check for public tracking URL
   const [trackingId, setTrackingId] = useState<string | null>(null);
@@ -146,7 +147,17 @@ function AppContent() {
         <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
             <div className="p-4 md:p-8">
-              <CorporateDashboard theme={theme} />
+              {corporatePage === 'dashboard' ? (
+                <CorporateDashboard 
+                  theme={theme} 
+                  onCreateShipment={() => setCorporatePage('new-shipment')} 
+                />
+              ) : (
+                <NewShipment
+                  theme={theme}
+                  onBack={() => setCorporatePage('dashboard')}
+                />
+              )}
             </div>
           </main>
         </div>

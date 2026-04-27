@@ -35,7 +35,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const [scanInput, setScanInput] = useState('');
   const [loadingScanInput, setLoadingScanInput] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [scanResult, setScanResult] = useState<{ status: 'success' | 'error', message: string } | null>(null);
+  const [scanResult, setScanResult] = useState<{ status: 'success' | 'error' | 'warning', message: string } | null>(null);
 
   const loadingInputRef = useRef<HTMLInputElement>(null);
   const arrivalInputRef = useRef<HTMLInputElement>(null);
@@ -230,7 +230,12 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         fetchShipments();
       } else {
         const err = await response.json();
-        showFeedback('error', err.error || 'Ошибка при сканировании');
+        // If already arrived/issued — show warning, not error
+        if (err.error?.includes('уже') || err.error?.includes('already') || response.status === 409) {
+          showFeedback('warning', err.error || `Груз ${shipmentId} уже обработан`);
+        } else {
+          showFeedback('error', err.error || 'Ошибка при сканировании');
+        }
       }
     } catch (error) {
       console.error('Scan error:', error);
@@ -241,7 +246,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     }
   };
 
-  const showFeedback = (status: 'success' | 'error', message: string) => {
+  const showFeedback = (status: 'success' | 'error' | 'warning', message: string) => {
     setScanResult({ status, message });
   };
 
@@ -260,8 +265,9 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     }
     
     if (shipment.loaded) {
-        showFeedback('error', "Груз уже погружен!");
+        showFeedback('warning', `✅ Груз ${shipment.shipment_number || shipmentId} уже погружен`);
         setProcessing(false);
+        setLoadingScanInput('');
         return;
     }
     
@@ -332,17 +338,19 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     <div className="max-w-6xl mx-auto px-2 sm:px-4">
       {/* FULL SCREEN SCAN FEEDBACK */}
       {scanResult && (
-        <div style={{ backgroundColor: scanResult.status === 'success' ? '#16a34a' : '#dc2626' }} className={`fixed inset-0 z-50 flex items-center justify-center animate-in fade-in zoom-in duration-200`}>
+        <div style={{ backgroundColor: scanResult.status === 'success' ? '#16a34a' : scanResult.status === 'warning' ? '#d97706' : '#dc2626' }} className={`fixed inset-0 z-50 flex items-center justify-center animate-in fade-in zoom-in duration-200`}>
           <div className="text-center p-6">
             <div className="mb-4 flex justify-center">
               {scanResult.status === 'success' ? (
                 <CheckCircle className="w-24 h-24 text-white animate-bounce" />
+              ) : scanResult.status === 'warning' ? (
+                <CheckCircle className="w-24 h-24 text-white" />
               ) : (
                 <QrCode className="w-24 h-24 text-white animate-pulse" />
               )}
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-2">
-              {scanResult.status === 'success' ? 'УСПЕХ' : 'ОШИБКА'}
+              {scanResult.status === 'success' ? 'УСПЕХ' : scanResult.status === 'warning' ? 'УЖЕ ПРИНЯТ' : 'ОШИБКА'}
             </h2>
             <p className="text-xl md:text-2xl text-white opacity-90">
               {scanResult.message}

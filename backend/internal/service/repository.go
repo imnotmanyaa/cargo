@@ -19,6 +19,8 @@ type Repository interface {
 	TopUpDeposit(ctx context.Context, userID string, amount float64) (float64, error)
 	ListFrequentClients(ctx context.Context, provider string) ([]model.FrequentClient, error)
 	CreateFrequentClient(ctx context.Context, client model.FrequentClient) (model.FrequentClient, error)
+	UpdateFrequentClient(ctx context.Context, id, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error)
+	DeleteFrequentClient(ctx context.Context, id string) error
 
 	ListRoles(ctx context.Context) ([]model.RoleRecord, error)
 	ListStations(ctx context.Context) ([]model.Station, error)

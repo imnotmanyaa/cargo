@@ -5,9 +5,10 @@ import { Wallet, Package, FileText, MapPin, Download, TrendingUp, Plus, X, Credi
 
 interface CorporateDashboardProps {
   theme?: 'light' | 'dark';
+  onCreateShipment?: () => void;
 }
 
-export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps) {
+export function CorporateDashboard({ theme = 'light', onCreateShipment }: CorporateDashboardProps) {
   const isDark = theme === 'dark';
   const { user, updateUser } = useAuth(); // Need login to update user state if possible, or we need a way to refresh user
   // Actually useAuth might not expose a refresh method. 
@@ -69,9 +70,18 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('corporateDashboard')}</h1>
-        <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{user?.company}</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('corporateDashboard')}</h1>
+          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{user?.company}</p>
+        </div>
+        <button
+          onClick={onCreateShipment}
+          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+        >
+          <Plus className="w-5 h-5" />
+          {t('newShipmentButton') || 'Новая отправка'}
+        </button>
       </div>
 
       {/* Stats */}

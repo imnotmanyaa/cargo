@@ -14,6 +14,8 @@ func (s *Server) mountClientRoutes(r chi.Router) {
 	r.Get("/clients/{id}", s.handleGetClient)
 	r.Post("/clients", s.handleCreateCorporateClient)
 	r.Post("/clients/frequent", s.handleCreateFrequentClient)
+	r.Put("/clients/frequent/{id}", s.handleUpdateFrequentClient)
+	r.Delete("/clients/frequent/{id}", s.handleDeleteFrequentClient)
 	r.Put("/clients/{id}", s.handleUpdateCorporateClient)
 	r.Delete("/clients/{id}", s.handleDeleteCorporateClient)
 }
@@ -102,6 +104,57 @@ func (s *Server) handleCreateFrequentClient(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	writeJSON(w, http.StatusCreated, item)
+}
+
+func (s *Server) handleUpdateFrequentClient(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	var req struct {
+		CompanyName    *string `json:"company_name"`
+		ClientName     string  `json:"client_name"`
+		Phone          *string `json:"phone"`
+		ContractNumber *string `json:"contract_number"`
+		Notes          *string `json:"notes"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	item, err := s.services.Clients.UpdateFrequentClient(
+		r.Context(),
+		chi.URLParam(r, "id"),
+		req.ClientName,
+		req.CompanyName,
+		req.Phone,
+		req.ContractNumber,
+		req.Notes,
+	)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func (s *Server) handleDeleteFrequentClient(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if err := s.services.Clients.DeleteFrequentClient(r.Context(), chi.URLParam(r, "id")); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Deleted"})
 }
 
 func (s *Server) handleGetClient(w http.ResponseWriter, r *http.Request) {

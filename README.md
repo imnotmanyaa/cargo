@@ -3,7 +3,7 @@
 Перейдите в папку `backend` и запустите сервер:
 
 ```bash
-cd /Users/imnotmanya/Desktop/cargo-figma-update/backend
+cd /Users/imnotmanya/Desktop/cargo/backend
 go run ./cmd/server
 ```
 

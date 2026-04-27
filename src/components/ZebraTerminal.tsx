@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Search, MapPin, Package, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 type ScanResult = {
   ok: boolean;

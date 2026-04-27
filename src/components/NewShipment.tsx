@@ -173,9 +173,32 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const handlePrint = () => {
     const qrContainer = document.getElementById('qr-code-container');
     const qrSvg = qrContainer?.innerHTML || '';
+    const places = shipmentData.quantityPlaces || 1;
 
     const printWindow = window.open('', '_blank');
     if (printWindow && createdShipmentNumber) {
+      const labels = Array.from({ length: places }, (_, i) => {
+        const placeId = `${createdShipmentNumber}-${i + 1}`;
+        return `
+          <div class="label" ${i > 0 ? 'style="page-break-before: always;"' : ''}>
+            <div class="header">CargoTrans</div>
+            <div class="shipment-id">${placeId}</div>
+            <div class="qr-container">${qrSvg}</div>
+            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
+              ${shipmentData.fromStation} -> ${shipmentData.toStation}
+            </div>
+            <div class="row info">
+              <span>Вес:</span>
+              <span>${shipmentData.weight} кг</span>
+            </div>
+            <div class="row info">
+              <span>Место:</span>
+              <span>${i + 1} из ${places}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -186,10 +209,11 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 font-family: 'Courier New', monospace;
                 width: 58mm;
                 margin: 0;
-                padding: 5px;
+                padding: 0;
                 color: black;
                 background: white;
               }
+              .label { padding: 5px; }
               .header {
                 text-align: center;
                 font-weight: bold;
@@ -199,7 +223,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               }
               .shipment-id {
                 text-align: center;
-                font-size: 22px;
+                font-size: 18px;
                 font-weight: bold;
                 margin: 5px 0;
               }
@@ -224,29 +248,12 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               }
               @media print {
                 @page { margin: 0; size: 58mm auto; }
-                body { margin: 0; padding: 5px; }
+                body { margin: 0; padding: 0; }
               }
             </style>
           </head>
           <body>
-            <div class="header">CargoTrans</div>
-            <div class="shipment-id">${createdShipmentNumber}</div>
-            <div class="qr-container">${qrSvg}</div>
-            
-            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
-              ${shipmentData.fromStation} -> ${shipmentData.toStation}
-            </div>
-            
-            <div class="row info">
-              <span>Вес:</span>
-              <span>${shipmentData.weight} кг</span>
-            </div>
-            
-            ${shipmentData.dimensions ? `
-            <div class="row info">
-              <span>Габариты:</span>
-              <span>${shipmentData.dimensions}</span>
-            </div>` : ''}
+            ${labels}
           </body>
         </html>
       `);

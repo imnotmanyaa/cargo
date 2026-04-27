@@ -108,6 +108,8 @@ export function ClientInfo({
       updates.clientType = 'legal';
       updates.clientName = user.company || user.name;
       updates.contractNumber = user.contractNumber || '';
+      updates.hasDeposit = true;
+      updates.paymentMethod = 'deposit';
     }
 
     if (Object.keys(updates).length > 0) {
@@ -178,8 +180,8 @@ export function ClientInfo({
       <h2 className={`text-xl font-semibold mb-6 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('clientInfo')}</h2>
 
       <div className="space-y-6">
-        {/* Показываем выбор типа клиента только для оператора */}
-        {user?.role !== 'individual' && (
+        {/* Показываем выбор типа клиента только для оператора/менеджера/админа */}
+        {!['individual', 'corporate'].includes(user?.role || '') && (
           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {t('clientType')}
@@ -210,7 +212,7 @@ export function ClientInfo({
         )}
 
         {/* Показываем выбор источника клиента только для оператора и только для физических лиц */}
-        {user?.role !== 'individual' && data.clientType === 'individual' && (
+        {!['individual', 'corporate'].includes(user?.role || '') && data.clientType === 'individual' && (
           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {t('clientSource')}
@@ -269,7 +271,7 @@ export function ClientInfo({
             {data.clientType === 'legal' ? t('clientName') : t('fullName')}
           </label>
           
-          {data.clientType === 'legal' && user?.role !== 'individual' ? (
+          {data.clientType === 'legal' && !['individual', 'corporate'].includes(user?.role || '') ? (
             <div className="relative">
               <input
                 type="text"
@@ -341,7 +343,7 @@ export function ClientInfo({
                 : 'border-gray-300'
                 }`}
               placeholder={t('enterClientName')}
-              readOnly={isAggregatorSource && data.aggregatorClientId}
+              readOnly={(isAggregatorSource && !!data.aggregatorClientId) || user?.role === 'individual' || user?.role === 'corporate'}
             />
           )}
         </div>

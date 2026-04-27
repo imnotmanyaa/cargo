@@ -261,6 +261,10 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 	if station != shipment.ToStation {
 		return model.Shipment{}, nil, ErrForbidden
 	}
+	// Re-scan: if already arrived/issued at this station, return without error
+	if shipment.ShipmentStatus == model.ShipmentArrived || shipment.ShipmentStatus == model.ShipmentReadyForIssue || shipment.ShipmentStatus == model.ShipmentIssued {
+		return shipment, nil, nil
+	}
 	shipment, err = s.transition(ctx, id, model.ShipmentArrived, operatorID, operatorName, &station, "Shipment arrived", nil)
 	if err != nil {
 		return model.Shipment{}, nil, err
@@ -597,8 +601,6 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 		return fmt.Errorf("%w: route must include different stations", ErrValidation)
 	case req.Weight == "":
 		return fmt.Errorf("%w: weight is required", ErrValidation)
-	case req.Dimensions == "":
-		return fmt.Errorf("%w: dimensions are required", ErrValidation)
 	case req.QuantityPlaces <= 0:
 		return fmt.Errorf("%w: quantity_places must be greater than zero", ErrValidation)
 	}
@@ -622,8 +624,6 @@ func validateEditableShipment(shipment model.Shipment) error {
 		return fmt.Errorf("%w: route must include different stations", ErrValidation)
 	case shipment.Weight == "":
 		return fmt.Errorf("%w: weight is required", ErrValidation)
-	case shipment.Dimensions == "":
-		return fmt.Errorf("%w: dimensions are required", ErrValidation)
 	case shipment.QuantityPlaces <= 0:
 		return fmt.Errorf("%w: quantity_places must be greater than zero", ErrValidation)
 	}

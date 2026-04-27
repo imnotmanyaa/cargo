@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { API_URL } from '../config';
 
 type UserRole = 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'mobile_group';
 
@@ -40,6 +41,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
+  const logout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+  }, []);
+
+  // Global 401 handler: auto-logout on expired/invalid token + API_URL prepender
+  useEffect(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      let url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      
+      // If it's a relative API call, prepend the base URL
+      if (url.startsWith('/api/')) {
+        url = API_URL + url;
+      }
+
+      const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
+      const isApiRequest = url.includes('/api/');
+      const token = localStorage.getItem('token');
+
+      let nextInit = init;
+      // Auto-attach bearer token for API requests
+      if (isApiRequest && token) {
+        const headers = new Headers(init?.headers || {});
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        nextInit = { ...init, headers };
+      }
+
+      const response = await originalFetch(url, nextInit);
+
+      if (response.status === 401 && !isAuthEndpoint && token) {
+        logout();
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [logout]);
+
   const login = async (email: string, password: string, _role?: string) => {
     try {
       const response = await fetch('/api/auth/login', {
@@ -54,14 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const error = await response.json();
           throw new Error(error.error || 'Login failed');
         } else {
-          console.error("Non-JSON error response from server", await response.text());
-          throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+          throw new Error(`Server Error: ${response.status}`);
         }
       }
 
       const data = await response.json();
-      // Map backend snake_case to frontend camelCase
-      const user: User = {
+      const userData: User = {
         ...data,
         depositBalance: data.deposit_balance,
         contractNumber: data.contract_number
@@ -71,12 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('token', data.token);
       }
 
-      setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
     } catch (error: any) {
-      console.error('Login error details:', error);
-      console.error('Error stack:', error.stack);
-      alert(`${error.name}: ${error.message}`);
+      alert(error.message);
     }
   };
 
@@ -94,13 +134,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const error = await response.json();
           throw new Error(error.error || 'Registration failed');
         } else {
-          console.error("Non-JSON error response from server", await response.text());
-          throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+          throw new Error(`Server Error: ${response.status}`);
         }
       }
 
       const rawData = await response.json();
-      // Map backend snake_case to frontend camelCase (same as login)
       const userData: User = {
         ...rawData,
         depositBalance: rawData.deposit_balance,
@@ -113,49 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
-      alert(`Регистрация успешна! Добро пожаловать, ${userData.name}`);
+      alert(`Регистрация успешна!`);
     } catch (error: any) {
-      console.error('Registration error:', error);
       alert(error.message);
     }
   };
-
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-  }, []);
-
-  // Global 401 handler: auto-logout on expired/invalid token
-  useEffect(() => {
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-      const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
-      const isApiRequest = url.includes('/api/');
-      const token = localStorage.getItem('token');
-
-      let nextInit = init;
-      // Auto-attach bearer token for API requests when caller forgot headers.
-      if (isApiRequest && token && !(input instanceof Request)) {
-        const headers = new Headers(init?.headers || {});
-        if (!headers.has('Authorization')) {
-          headers.set('Authorization', `Bearer ${token}`);
-        }
-        nextInit = { ...init, headers };
-      }
-
-      const response = await originalFetch(input, nextInit);
-
-      if (response.status === 401 && !isAuthEndpoint && token) {
-        logout();
-      }
-      return response;
-    };
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [logout]);
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
@@ -166,8 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAuthenticated = !!user;
-
-  // Auth state is managed via React state — no logging in production
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated, register, updateUser }}>

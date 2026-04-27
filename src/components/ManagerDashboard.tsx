@@ -12,7 +12,7 @@ interface DashboardData {
   monthlyShipments: number;
   completedShipments: number;
   activeContracts: number;
-  revenueByRoute: { route: string; revenue: number; percentage: number }[];
+  revenueByRoute: { route: string; revenue: number; percentage: number; count: number }[];
   revenueByMonth?: { month: string; revenue: number }[];
   wagonsByStatus?: { status: string; count: number }[];
 }

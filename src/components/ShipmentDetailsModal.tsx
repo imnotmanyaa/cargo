@@ -271,7 +271,7 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
             <h3 className="text-sm font-semibold text-gray-900 mb-3">QR-код отправки</h3>
             <div id="qr-code-container" className="p-2 bg-white border-2 border-gray-300 rounded-lg shadow-sm">
               <QRCodeSVG
-                value={shipment.shipment_number}
+                value={shipment.shipment_number || shipment.id}
                 size={96}
                 level={"H"}
               />

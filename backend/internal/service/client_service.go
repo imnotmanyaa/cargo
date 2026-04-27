@@ -111,3 +111,15 @@ func (s *ClientService) DeleteCorporateClient(ctx context.Context, id string) er
 	_, err = s.repo.UpdateUser(ctx, user)
 	return err
 }
+
+func (s *ClientService) UpdateFrequentClient(ctx context.Context, id, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error) {
+	clientName = strings.TrimSpace(clientName)
+	if clientName == "" {
+		return model.FrequentClient{}, ErrValidation
+	}
+	return s.repo.UpdateFrequentClient(ctx, id, clientName, companyName, phone, contractNumber, notes)
+}
+
+func (s *ClientService) DeleteFrequentClient(ctx context.Context, id string) error {
+	return s.repo.DeleteFrequentClient(ctx, id)
+}

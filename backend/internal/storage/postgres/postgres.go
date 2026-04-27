@@ -466,6 +466,29 @@ func (r *Repository) CreateFrequentClient(ctx context.Context, client model.Freq
 	return client, nil
 }
 
+func (r *Repository) UpdateFrequentClient(ctx context.Context, id, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error) {
+	var item model.FrequentClient
+	err := r.pool.QueryRow(ctx, `
+		UPDATE frequent_clients
+		SET client_name = $2, company_name = $3, phone = $4, contract_number = $5, notes = $6
+		WHERE id = $1 AND is_active = TRUE
+		RETURNING id, provider, company_name, client_name, phone, contract_number, notes, is_active, created_at
+	`, id, clientName, companyName, phone, contractNumber, notes).Scan(
+		&item.ID, &item.Provider, &item.CompanyName, &item.ClientName,
+		&item.Phone, &item.ContractNumber, &item.Notes, &item.IsActive, &item.CreatedAt,
+	)
+	if err != nil {
+		return model.FrequentClient{}, err
+	}
+	return item, nil
+}
+
+func (r *Repository) DeleteFrequentClient(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE frequent_clients SET is_active = FALSE WHERE id = $1`, id)
+	return err
+}
+
+
 func (r *Repository) ListRoles(ctx context.Context) ([]model.RoleRecord, error) {
 	rows, err := r.pool.Query(ctx, `SELECT id, name, description FROM roles ORDER BY name`)
 	if err != nil {
