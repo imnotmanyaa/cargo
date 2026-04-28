@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"sort"
 	"strings"
 	"time"
 
 	"cargo/backend/internal/model"
 	"cargo/backend/internal/service"
+	"cargo/backend/migrations"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -36,294 +39,44 @@ func Open(databaseURL string) (*DB, error) {
 func (db *DB) Pool() *pgxpool.Pool { return db.pool }
 func (db *DB) Close()              { db.pool.Close() }
 
-// func (db *DB) Migrate() error {
-// 	schema := `
-// CREATE TABLE IF NOT EXISTS roles (
-// 	id TEXT PRIMARY KEY,
-// 	name TEXT NOT NULL UNIQUE,
-// 	description TEXT NOT NULL
-// );
-// CREATE TABLE IF NOT EXISTS stations (
-// 	id TEXT PRIMARY KEY,
-// 	name TEXT NOT NULL UNIQUE,
-// 	city TEXT NOT NULL,
-// 	code TEXT NOT NULL UNIQUE,
-// 	is_active BOOLEAN NOT NULL DEFAULT TRUE
-// );
-// CREATE TABLE IF NOT EXISTS users (
-// 	id TEXT PRIMARY KEY,
-// 	name TEXT NOT NULL,
-// 	email TEXT UNIQUE NOT NULL,
-// 	password_hash TEXT NOT NULL,
-// 	role TEXT NOT NULL,
-// 	company TEXT,
-// 	deposit_balance DOUBLE PRECISION NOT NULL DEFAULT 0,
-// 	contract_number TEXT,
-// 	phone TEXT,
-// 	station TEXT,
-// 	is_active BOOLEAN NOT NULL DEFAULT TRUE,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS shipments (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_number TEXT NOT NULL UNIQUE,
-// 	client_id TEXT NOT NULL,
-// 	client_name TEXT NOT NULL,
-// 	client_email TEXT NOT NULL,
-// 	from_station TEXT NOT NULL,
-// 	to_station TEXT NOT NULL,
-// 	current_station TEXT NOT NULL,
-// 	next_station TEXT,
-// 	route JSONB NOT NULL,
-// 	status TEXT NOT NULL,
-// 	shipment_status TEXT NOT NULL,
-// 	payment_status TEXT NOT NULL,
-// 	departure_date TIMESTAMPTZ NOT NULL,
-// 	weight TEXT NOT NULL,
-// 	dimensions TEXT NOT NULL,
-// 	description TEXT NOT NULL,
-// 	value TEXT NOT NULL,
-// 	cost DOUBLE PRECISION NOT NULL DEFAULT 0,
-// 	quantity_places INTEGER NOT NULL DEFAULT 1,
-// 	receiver_name TEXT,
-// 	receiver_phone TEXT,
-// 	train_time TEXT,
-// 	tracking_code TEXT,
-// 	qr_code_id TEXT,
-// 	transport_unit_id TEXT,
-// 	last_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	created_by TEXT,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS payments (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	amount DOUBLE PRECISION NOT NULL,
-// 	payment_method TEXT NOT NULL,
-// 	pos_terminal_reference TEXT,
-// 	paid_at TIMESTAMPTZ,
-// 	confirmed_by TEXT,
-// 	status TEXT NOT NULL,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS qr_codes (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	qr_value TEXT NOT NULL UNIQUE,
-// 	generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	is_active BOOLEAN NOT NULL DEFAULT TRUE
-// );
-// CREATE TABLE IF NOT EXISTS scan_events (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	qr_code_id TEXT,
-// 	event_type TEXT NOT NULL,
-// 	station_id TEXT,
-// 	transport_unit_id TEXT,
-// 	user_id TEXT,
-// 	old_status TEXT,
-// 	new_status TEXT,
-// 	comment TEXT,
-// 	scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS transit_events (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	station_id TEXT NOT NULL,
-// 	user_id TEXT,
-// 	event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	comment TEXT
-// );
-// CREATE TABLE IF NOT EXISTS arrival_events (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	station_id TEXT NOT NULL,
-// 	user_id TEXT,
-// 	event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	confirmed_as_final_arrival BOOLEAN NOT NULL DEFAULT TRUE
-// );
-// CREATE TABLE IF NOT EXISTS shipment_history (
-// 	id BIGSERIAL PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	action TEXT NOT NULL,
-// 	operator_id TEXT,
-// 	operator_name TEXT,
-// 	station TEXT,
-// 	details TEXT NOT NULL,
-// 	old_status TEXT,
-// 	new_status TEXT,
-// 	reason TEXT,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS audit_log (
-// 	id TEXT PRIMARY KEY,
-// 	user_id TEXT,
-// 	entity_type TEXT NOT NULL,
-// 	entity_id TEXT NOT NULL,
-// 	action TEXT NOT NULL,
-// 	old_value TEXT,
-// 	new_value TEXT,
-// 	station_id TEXT,
-// 	reason TEXT,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS notifications (
-// 	id BIGSERIAL PRIMARY KEY,
-// 	user_id TEXT NOT NULL,
-// 	message TEXT NOT NULL,
-// 	read BOOLEAN NOT NULL DEFAULT FALSE,
-// 	type TEXT NOT NULL DEFAULT 'info',
-// 	related_id TEXT,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );`
+func (db *DB) Migrate() error {
+	ctx := context.Background()
 
-// 	ctx := context.Background()
-// 	if _, err := db.pool.Exec(ctx, schema); err != nil {
-// 		return err
-// 	}
-// 	if err := db.migrateExistingSchema(ctx); err != nil {
-// 		return err
-// 	}
-// 	return db.seedReferenceData(ctx)
-// }
+	entries, err := migrations.FS.ReadDir(".")
+	if err != nil {
+		return fmt.Errorf("failed to read migrations dir: %v", err)
+	}
 
-// func (db *DB) migrateExistingSchema(ctx context.Context) error {
-// 	statements := []string{
-// 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_number TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_status TEXT NOT NULL DEFAULT 'CREATED'`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'UNPAID'`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS quantity_places INTEGER NOT NULL DEFAULT 1`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tracking_code TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS qr_code_id TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS transport_unit_id TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS last_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS created_by TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS cost DOUBLE PRECISION NOT NULL DEFAULT 0`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_name TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_phone TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS train_time TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS route JSONB NOT NULL DEFAULT '[]'::jsonb`,
-// 		`CREATE TABLE IF NOT EXISTS payments (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			amount DOUBLE PRECISION NOT NULL,
-// 			payment_method TEXT NOT NULL,
-// 			pos_terminal_reference TEXT,
-// 			paid_at TIMESTAMPTZ,
-// 			confirmed_by TEXT,
-// 			status TEXT NOT NULL,
-// 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS qr_codes (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			qr_value TEXT NOT NULL UNIQUE,
-// 			generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 			is_active BOOLEAN NOT NULL DEFAULT TRUE
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS scan_events (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			qr_code_id TEXT,
-// 			event_type TEXT NOT NULL,
-// 			station_id TEXT,
-// 			transport_unit_id TEXT,
-// 			user_id TEXT,
-// 			old_status TEXT,
-// 			new_status TEXT,
-// 			comment TEXT,
-// 			scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS transit_events (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			station_id TEXT NOT NULL,
-// 			user_id TEXT,
-// 			event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 			comment TEXT
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS arrival_events (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			station_id TEXT NOT NULL,
-// 			user_id TEXT,
-// 			event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 			confirmed_as_final_arrival BOOLEAN NOT NULL DEFAULT TRUE
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS audit_log (
-// 			id TEXT PRIMARY KEY,
-// 			user_id TEXT,
-// 			entity_type TEXT NOT NULL,
-// 			entity_id TEXT NOT NULL,
-// 			action TEXT NOT NULL,
-// 			old_value TEXT,
-// 			new_value TEXT,
-// 			station_id TEXT,
-// 			reason TEXT,
-// 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// 		)`,
-// 		`ALTER TABLE shipment_history ADD COLUMN IF NOT EXISTS reason TEXT`,
-// 	}
-// 	for _, stmt := range statements {
-// 		if _, err := db.pool.Exec(ctx, stmt); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	_, err := db.pool.Exec(ctx, `
-// 		UPDATE shipments
-// 		SET
-// 			shipment_number = COALESCE(shipment_number, id),
-// 			tracking_code = COALESCE(tracking_code, id),
-// 			shipment_status = COALESCE(NULLIF(shipment_status, ''), CASE
-// 				WHEN status = 'Погружен' THEN 'LOADED'
-// 				WHEN status = 'В пути' THEN 'IN_TRANSIT'
-// 				WHEN status = 'Прибыл' THEN 'ARRIVED'
-// 				WHEN status = 'Выдан' THEN 'ISSUED'
-// 				WHEN status = 'Закрыт' THEN 'CLOSED'
-// 				ELSE 'CREATED'
-// 			END),
-// 			payment_status = COALESCE(NULLIF(payment_status, ''), 'UNPAID'),
-// 			last_updated_at = COALESCE(last_updated_at, NOW()),
-// 			updated_at = COALESCE(updated_at, NOW())
-// 	`)
-// 	return err
-// }
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
+			files = append(files, e.Name())
+		}
+	}
+	sort.Strings(files)
 
-// func (db *DB) seedReferenceData(ctx context.Context) error {
-// 	roleInserts := []model.RoleRecord{
-// 		{ID: "admin", Name: "admin", Description: "Administrator"},
-// 		{ID: "manager", Name: "manager", Description: "Manager"},
-// 		{ID: "operator", Name: "operator", Description: "Reception operator"},
-// 		{ID: "receiver", Name: "receiver", Description: "Destination receiver"},
-// 		{ID: "loading_operator", Name: "loading_operator", Description: "Loading employee"},
-// 		{ID: "transit_operator", Name: "transit_operator", Description: "Transit operator"},
-// 		{ID: "issue_operator", Name: "issue_operator", Description: "Issue operator"},
-// 		{ID: "accounting", Name: "accounting", Description: "Accounting"},
-// 		{ID: "individual", Name: "individual", Description: "Individual client"},
-// 		{ID: "corporate", Name: "corporate", Description: "Corporate client"},
-// 	}
-// 	for _, role := range roleInserts {
-// 		if _, err := db.pool.Exec(ctx, `INSERT INTO roles (id, name, description) VALUES ($1,$2,$3) ON CONFLICT (id) DO NOTHING`, role.ID, role.Name, role.Description); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	stations := []model.Station{
-// 		{ID: "shymkent", Name: "Шымкент", City: "Шымкент", Code: "CIT-SHYM", IsActive: true},
-// 		{ID: "almaty-1", Name: "Алматы-1", City: "Алматы", Code: "CIT-ALA1", IsActive: true},
-// 		{ID: "karaganda", Name: "Қарағанды", City: "Қарағанды", Code: "CIT-KRG", IsActive: true},
-// 		{ID: "astana", Name: "Астана Нұрлы Жол", City: "Астана", Code: "CIT-AST", IsActive: true},
-// 		{ID: "aktobe", Name: "Ақтөбе", City: "Ақтөбе", Code: "CIT-AKT", IsActive: true},
-// 	}
-// 	for _, station := range stations {
-// 		if _, err := db.pool.Exec(ctx, `INSERT INTO stations (id, name, city, code, is_active) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING`, station.ID, station.Name, station.City, station.Code, station.IsActive); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
+	for _, file := range files {
+		content, err := migrations.FS.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("failed to read migration %s: %v", file, err)
+		}
+		
+		log.Printf("Applying migration: %s", file)
+		if _, err := db.pool.Exec(ctx, string(content)); err != nil {
+			log.Printf("Note: Error applying migration %s (safe if already applied): %v", file, err)
+		}
+	}
+	
+	// Create or update default admin user
+	_, _ = db.pool.Exec(ctx, `
+		INSERT INTO users (id, name, email, password_hash, role, deposit_balance, is_active)
+		VALUES ('admin-001', 'Admin', 'admin@admin.com', '$2a$10$6a38vVYPoVs0OBngM21Ksu9Rz0QaShAfhSg.DjRxjb8oInIKlh0me', 'admin', 0, true)
+		ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash
+	`)
+
+	return nil
+}
+
 
 type Repository struct {
 	pool *pgxpool.Pool
@@ -334,10 +87,13 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 }
 
 func (r *Repository) CreateUser(ctx context.Context, user model.User) (model.User, error) {
+	if user.ClientSegment == "" {
+		user.ClientSegment = model.ClientSegmentForRole(user.Role)
+	}
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO users (id, name, email, password_hash, role, company, deposit_balance, contract_number, phone, station, is_active, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-	`, user.ID, user.Name, user.Email, user.PasswordHash, user.Role, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive, user.CreatedAt)
+		INSERT INTO users (id, name, email, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+	`, user.ID, user.Name, user.Email, user.PasswordHash, user.Role, user.ClientSegment, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive, user.CreatedAt)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -345,10 +101,13 @@ func (r *Repository) CreateUser(ctx context.Context, user model.User) (model.Use
 }
 
 func (r *Repository) UpdateUser(ctx context.Context, user model.User) (model.User, error) {
+	if user.ClientSegment == "" {
+		user.ClientSegment = model.ClientSegmentForRole(user.Role)
+	}
 	_, err := r.pool.Exec(ctx, `
-		UPDATE users SET name = $2, email = $3, role = $4, company = $5, deposit_balance = $6, contract_number = $7, phone = $8, station = $9, is_active = $10
+		UPDATE users SET name = $2, email = $3, role = $4, client_segment = $5, company = $6, deposit_balance = $7, contract_number = $8, phone = $9, station = $10, is_active = $11
 		WHERE id = $1
-	`, user.ID, user.Name, user.Email, user.Role, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive)
+	`, user.ID, user.Name, user.Email, user.Role, user.ClientSegment, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -373,7 +132,7 @@ func (r *Repository) ListUsers(ctx context.Context) ([]model.User, error) {
 }
 
 func (r *Repository) ListEmployees(ctx context.Context) ([]model.User, error) {
-	rows, err := r.pool.Query(ctx, userSelect+` WHERE role IN ('admin','manager','operator','receiver','loading_operator','transit_operator','issue_operator','accounting', 'auditor', 'mobile_group') ORDER BY created_at DESC`)
+	rows, err := r.pool.Query(ctx, userSelect+` WHERE role IN ('admin','manager','direction_head','chief_head','receiver','loading_operator','transit_operator','issue_operator','accounting', 'mobile_group') ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -414,6 +173,84 @@ func (r *Repository) TopUpDeposit(ctx context.Context, userID string, amount flo
 	}
 	return balance, err
 }
+
+func (r *Repository) ListFrequentClients(ctx context.Context, provider string) ([]model.FrequentClient, error) {
+	query := `
+		SELECT id, provider, client_segment, company_name, client_name, phone, contract_number, notes, is_active, created_at
+		FROM frequent_clients
+		WHERE is_active = TRUE
+	`
+	args := []any{}
+	if provider != "" {
+		query += ` AND provider = $1`
+		args = append(args, provider)
+	}
+	query += ` ORDER BY created_at DESC`
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []model.FrequentClient
+	for rows.Next() {
+		var item model.FrequentClient
+		if err := rows.Scan(
+			&item.ID,
+			&item.Provider,
+			&item.ClientSegment,
+			&item.CompanyName,
+			&item.ClientName,
+			&item.Phone,
+			&item.ContractNumber,
+			&item.Notes,
+			&item.IsActive,
+			&item.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (r *Repository) CreateFrequentClient(ctx context.Context, client model.FrequentClient) (model.FrequentClient, error) {
+	if client.ClientSegment == "" {
+		client.ClientSegment = model.ClientSegmentLegalEntity
+	}
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO frequent_clients (id, provider, client_segment, company_name, client_name, phone, contract_number, notes, is_active, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+	`, client.ID, client.Provider, client.ClientSegment, client.CompanyName, client.ClientName, client.Phone, client.ContractNumber, client.Notes, client.IsActive, client.CreatedAt)
+	if err != nil {
+		return model.FrequentClient{}, err
+	}
+	return client, nil
+}
+
+func (r *Repository) UpdateFrequentClient(ctx context.Context, id, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error) {
+	var item model.FrequentClient
+	err := r.pool.QueryRow(ctx, `
+		UPDATE frequent_clients
+		SET client_name = $2, company_name = $3, phone = $4, contract_number = $5, notes = $6
+		WHERE id = $1 AND is_active = TRUE
+		RETURNING id, provider, company_name, client_name, phone, contract_number, notes, is_active, created_at
+	`, id, clientName, companyName, phone, contractNumber, notes).Scan(
+		&item.ID, &item.Provider, &item.CompanyName, &item.ClientName,
+		&item.Phone, &item.ContractNumber, &item.Notes, &item.IsActive, &item.CreatedAt,
+	)
+	if err != nil {
+		return model.FrequentClient{}, err
+	}
+	return item, nil
+}
+
+func (r *Repository) DeleteFrequentClient(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE frequent_clients SET is_active = FALSE WHERE id = $1`, id)
+	return err
+}
+
 
 func (r *Repository) ListRoles(ctx context.Context) ([]model.RoleRecord, error) {
 	rows, err := r.pool.Query(ctx, `SELECT id, name, description FROM roles ORDER BY name`)
@@ -459,19 +296,35 @@ func (r *Repository) UpdateStation(ctx context.Context, station model.Station) (
 	return station, err
 }
 
+func (r *Repository) UpsertStationByCode(ctx context.Context, station model.Station) (model.Station, error) {
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO stations (id, name, city, code, is_active)
+		VALUES ($1,$2,$3,$4,$5)
+		ON CONFLICT (code) DO UPDATE SET
+			name = EXCLUDED.name,
+			city = EXCLUDED.city,
+			is_active = EXCLUDED.is_active
+	`, station.ID, station.Name, station.City, station.Code, station.IsActive)
+	return station, err
+}
+
 func (r *Repository) CreateShipment(ctx context.Context, shipment model.Shipment) (model.Shipment, error) {
 	routeJSON, _ := json.Marshal(shipment.Route)
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO shipments (
 			id, shipment_number, client_id, client_name, client_email, from_station, to_station, current_station, next_station, route,
 			status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places,
-			receiver_name, receiver_phone, train_time, tracking_code, qr_code_id, transport_unit_id, last_updated_at, created_by, created_at, updated_at
+			receiver_name, receiver_phone, train_time, tracking_code, qr_code_id, transport_unit_id, 
+			is_door_to_door, pickup_address, delivery_address, door_to_door_phone,
+			last_updated_at, created_by, created_at, updated_at
 		) VALUES (
 			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
 			$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
-			$21,$22,$23,$24,$25,$26,$27,$28,$29,$30
+			$21,$22,$23,$24,$25,$26,
+			$27,$28,$29,$30,
+			$31,$32,$33,$34
 		)
-	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.TrainTime, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.CreatedAt, shipment.UpdatedAt)
+	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.TrainTime, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.CreatedAt, shipment.UpdatedAt)
 	return shipment, err
 }
 
@@ -549,11 +402,15 @@ func (r *Repository) UpdateShipment(ctx context.Context, shipment model.Shipment
 			tracking_code = $24,
 			qr_code_id = $25,
 			transport_unit_id = $26,
-			last_updated_at = $27,
-			created_by = $28,
-			updated_at = $29
+			is_door_to_door = $27,
+			pickup_address = $28,
+			delivery_address = $29,
+			door_to_door_phone = $30,
+			last_updated_at = $31,
+			created_by = $32,
+			updated_at = $33
 		WHERE id = $1
-	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.TrainTime, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.UpdatedAt)
+	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.TrainTime, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.UpdatedAt)
 	return shipment, err
 }
 
@@ -805,7 +662,7 @@ func (r *Repository) GetDashboardReport(ctx context.Context) (model.DashboardRep
 	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM shipments WHERE shipment_status NOT IN ('ISSUED','CLOSED')`).Scan(&report.ActiveContracts); err != nil {
 		return report, err
 	}
-	rows, err := r.pool.Query(ctx, `SELECT from_station, to_station, COALESCE(SUM(cost),0), COUNT(*) FROM shipments WHERE created_at >= $1 GROUP BY from_station, to_station ORDER BY 3 DESC LIMIT 5`, start)
+	rows, err := r.pool.Query(ctx, `SELECT from_station, to_station, COALESCE(SUM(cost),0), COUNT(*) FROM shipments WHERE created_at >= $1 GROUP BY from_station, to_station ORDER BY 3 DESC`, start)
 	if err != nil {
 		return report, err
 	}
@@ -826,6 +683,48 @@ func (r *Repository) GetDashboardReport(ctx context.Context) (model.DashboardRep
 			report.RevenueByRoute[i].Percentage = int(report.RevenueByRoute[i].Revenue / total * 100)
 		}
 	}
+
+	// Revenue by month (last 6 months, confirmed payments).
+	revRows, err := r.pool.Query(ctx, `
+		SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month,
+		       COALESCE(SUM(amount), 0) AS revenue
+		FROM payments
+		WHERE status = 'CONFIRMED'
+		  AND created_at >= date_trunc('month', now()) - interval '5 months'
+		GROUP BY 1
+		ORDER BY 1
+	`)
+	if err != nil {
+		return report, err
+	}
+	defer revRows.Close()
+	for revRows.Next() {
+		var item model.RevenueByMonthItem
+		if err := revRows.Scan(&item.Month, &item.Revenue); err != nil {
+			return report, err
+		}
+		report.RevenueByMonth = append(report.RevenueByMonth, item)
+	}
+	if err := revRows.Err(); err != nil {
+		return report, err
+	}
+
+	// Wagons by status.
+	wRows, err := r.pool.Query(ctx, `SELECT status, COUNT(*) FROM wagons GROUP BY status ORDER BY status`)
+	if err == nil {
+		defer wRows.Close()
+		for wRows.Next() {
+			var item model.CountByStatusItem
+			if err := wRows.Scan(&item.Status, &item.Count); err != nil {
+				return report, err
+			}
+			report.WagonsByStatus = append(report.WagonsByStatus, item)
+		}
+		if err := wRows.Err(); err != nil {
+			return report, err
+		}
+	}
+
 	return report, rows.Err()
 }
 
@@ -860,12 +759,12 @@ func (r *Repository) GetStatusSummary(ctx context.Context) ([]model.StatusSummar
 	return items, rows.Err()
 }
 
-const userSelect = `SELECT id, name, email, password_hash, role, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
-const shipmentSelect = `SELECT id, shipment_number, client_id, client_name, client_email, from_station, to_station, current_station, next_station, route, status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, train_time, tracking_code, qr_code_id, transport_unit_id, last_updated_at, created_by, created_at, updated_at FROM shipments`
+const userSelect = `SELECT id, name, email, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
+const shipmentSelect = `SELECT id, shipment_number, client_id, client_name, client_email, from_station, to_station, current_station, next_station, route, status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, train_time, tracking_code, qr_code_id, transport_unit_id, is_door_to_door, pickup_address, delivery_address, door_to_door_phone, last_updated_at, created_by, created_at, updated_at FROM shipments`
 
 func scanUser(row pgx.Row) (model.User, error) {
 	var user model.User
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.ClientSegment, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.User{}, service.ErrNotFound
 	}
@@ -876,7 +775,7 @@ func collectUsers(rows pgx.Rows) ([]model.User, error) {
 	items := []model.User{}
 	for rows.Next() {
 		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.ClientSegment, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, user)
@@ -887,7 +786,7 @@ func collectUsers(rows pgx.Rows) ([]model.User, error) {
 func scanShipment(row pgx.Row) (model.Shipment, error) {
 	var shipment model.Shipment
 	var routeRaw []byte
-	err := row.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientEmail, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.TrainTime, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt)
+	err := row.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientEmail, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.TrainTime, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.Shipment{}, service.ErrNotFound
 	}

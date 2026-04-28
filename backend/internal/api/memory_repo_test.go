@@ -27,6 +27,7 @@ type memoryRepo struct {
 	nextNotifID    int64
 	wagons         map[string]model.Wagon
 	wagonShipments []model.WagonShipment
+	frequentClients map[string]model.FrequentClient
 }
 
 func newMemoryRepo() *memoryRepo {
@@ -37,9 +38,10 @@ func newMemoryRepo() *memoryRepo {
 		payments:  map[string]model.Payment{},
 		qrCodes:   map[string]model.QRCode{},
 		wagons:    map[string]model.Wagon{},
+		frequentClients: map[string]model.FrequentClient{},
 		roles: []model.RoleRecord{
 			{ID: "admin", Name: "admin", Description: "Administrator"},
-			{ID: "operator", Name: "operator", Description: "Operator"},
+			{ID: "manager", Name: "manager", Description: "Manager"},
 			{ID: "receiver", Name: "receiver", Description: "Receiver"},
 			{ID: "individual", Name: "individual", Description: "Client"},
 			{ID: "corporate", Name: "corporate", Description: "Corporate"},
@@ -57,6 +59,9 @@ func (m *memoryRepo) CreateUser(_ context.Context, user model.User) (model.User,
 	}
 	if user.CreatedAt.IsZero() {
 		user.CreatedAt = time.Now().UTC()
+	}
+	if user.ClientSegment == "" {
+		user.ClientSegment = model.ClientSegmentForRole(user.Role)
 	}
 	m.users[user.ID] = user
 	return user, nil
@@ -146,6 +151,29 @@ func (m *memoryRepo) TopUpDeposit(_ context.Context, userID string, amount float
 	return user.DepositBalance, nil
 }
 
+func (m *memoryRepo) ListFrequentClients(_ context.Context, provider string) ([]model.FrequentClient, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var items []model.FrequentClient
+	for _, item := range m.frequentClients {
+		if !item.IsActive {
+			continue
+		}
+		if provider != "" && item.Provider != provider {
+			continue
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func (m *memoryRepo) CreateFrequentClient(_ context.Context, client model.FrequentClient) (model.FrequentClient, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.frequentClients[client.ID] = client
+	return client, nil
+}
+
 func (m *memoryRepo) ListRoles(_ context.Context) ([]model.RoleRecord, error) { return m.roles, nil }
 
 func (m *memoryRepo) ListStations(_ context.Context) ([]model.Station, error) {
@@ -168,6 +196,21 @@ func (m *memoryRepo) CreateStation(_ context.Context, station model.Station) (mo
 func (m *memoryRepo) UpdateStation(_ context.Context, station model.Station) (model.Station, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.stations[station.ID] = station
+	return station, nil
+}
+
+func (m *memoryRepo) UpsertStationByCode(_ context.Context, station model.Station) (model.Station, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// Upsert by unique code
+	for id, existing := range m.stations {
+		if existing.Code == station.Code {
+			station.ID = id
+			m.stations[id] = station
+			return station, nil
+		}
+	}
 	m.stations[station.ID] = station
 	return station, nil
 }

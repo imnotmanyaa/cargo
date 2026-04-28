@@ -10,8 +10,12 @@ import (
 
 func (s *Server) mountClientRoutes(r chi.Router) {
 	r.Get("/clients", s.handleListCorporateClients)
+	r.Get("/clients/frequent", s.handleListFrequentClients)
 	r.Get("/clients/{id}", s.handleGetClient)
 	r.Post("/clients", s.handleCreateCorporateClient)
+	r.Post("/clients/frequent", s.handleCreateFrequentClient)
+	r.Put("/clients/frequent/{id}", s.handleUpdateFrequentClient)
+	r.Delete("/clients/frequent/{id}", s.handleDeleteFrequentClient)
 	r.Put("/clients/{id}", s.handleUpdateCorporateClient)
 	r.Delete("/clients/{id}", s.handleDeleteCorporateClient)
 }
@@ -30,7 +34,7 @@ func (s *Server) handleCreateCorporateClient(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	if err := s.requireRole(authUser, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -54,6 +58,105 @@ func (s *Server) handleCreateCorporateClient(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusCreated, map[string]any{"message": "Client created successfully", "clientId": createdUser.ID})
 }
 
+func (s *Server) handleListFrequentClients(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
+	items, err := s.services.Clients.ListFrequentClients(r.Context(), r.URL.Query().Get("provider"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
+func (s *Server) handleCreateFrequentClient(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	var req struct {
+		Provider       string  `json:"provider"`
+		CompanyName    *string `json:"company_name"`
+		ClientName     string  `json:"client_name"`
+		Phone          *string `json:"phone"`
+		ContractNumber *string `json:"contract_number"`
+		Notes          *string `json:"notes"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	item, err := s.services.Clients.CreateFrequentClient(
+		r.Context(),
+		req.Provider,
+		req.ClientName,
+		req.CompanyName,
+		req.Phone,
+		req.ContractNumber,
+		req.Notes,
+	)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (s *Server) handleUpdateFrequentClient(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	var req struct {
+		CompanyName    *string `json:"company_name"`
+		ClientName     string  `json:"client_name"`
+		Phone          *string `json:"phone"`
+		ContractNumber *string `json:"contract_number"`
+		Notes          *string `json:"notes"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	item, err := s.services.Clients.UpdateFrequentClient(
+		r.Context(),
+		chi.URLParam(r, "id"),
+		req.ClientName,
+		req.CompanyName,
+		req.Phone,
+		req.ContractNumber,
+		req.Notes,
+	)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func (s *Server) handleDeleteFrequentClient(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if err := s.services.Clients.DeleteFrequentClient(r.Context(), chi.URLParam(r, "id")); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Deleted"})
+}
+
 func (s *Server) handleGetClient(w http.ResponseWriter, r *http.Request) {
 	user, err := s.services.Auth.Me(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
@@ -68,7 +171,7 @@ func (s *Server) handleUpdateCorporateClient(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	if err := s.requireRole(authUser, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -96,7 +199,7 @@ func (s *Server) handleDeleteCorporateClient(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	if err := s.requireRole(authUser, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}

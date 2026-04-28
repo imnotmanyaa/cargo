@@ -1,7 +1,8 @@
-import { Sun, Moon, Menu, Search, Globe, LogOut, Bell } from 'lucide-react';
+import { Sun, Moon, Menu, Search, Globe, LogOut, Bell, Info } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { withApiBase, wsBaseFromApi } from '../lib/api-base';
 
 interface TopBarProps {
   theme: 'light' | 'dark';
@@ -15,6 +16,8 @@ interface Notification {
   id: number;
   message: string;
   read: boolean;
+  type?: string;
+  related_id?: string;
   created_at: string;
 }
 
@@ -25,14 +28,21 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   const currentTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [langOpen, setLangOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const langRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user?.id) {
       fetchNotifications();
+      const poll = window.setInterval(fetchNotifications, 15000);
 
       // Setup socket listener
-      const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const socket = new WebSocket(socketProtocol + '//' + window.location.host + '/ws');
+      const wsBase = wsBaseFromApi();
+      const socketUrl = wsBase ? `${wsBase}/ws` : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+      const socket = new WebSocket(socketUrl);
       socket.onopen = () => {
         socket.send(JSON.stringify({ action: 'join-user', room: user.id.toString() }));
       };
@@ -49,14 +59,21 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       };
 
       return () => {
+        window.clearInterval(poll);
         socket.close();
       };
     }
   }, [user]);
 
+  useEffect(() => {
+    if (notifOpen) {
+      fetchNotifications();
+    }
+  }, [notifOpen]);
+
   const fetchNotifications = async () => {
     try {
-      const res = await fetch(`/api/notifications?userId=${user?.id}`);
+      const res = await fetch(withApiBase(`/api/notifications?userId=${user?.id}`));
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
@@ -70,13 +87,23 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
 
   const markAsRead = async (id: number) => {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+      await fetch(withApiBase(`/api/notifications/${id}/read`), { method: 'PATCH' });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {
       console.error(e);
     }
   };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const getLanguageCode = () => {
     switch (language) {
@@ -87,12 +114,14 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
     }
   };
 
-  // Проверяем, нужно ли показывать станцию и имя оператора
-  const showStationInfo = user?.role === 'operator' || user?.role === 'receiver';
+  // Проверяем, нужно ли показывать станцию и имя сотрудника (станционных ролей)
+  const showStationInfo =
+    user?.role === 'receiver' ||
+    user?.role === 'mobile_group';
 
   return (
-    <div className={`h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-3 md:px-6`}>
-      <div className="flex items-center gap-2 md:gap-4">
+    <div className={`relative z-[70] h-16 border-b ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex items-center justify-between px-2 sm:px-3 md:px-6`}>
+      <div className="flex items-center gap-1 sm:gap-2 md:gap-4 min-w-0">
         {!hideSidebarButtons && (
           <button
             onClick={onToggleLeftSidebar}
@@ -102,7 +131,7 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           </button>
         )}
 
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg ${isDark ? 'bg-blue-600' : 'bg-blue-600'} flex items-center justify-center`}>
             <span className="text-white font-semibold text-base md:text-lg">CT</span>
           </div>
@@ -128,22 +157,25 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-4">
-        {/* Поиск - скрываем на очень маленьких экранах */}
-        <div className={`relative hidden md:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder={t('search')}
-            className={`pl-10 pr-4 py-2 rounded-lg border w-32 lg:w-auto ${isDark
-              ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
-              : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          />
-        </div>
+      <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-shrink-0">
+        {/* Поиск — скрываем для мобильной группы и на маленьких экранах */}
+        {user?.role !== 'mobile_group' && (
+          <div className={`relative hidden md:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder={t('search')}
+              className={`pl-10 pr-4 py-2 rounded-lg border w-32 lg:w-auto ${isDark
+                ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
+                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500'
+                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+          </div>
+        )}
 
-        <div className="relative group">
+        <div ref={notifRef} className="relative">
           <button
+            onClick={() => { setNotifOpen(o => !o); setLangOpen(false); }}
             className={`p-2 rounded-lg relative ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
           >
             <Bell className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
@@ -152,67 +184,63 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
             )}
           </button>
 
-          <div className={`absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <div className={`p-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h3 className={`font-semibold ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('notifications')}</h3>
+          {notifOpen && (
+            <div
+              className={`fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-80 max-h-[70vh] sm:max-h-96 overflow-y-auto rounded-lg shadow-lg border z-[90] ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+            >
+              <div className={`p-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                <h3 className={`font-semibold ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('notifications') || 'Уведомления'}</h3>
+              </div>
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">Нет новых уведомлений</div>
+              ) : (
+                notifications.map(n => (
+                  <div
+                    key={n.id}
+                    className={`p-3 border-b last:border-0 cursor-pointer ${!n.read ? (isDark ? 'bg-blue-900/20' : 'bg-blue-50') : ''} ${isDark ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'}`}
+                    onClick={() => {
+                      markAsRead(n.id);
+                      setSelectedNotification(n);
+                    }}
+                  >
+                    <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{n.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                  </div>
+                ))
+              )}
             </div>
-            {notifications.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 text-sm">Нет новых уведомлений</div>
-            ) : (
-              notifications.map(n => (
-                <div
-                  key={n.id}
-                  className={`p-3 border-b last:border-0 hover:bg-opacity-50 ${!n.read ? (isDark ? 'bg-blue-900/20' : 'bg-blue-50') : ''} ${isDark ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'}`}
-                  onClick={() => markAsRead(n.id)}
-                >
-                  <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{n.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
-                </div>
-              ))
-            )}
-          </div>
+          )}
         </div>
 
-        <div className="relative group">
+        <div ref={langRef} className="relative">
           <button
+            onClick={() => { setLangOpen(o => !o); setNotifOpen(false); }}
             className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
           >
             <Globe className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
-            <span className={`text-xs md:text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{getLanguageCode()}</span>
+            <span className={`hidden sm:inline text-xs md:text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{getLanguageCode()}</span>
           </button>
 
-          <div className={`absolute right-0 mt-2 w-40 rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-            }`}>
-            <div className="py-1">
-              <button
-                onClick={() => setLanguage('ru')}
-                className={`w-full px-4 py-2 text-left text-sm ${language === 'ru'
-                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                  }`}
-              >
-                Русский
-              </button>
-              <button
-                onClick={() => setLanguage('en')}
-                className={`w-full px-4 py-2 text-left text-sm ${language === 'en'
-                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                  }`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => setLanguage('kk')}
-                className={`w-full px-4 py-2 text-left text-sm ${language === 'kk'
-                  ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
-                  : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
-                  }`}
-              >
-                Қазақша
-              </button>
+          {langOpen && (
+            <div className={`fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-40 rounded-lg shadow-lg border z-[90] ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <div className="py-1">
+                {(['ru', 'en', 'kk'] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => { setLanguage(lang); setLangOpen(false); }}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
+                      language === lang
+                        ? isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-700'
+                        : isDark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'
+                    }`}
+                  >
+                    {language === lang && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
+                    {lang === 'ru' ? 'Русский' : lang === 'en' ? 'English' : 'Қазақша'}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <button
@@ -238,11 +266,47 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
           <button
             onClick={onToggleRightSidebar}
             className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+            title="Инструкция"
           >
-            <Menu className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
+            <Info className={`w-4 h-4 md:w-5 md:h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
           </button>
         )}
       </div>
+
+      {selectedNotification && (
+        <div className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4" onClick={() => setSelectedNotification(null)}>
+          <div
+            className={`w-full max-w-lg rounded-lg border shadow-xl ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`px-4 py-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className={`font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Детали уведомления</div>
+            </div>
+            <div className="p-4 space-y-3">
+              <p className={`text-sm whitespace-pre-line ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{selectedNotification.message}</p>
+              <p className="text-xs text-gray-500">{new Date(selectedNotification.created_at).toLocaleString()}</p>
+              <div className="flex gap-2 justify-end">
+                {selectedNotification.related_id && (
+                  <button
+                    onClick={() => {
+                      window.location.href = `/shipment/${selectedNotification.related_id}`;
+                    }}
+                    className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Открыть груз
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedNotification(null)}
+                  className={`px-3 py-2 text-sm rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -68,7 +68,7 @@ const translations = {
     ticketNumber: 'Номер билета',
     ticketDiscount: 'Применена скидка 50% по билету',
     weight: 'Вес (кг)',
-    dimensions: 'Габариты (см)',
+    quantityPlaces: 'Количество мест',
     dimensionsPlaceholder: 'Длина × Ширина × Высота',
     cargoValue: 'Ценность груза',
     fragile: 'Хрупкий',
@@ -209,7 +209,7 @@ const translations = {
     newShipmentButton: 'Новая отправка',
 
     // Manager Dashboard
-    managerDashboard: 'Панель руководителя',
+    managerDashboard: 'Панель менеджера',
     managerDashboardDesc: 'Аналитика и статистика работы системы',
     monthlyShipments: 'Запланировано перевозок',
     completedShipments: 'Выполнено перевозок',
@@ -276,7 +276,7 @@ const translations = {
     operator: 'Менеджер',
     receiver: 'Приёмщик',
     roleAdmin: 'Администратор',
-    roleManager: 'Руководитель',
+    roleManager: 'Менеджер',
     roleAuditor: 'Ревизор',
     roleMobileGroup: 'Мобильная группа',
 
@@ -374,9 +374,37 @@ const translations = {
     loadingPlan: 'План',
     arrivalTab: 'Прибытие',
     auditTab: 'Журнал',
+    searchLogs: 'Поиск по ID груза, действию...',
+    noLogs: 'Нет записей в журнале.',
+    entity: 'Сущность',
+    newValue: 'Новое значение: ',
     noCargoToLoad: 'Нет грузов для погрузки',
     scanQrPlaceholder: 'Сканируй QR-код...',
     loadButton: 'Погрузить',
+
+    // Mobile Group (AuditorTerminal)
+    logoutBtn: 'Выход',
+    networkError: 'Ошибка сети',
+    mobileGroupReady: 'Готов к сканированию',
+    mobileGroupTitle: 'Мобильная группа',
+    mobileGroupSubtitle: 'Станция',
+    mobileGroupStationNotSet: 'Станция не задана',
+    mobileGroupChecked: 'Проверено',
+    mobileGroupApproved: 'Одобрено',
+    mobileGroupRejected: 'Отклонено',
+    mobileGroupMismatch: 'Несовп. станции',
+    mobileGroupShift: 'Смена',
+    mobileGroupScanTitle: 'Сканирование груза',
+    mobileGroupScanDesc: 'Введите номер отправки вручную или используйте сканер штрихкода — нажмите Enter для проверки',
+    mobileGroupScanPlaceholder: 'Наведите сканер или введите номер...',
+    mobileGroupChecking: 'Проверка...',
+    mobileGroupCheckButton: 'Проверить груз',
+    mobileGroupReadOnly: 'Режим только чтения — статус груза не изменяется',
+    mobileGroupHistory: 'Журнал проверок',
+    mobileGroupSuccess: 'УСПЕХ',
+    mobileGroupError: 'ОШИБКА',
+    mobileGroupRoute: 'Маршрут:',
+    mobileGroupCurrentStation: 'Текущая станция:',
   },
 
   en: {
@@ -436,7 +464,7 @@ const translations = {
     ticketNumber: 'Ticket Number',
     ticketDiscount: '50% discount applied with ticket',
     weight: 'Weight (kg)',
-    dimensions: 'Dimensions (cm)',
+    quantityPlaces: 'Number of places',
     dimensionsPlaceholder: 'Length × Width × Height',
     cargoValue: 'Cargo Value',
     fragile: 'Fragile',
@@ -577,7 +605,7 @@ const translations = {
     newShipmentButton: 'New Shipment',
 
     // Manager Dashboard
-    managerDashboard: 'Manager Dashboard',
+    managerDashboard: 'Manager Panel',
     managerDashboardDesc: 'Analytics and system performance statistics',
     monthlyShipments: 'Planned shipments',
     completedShipments: 'Completed shipments',
@@ -742,9 +770,37 @@ const translations = {
     loadingPlan: 'Plan',
     arrivalTab: 'Arrival',
     auditTab: 'Log',
+    searchLogs: 'Search by shipment ID, action...',
+    noLogs: 'No logs found.',
+    entity: 'Entity',
+    newValue: 'New value: ',
     noCargoToLoad: 'No cargo to load',
     scanQrPlaceholder: 'Scan QR code...',
     loadButton: 'Load',
+
+    // Mobile Group (AuditorTerminal)
+    logoutBtn: 'Logout',
+    networkError: 'Network Error',
+    mobileGroupReady: 'Ready to scan',
+    mobileGroupTitle: 'Mobile Group',
+    mobileGroupSubtitle: 'Station',
+    mobileGroupStationNotSet: 'Station not set',
+    mobileGroupChecked: 'Checked',
+    mobileGroupApproved: 'Approved',
+    mobileGroupRejected: 'Rejected',
+    mobileGroupMismatch: 'Station mismatch',
+    mobileGroupShift: 'Shift',
+    mobileGroupScanTitle: 'Cargo scanning',
+    mobileGroupScanDesc: 'Enter shipment number manually or use a barcode scanner — press Enter to check',
+    mobileGroupScanPlaceholder: 'Point scanner or enter number...',
+    mobileGroupChecking: 'Checking...',
+    mobileGroupCheckButton: 'Check cargo',
+    mobileGroupReadOnly: 'Read-only mode — cargo status is not changed',
+    mobileGroupHistory: 'Inspection log',
+    mobileGroupSuccess: 'SUCCESS',
+    mobileGroupError: 'ERROR',
+    mobileGroupRoute: 'Route:',
+    mobileGroupCurrentStation: 'Current station:',
   },
 
   kk: {
@@ -804,7 +860,7 @@ const translations = {
     ticketNumber: 'Билет нөмірі',
     ticketDiscount: 'Билет бойынша 50% жеңілдік қолданылды',
     weight: 'Салмақ (кг)',
-    dimensions: 'Өлшемдер (см)',
+    quantityPlaces: 'Орын саны',
     dimensionsPlaceholder: 'Ұзындығы × Ені × Биіктігі',
     cargoValue: 'Жүк құндылығы',
     fragile: 'Сынғыш',
@@ -945,7 +1001,7 @@ const translations = {
     newShipmentButton: 'Жаңа жөнелту',
 
     // Manager Dashboard
-    managerDashboard: 'Басқару панелі',
+    managerDashboard: 'Менеджер панелі',
     managerDashboardDesc: 'Аналитика және жүйенің іштету статистикасы',
     monthlyShipments: 'Айлық жөнелтулер',
     completedShipments: 'Жүргізілген жөнелтулер',
@@ -1012,7 +1068,7 @@ const translations = {
     operator: 'Менеджер',
     receiver: 'Қабылдаушы',
     roleAdmin: 'Әкімші',
-    roleManager: 'Басшы',
+    roleManager: 'Менеджер',
     roleAuditor: 'Ревизор',
     roleMobileGroup: 'Мобильді топ',
 
@@ -1054,24 +1110,24 @@ const translations = {
     pay: 'Төлеу',
     processing: 'Өңделуде...',
     topUp: 'Толықтыру',
-    myShipments: 'Мои отправки',
-    myShipmentsDesc: 'Управление корпоративными перевозками',
-    activeShipments: 'Активные отправки',
-    pendingPickup: 'Ожидают забора',
-    totalThisMonth: 'Всего за месяц',
-    avgDeliveryTime: 'Среднее время доставки',
-    days: 'дней',
-    createNewShipment: 'Создать отправку',
-    recentShipments: 'Недавние отправки',
-    viewAll: 'Посмотреть все',
+    myShipments: 'Менің жөнелтулерім',
+    myShipmentsDesc: 'Корпоративтік тасымалдарды басқару',
+    activeShipments: 'Белсенді жөнелтулер',
+    pendingPickup: 'Алып кетуді күтуде',
+    totalThisMonth: 'Бір айдағы барлығы',
+    avgDeliveryTime: 'Орташа жеткізу уақыты',
+    days: 'күн',
+    createNewShipment: 'Жөнелтуді жасау',
+    recentShipments: 'Жақындағы жөнелтулер',
+    viewAll: 'Барлығын көру',
     deposit: 'Депозит',
-    thisMonth: 'За месяц',
-    documents: 'Документы',
-    generateDocuments: 'Сформировать документы',
-    invoice: 'Счёт-фактура',
-    actOfWork: 'Акт выполненных работ',
+    thisMonth: 'Бір айда',
+    documents: 'Құжаттар',
+    generateDocuments: 'Құжаттарды қалыптастыру',
+    invoice: 'Шот-фактура',
+    actOfWork: 'Орындалған жұмыстар актісі',
 
-    waybillRegistry: 'Реестр накладных',
+    waybillRegistry: 'Жүкқұжаттар тізілімі',
 
     // Individual Dashboard
     individualDashboard: 'Жеке кабинет',
@@ -1110,21 +1166,58 @@ const translations = {
     loadingPlan: 'Жоспар',
     arrivalTab: 'Келу',
     auditTab: 'Журнал',
+    searchLogs: 'Жүк ID, әрекет бойынша іздеу...',
+    noLogs: 'Журналда жазбалар жоқ.',
+    entity: 'Нысан',
+    newValue: 'Жаңа мән: ',
     noCargoToLoad: 'Жүктеуге жүк жоқ',
     scanQrPlaceholder: 'QR-код сканерлеңіз...',
     loadButton: 'Жүктеу',
+
+    // Mobile Group (AuditorTerminal)
+    logoutBtn: 'Шығу',
+    networkError: 'Желі қатесі',
+    mobileGroupReady: 'Сканерлеуге дайын',
+    mobileGroupTitle: 'Мобильді топ',
+    mobileGroupSubtitle: 'Станция',
+    mobileGroupStationNotSet: 'Станция белгіленбеген',
+    mobileGroupChecked: 'Тексерілді',
+    mobileGroupApproved: 'Мақұлданды',
+    mobileGroupRejected: 'Қабылданбады',
+    mobileGroupMismatch: 'Станция сәйкессіздігі',
+    mobileGroupShift: 'Ауысым',
+    mobileGroupScanTitle: 'Жүкті сканерлеу',
+    mobileGroupScanDesc: 'Жөнелту нөмірін қолмен енгізіңіз немесе сканерді пайдаланыңыз — тексеру үшін Enter басыңыз',
+    mobileGroupScanPlaceholder: 'Сканерді бағыттаңыз немесе нөмірді енгізіңіз...',
+    mobileGroupChecking: 'Тексерілуде...',
+    mobileGroupCheckButton: 'Жүкті тексеру',
+    mobileGroupReadOnly: 'Тек оқу режимі — жүктің мәртебесі өзгермейді',
+    mobileGroupHistory: 'Тексеру журналы',
+    mobileGroupSuccess: 'СӘТТІ',
+    mobileGroupError: 'ҚАТЕ',
+    mobileGroupRoute: 'Бағыт:',
+    mobileGroupCurrentStation: 'Ағымдағы станция:',
   }
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>('ru');
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem('lang');
+    if (saved === 'ru' || saved === 'en' || saved === 'kk') return saved;
+    return 'ru';
+  });
+
+  const handleSetLanguage = (lang: Language) => {
+    localStorage.setItem('lang', lang);
+    setLanguage(lang);
+  };
 
   const t = (key: string): string => {
     return translations[language][key as keyof typeof translations.ru] || key;
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

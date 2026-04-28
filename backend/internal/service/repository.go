@@ -17,11 +17,16 @@ type Repository interface {
 	DeleteEmployee(ctx context.Context, id string) error
 	ListCorporateClients(ctx context.Context) ([]model.User, error)
 	TopUpDeposit(ctx context.Context, userID string, amount float64) (float64, error)
+	ListFrequentClients(ctx context.Context, provider string) ([]model.FrequentClient, error)
+	CreateFrequentClient(ctx context.Context, client model.FrequentClient) (model.FrequentClient, error)
+	UpdateFrequentClient(ctx context.Context, id, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error)
+	DeleteFrequentClient(ctx context.Context, id string) error
 
 	ListRoles(ctx context.Context) ([]model.RoleRecord, error)
 	ListStations(ctx context.Context) ([]model.Station, error)
 	CreateStation(ctx context.Context, station model.Station) (model.Station, error)
 	UpdateStation(ctx context.Context, station model.Station) (model.Station, error)
+	UpsertStationByCode(ctx context.Context, station model.Station) (model.Station, error)
 
 	CreateShipment(ctx context.Context, shipment model.Shipment) (model.Shipment, error)
 	GetShipmentByID(ctx context.Context, id string) (model.Shipment, error)

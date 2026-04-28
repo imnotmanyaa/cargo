@@ -12,7 +12,6 @@ import { ActiveShipments } from './components/ActiveShipments';
 import { Transit } from './components/Transit';
 import { Arrival } from './components/Arrival';
 import { Reports } from './components/Reports';
-import { WMS } from './components/WMS';
 import { Settings } from './components/Settings';
 import { CorporateClients } from './components/CorporateClients';
 import { AuditLog } from './components/AuditLog';
@@ -25,8 +24,12 @@ import { ManagerDashboard } from './components/ManagerDashboard';
 import { ShipmentActionPage } from './components/ShipmentActionPage';
 import { ScannerTerminal } from './components/ScannerTerminal';
 import { DailySheet } from './components/DailySheet';
+import { FrequentClients } from './components/FrequentClients';
+import { QrLogin } from './components/QrLogin';
+import DoorToDoorShipments from './components/DoorToDoorShipments';
 
-import { AuditorTerminal } from './components/AuditorTerminal';
+import { ZebraTerminal } from './components/ZebraTerminal';
+import { LeaderOverview } from './components/LeaderOverview';
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
@@ -35,17 +38,37 @@ function AppContent() {
       const saved = localStorage.getItem('currentPage');
       if (saved) return saved;
     }
-    return user?.role === 'manager' || user?.role === 'admin' ? 'dashboard' : 'new-shipment';
+    return user?.role === 'admin' || user?.role === 'direction_head' || user?.role === 'chief_head' ? 'dashboard' : 'new-shipment';
   });
   // На мобильных закрыты по умолчанию, на десктопе открыты (оба на lg - 1024px)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [individualPage, setIndividualPage] = useState<'dashboard' | 'new-shipment'>('dashboard');
+  const [corporatePage, setCorporatePage] = useState<'dashboard' | 'new-shipment'>('dashboard');
 
   // Check for public tracking URL
   const [trackingId, setTrackingId] = useState<string | null>(null);
   const [shipmentActionId, setShipmentActionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.role) return;
+    const allowedByRole: Record<string, string[]> = {
+      manager: ['new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients'],
+      direction_head: ['dashboard'],
+      chief_head: ['dashboard'],
+      receiver: ['receiver'],
+      mobile_group: ['auditor'],
+      corporate: ['corporate-dashboard'],
+      individual: ['dashboard', 'new-shipment'],
+    };
+    const allowed = allowedByRole[user.role] || ['new-shipment'];
+    if (!allowed.includes(currentPage)) {
+      setCurrentPage(allowed[0]);
+      localStorage.setItem('currentPage', allowed[0]);
+    }
+  }, [user?.role, currentPage]);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -69,6 +92,9 @@ function AppContent() {
 
   // Standalone scanner terminal — available for scanning roles
   const path = window.location.pathname;
+  if (path === '/qr-login') {
+    return <QrLogin />;
+  }
   if (path === '/scanner' && isAuthenticated) {
     return <ScannerTerminal />;
   }
@@ -76,7 +102,7 @@ function AppContent() {
     return <DailySheet />;
   }
   if (path === '/auditor' && isAuthenticated) {
-    return <AuditorTerminal />;
+    return <ZebraTerminal />;
   }
 
   if (!isAuthenticated) {
@@ -105,14 +131,9 @@ function AppContent() {
     );
   }
 
-  // Inspector/Auditor Dashboard (ревизор — проверка легитимности груза)
-  if (user?.role === 'auditor') {
-    return <AuditorTerminal />;
-  }
-
-  // Mobile Group Dashboard (мобильная инспекционная группа — такой же интерфейс как у ревизора)
+  // Mobile Group — терминал для Zebra TSD (Android 4, WebView)
   if (user?.role === 'mobile_group') {
-    return <AuditorTerminal />;
+    return <ZebraTerminal />;
   }
 
 
@@ -131,7 +152,17 @@ function AppContent() {
         <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
             <div className="p-4 md:p-8">
-              <CorporateDashboard theme={theme} />
+              {corporatePage === 'dashboard' ? (
+                <CorporateDashboard 
+                  theme={theme} 
+                  onCreateShipment={() => setCorporatePage('new-shipment')} 
+                />
+              ) : (
+                <NewShipment
+                  theme={theme}
+                  onBack={() => setCorporatePage('dashboard')}
+                />
+              )}
             </div>
           </main>
         </div>
@@ -190,6 +221,28 @@ function AppContent() {
     );
   }
 
+  // Leadership view: single page (dashboard + reports), no other navigation.
+  if (user?.role === 'direction_head' || user?.role === 'chief_head') {
+    return (
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <TopBar
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          onToggleLeftSidebar={() => {}}
+          onToggleRightSidebar={() => {}}
+          hideSidebarButtons={true}
+        />
+        <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
+          <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <div className="p-4 md:p-6 lg:p-8 min-w-0">
+              <LeaderOverview theme={theme} />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   const renderPage = () => {
     switch (currentPage) {
       case 'new-shipment':
@@ -204,16 +257,18 @@ function AppContent() {
         return <Arrival theme={theme} />;
       case 'reports':
         return <Reports theme={theme} />;
-      case 'wms':
-        return <WMS theme={theme} />;
       case 'settings':
-        return <Settings theme={theme} />;
+        return <Settings theme={theme} setTheme={setTheme} />;
       case 'corporate':
         return <CorporateClients theme={theme} />;
       case 'audit':
         return <AuditLog theme={theme} />;
       case 'payments':
         return <PaymentLog theme={theme} />;
+      case 'frequent-clients':
+        return <FrequentClients theme={theme} />;
+      case 'door-to-door':
+        return <DoorToDoorShipments />;
       default:
         return <NewShipment theme={theme} />;
     }
@@ -232,7 +287,7 @@ function AppContent() {
         {/* Backdrop для закрытия левого сайдбара на мобильных (невидимый) */}
         {leftSidebarOpen && (
           <div
-            className="fixed inset-0 z-30 lg:hidden"
+            className="fixed inset-0 z-30 lg:hidden bg-black/30"
             style={{ top: '64px' }}
             onClick={() => setLeftSidebarOpen(false)}
           />
@@ -240,7 +295,7 @@ function AppContent() {
 
         {/* Левый сайдбар - показываем только когда открыт ИЛИ на десктопе */}
         {leftSidebarOpen && (
-          <div className="fixed lg:static z-40 lg:z-0 h-full">
+          <div className="fixed lg:static z-40 lg:z-0 left-0 top-16 bottom-0 shadow-xl lg:shadow-none">
             <LeftSidebar
               currentPage={currentPage}
               userRole={user?.role}
@@ -265,7 +320,7 @@ function AppContent() {
         {/* Backdrop для закрытия правого сайдбара на мобильных (невидимй) */}
         {rightSidebarOpen && (
           <div
-            className="fixed inset-0 z-30 lg:hidden"
+            className="fixed inset-0 z-30 lg:hidden bg-black/30"
             style={{ top: '64px' }}
             onClick={() => setRightSidebarOpen(false)}
           />
@@ -274,7 +329,7 @@ function AppContent() {
         {/* Правый сайдбар - показываем только когда открыт ИЛИ на десктопе */}
         {rightSidebarOpen && (
           <div className="fixed lg:static z-40 lg:z-0 right-0 h-full">
-            <RightSidebar currentPage={currentPage} theme={theme} />
+            <RightSidebar currentPage={currentPage} theme={theme} onClose={() => setRightSidebarOpen(false)} />
           </div>
         )}
       </div>

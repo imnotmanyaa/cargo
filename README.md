@@ -3,7 +3,7 @@
 Перейдите в папку `backend` и запустите сервер:
 
 ```bash
-cd /Users/imnotmanya/Desktop/cargo-figma-update/backend
+cd /Users/imnotmanya/Desktop/cargo/backend
 go run ./cmd/server
 ```
 
@@ -73,3 +73,11 @@ pkill -f "go run ./cmd/server"; kill $(lsof -ti:8080) 2>/dev/null; kill $(lsof -
 2. Добавить подключение:
    - Host: `localhost` | Port: `5432`
    - Database: `cargotrans` | User: `postgres` | Password: `postgres`
+
+---
+
+## Деплой в Railway
+
+Пошаговая инструкция для прод-деплоя:
+
+- `DEPLOY_RAILWAY.md`

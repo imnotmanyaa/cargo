@@ -19,9 +19,9 @@ func main() {
 	}
 	defer db.Close()
 
-	// if err := db.Migrate(); err != nil {
-	// 	log.Fatalf("migrate postgres: %v", err)
-	// }
+	if err := db.Migrate(); err != nil {
+		log.Fatalf("migrate postgres: %v", err)
+	}
 
 	repo := postgres.NewRepository(db.Pool())
 	services := service.NewServices(repo, cfg.JWTSecret)

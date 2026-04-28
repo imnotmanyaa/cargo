@@ -205,7 +205,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                         )}
                       </div>
 
-                      <div className={`grid grid-cols-2 gap-x-8 gap-y-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{t('binContract')}</span>
                           <span>{client.contract_number || '-'}</span>
@@ -259,7 +259,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
       {/* Add Client Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className={`w-full max-w-2xl p-6 rounded-lg shadow-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className={`w-full max-w-2xl mx-4 p-6 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {editingClientId ? t('edit') : t('addCorporateClient')}
@@ -273,7 +273,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
             </div>
 
             <form onSubmit={handleCreateClient} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('companyName')}</label>
                   <input
@@ -307,7 +307,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
                   <input
@@ -332,7 +332,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('passwordLabel')}</label>
                   <input

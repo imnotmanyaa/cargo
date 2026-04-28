@@ -32,7 +32,7 @@ func (s *Server) handleScanShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleLoading, model.RoleTransit, model.RoleReceiver, model.RoleIssue, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleLoading, model.RoleTransit, model.RoleReceiver, model.RoleIssue, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}

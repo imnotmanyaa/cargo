@@ -11,7 +11,7 @@ export function Reports({ theme }: { theme?: 'light' | 'dark' }) {
         <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>{t('reportsDesc')}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className={`rounded-lg shadow-sm border p-6 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">

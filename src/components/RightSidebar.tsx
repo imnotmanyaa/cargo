@@ -1,12 +1,14 @@
 import { useLanguage } from '../contexts/LanguageContext';
+import { X } from 'lucide-react';
 
 
 interface RightSidebarProps {
   currentPage: string;
   theme: 'light' | 'dark';
+  onClose?: () => void;
 }
 
-export function RightSidebar({ currentPage, theme }: RightSidebarProps) {
+export function RightSidebar({ currentPage, theme, onClose }: RightSidebarProps) {
   const isDark = theme === 'dark';
   const { t, language } = useLanguage();
 
@@ -25,10 +27,10 @@ export function RightSidebar({ currentPage, theme }: RightSidebarProps) {
               number: 1,
               title: language === 'ru' ? 'Система автоматически рассчитывает стоимость' : language === 'en' ? 'System automatically calculates cost' : 'Жүйе құнды автоматты түрде есептейді',
               description: language === 'ru' 
-                ? 'Стоимость рассчитывается на основе маршрута, веса/габаритов и не касается посторонних параметров.'
+                ? 'Стоимость рассчитывается на основе маршрута и веса груза.'
                 : language === 'en'
-                ? 'Cost is calculated based on route, weight/dimensions and does not involve extraneous parameters.'
-                : 'Құн бағыт, салмақ/өлшемдер негізінде есептеледі және бөгде параметрлерге қатысты емес.'
+                ? 'Cost is calculated based on route and shipment weight.'
+                : 'Құн бағыт пен жүк салмағына қарай есептеледі.'
             },
             {
               number: 2,
@@ -151,8 +153,16 @@ export function RightSidebar({ currentPage, theme }: RightSidebarProps) {
   const instructions = getInstructions();
 
   return (
-    <div className={`w-80 h-full border-l ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} overflow-y-auto p-6`}>
-      <h2 className={`text-lg font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+    <div className={`w-80 h-full border-l ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} overflow-y-auto p-6 relative`}>
+      {onClose && (
+        <button 
+          onClick={onClose}
+          className={`absolute top-4 right-4 p-1.5 rounded-lg lg:hidden ${isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'}`}
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
+      <h2 className={`text-lg font-semibold mb-2 pr-6 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
         {instructions.title}
       </h2>
       <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>

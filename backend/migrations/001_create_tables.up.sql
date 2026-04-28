@@ -58,7 +58,8 @@ CREATE TABLE IF NOT EXISTS shipments (
 	last_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	created_by TEXT,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	CONSTRAINT shipments_from_to_station_check CHECK (lower(btrim(from_station)) <> lower(btrim(to_station)))
 );
 
 CREATE TABLE IF NOT EXISTS payments (
@@ -147,5 +148,17 @@ CREATE TABLE IF NOT EXISTS notifications (
 	read BOOLEAN NOT NULL DEFAULT FALSE,
 	type TEXT NOT NULL DEFAULT 'info',
 	related_id TEXT,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS frequent_clients (
+	id TEXT PRIMARY KEY,
+	provider TEXT NOT NULL,
+	company_name TEXT,
+	client_name TEXT NOT NULL,
+	phone TEXT,
+	contract_number TEXT,
+	notes TEXT,
+	is_active BOOLEAN NOT NULL DEFAULT TRUE,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

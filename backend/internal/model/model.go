@@ -4,12 +4,33 @@ import "time"
 
 type Role string
 
+// ClientSegment — логическое разделение в одной БД cargotrans (не три отдельных инстанса PostgreSQL).
+type ClientSegment string
+
+const (
+	ClientSegmentLegalEntity ClientSegment = "legal_entity" // юрлица (роль corporate) + быстрые клиенты
+	ClientSegmentIndividual  ClientSegment = "individual"  // физлица
+	ClientSegmentStaff       ClientSegment = "staff"      // сотрудники и служебные роли
+)
+
+// ClientSegmentForRole выставляет сегмент по роли пользователя.
+func ClientSegmentForRole(r Role) ClientSegment {
+	switch r {
+	case RoleCorporate:
+		return ClientSegmentLegalEntity
+	case RoleIndividual:
+		return ClientSegmentIndividual
+	default:
+		return ClientSegmentStaff
+	}
+}
+
 const (
 	RoleAdmin      Role = "admin"
 	RoleManager    Role = "manager"
-	RoleOperator   Role = "operator"
+	RoleDirectionHead Role = "direction_head"
+	RoleChiefHead     Role = "chief_head"
 	RoleReceiver   Role = "receiver"
-	RoleAuditor     Role = "auditor"      // Ревизор: проверка без изменения статуса (ТЗ п.4, п.7)
 	RoleMobileGroup Role = "mobile_group" // Мобильная инспекционная группа: выездная проверка груза
 	RoleLoading    Role = "loading_operator"
 	RoleTransit    Role = "transit_operator"
@@ -48,16 +69,30 @@ const (
 )
 
 type User struct {
-	ID             string    `json:"id"`
-	Name           string    `json:"name"`
-	Email          string    `json:"email"`
-	PasswordHash   string    `json:"-"`
-	Role           Role      `json:"role"`
-	Company        *string   `json:"company,omitempty"`
+	ID             string        `json:"id"`
+	Name           string        `json:"name"`
+	Email          string        `json:"email"`
+	PasswordHash   string        `json:"-"`
+	Role           Role          `json:"role"`
+	ClientSegment  ClientSegment `json:"client_segment,omitempty"`
+	Company        *string       `json:"company,omitempty"`
 	DepositBalance float64   `json:"deposit_balance,omitempty"`
 	ContractNumber *string   `json:"contract_number,omitempty"`
 	Phone          *string   `json:"phone,omitempty"`
 	Station        *string   `json:"station,omitempty"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type FrequentClient struct {
+	ID             string        `json:"id"`
+	Provider       string        `json:"provider"` // glovo, choko, other
+	ClientSegment  ClientSegment `json:"client_segment,omitempty"` // всегда legal_entity (юрлица / B2B)
+	CompanyName    *string       `json:"company_name,omitempty"`
+	ClientName     string    `json:"client_name"`
+	Phone          *string   `json:"phone,omitempty"`
+	ContractNumber *string   `json:"contract_number,omitempty"`
+	Notes          *string   `json:"notes,omitempty"`
 	IsActive       bool      `json:"is_active"`
 	CreatedAt      time.Time `json:"created_at"`
 }
@@ -103,6 +138,10 @@ type Shipment struct {
 	TrackingCode     *string           `json:"tracking_code,omitempty"`
 	QRCodeID         *string           `json:"qr_code_id,omitempty"`
 	TransportUnitID  *string           `json:"transport_unit_id,omitempty"`
+	IsDoorToDoor    bool              `json:"is_door_to_door"`
+	PickupAddress   *string           `json:"pickup_address,omitempty"`
+	DeliveryAddress *string           `json:"delivery_address,omitempty"`
+	DoorToDoorPhone *string           `json:"door_to_door_phone,omitempty"`
 	LastUpdatedAt    time.Time         `json:"last_updated_at"`
 	CreatedBy        *string           `json:"created_by,omitempty"`
 	CreatedAt        time.Time         `json:"created_at"`
@@ -207,11 +246,23 @@ type RouteRevenue struct {
 	Percentage int     `json:"percentage,omitempty"`
 }
 
+type RevenueByMonthItem struct {
+	Month   string  `json:"month"` // YYYY-MM
+	Revenue float64 `json:"revenue"`
+}
+
+type CountByStatusItem struct {
+	Status string `json:"status"`
+	Count  int    `json:"count"`
+}
+
 type DashboardReport struct {
 	MonthlyShipments   int            `json:"monthlyShipments"`
 	CompletedShipments int            `json:"completedShipments"`
 	ActiveContracts    int            `json:"activeContracts"`
 	RevenueByRoute     []RouteRevenue `json:"revenueByRoute"`
+	RevenueByMonth     []RevenueByMonthItem `json:"revenueByMonth,omitempty"`
+	WagonsByStatus     []CountByStatusItem  `json:"wagonsByStatus,omitempty"`
 }
 
 type FinanceReport struct {

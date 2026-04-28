@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -17,6 +18,35 @@ func (s *ClientService) ListCorporateClients(ctx context.Context) ([]model.User,
 
 func (s *ClientService) TopUp(ctx context.Context, userID string, amount float64) (float64, error) {
 	return s.repo.TopUpDeposit(ctx, userID, amount)
+}
+
+func (s *ClientService) ListFrequentClients(ctx context.Context, provider string) ([]model.FrequentClient, error) {
+	return s.repo.ListFrequentClients(ctx, strings.TrimSpace(strings.ToLower(provider)))
+}
+
+func (s *ClientService) CreateFrequentClient(ctx context.Context, provider, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error) {
+	provider = strings.TrimSpace(strings.ToLower(provider))
+	clientName = strings.TrimSpace(clientName)
+	if provider == "" || clientName == "" {
+		return model.FrequentClient{}, ErrValidation
+	}
+	if provider != "glovo" && provider != "choko" && provider != "other" {
+		return model.FrequentClient{}, ErrValidation
+	}
+
+	item := model.FrequentClient{
+		ID:             uuid.NewString(),
+		Provider:       provider,
+		ClientSegment:  model.ClientSegmentLegalEntity,
+		CompanyName:    companyName,
+		ClientName:     clientName,
+		Phone:          phone,
+		ContractNumber: contractNumber,
+		Notes:          notes,
+		IsActive:       true,
+		CreatedAt:      time.Now().UTC(),
+	}
+	return s.repo.CreateFrequentClient(ctx, item)
 }
 
 func (s *ClientService) CreateCorporateClient(ctx context.Context, name, email, password, company, contractNumber string, phone *string, deposit float64) (model.User, error) {
@@ -38,6 +68,7 @@ func (s *ClientService) CreateCorporateClient(ctx context.Context, name, email, 
 		Email:          email,
 		PasswordHash:   string(hash),
 		Role:           model.RoleCorporate,
+		ClientSegment:  model.ClientSegmentLegalEntity,
 		Company:        &company,
 		DepositBalance: deposit,
 		ContractNumber: &contractNumber,
@@ -65,6 +96,7 @@ func (s *ClientService) UpdateCorporateClient(ctx context.Context, id, name, com
 	if is_active != nil {
 		user.IsActive = *is_active
 	}
+	user.ClientSegment = model.ClientSegmentLegalEntity
 
 	return s.repo.UpdateUser(ctx, user)
 }
@@ -81,4 +113,16 @@ func (s *ClientService) DeleteCorporateClient(ctx context.Context, id string) er
 	user.IsActive = false
 	_, err = s.repo.UpdateUser(ctx, user)
 	return err
+}
+
+func (s *ClientService) UpdateFrequentClient(ctx context.Context, id, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error) {
+	clientName = strings.TrimSpace(clientName)
+	if clientName == "" {
+		return model.FrequentClient{}, ErrValidation
+	}
+	return s.repo.UpdateFrequentClient(ctx, id, clientName, companyName, phone, contractNumber, notes)
+}
+
+func (s *ClientService) DeleteFrequentClient(ctx context.Context, id string) error {
+	return s.repo.DeleteFrequentClient(ctx, id)
 }

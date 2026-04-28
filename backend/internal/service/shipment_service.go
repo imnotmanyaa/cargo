@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -51,6 +52,9 @@ type IssueRequest struct {
 }
 
 func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest) (model.Shipment, error) {
+	req.FromStation = strings.TrimSpace(req.FromStation)
+	req.ToStation = strings.TrimSpace(req.ToStation)
+
 	if err := validateCreateShipment(req); err != nil {
 		return model.Shipment{}, err
 	}
@@ -137,6 +141,9 @@ func (s *ShipmentService) Edit(ctx context.Context, shipment model.Shipment) (mo
 	if err != nil {
 		return model.Shipment{}, err
 	}
+	shipment.FromStation = strings.TrimSpace(shipment.FromStation)
+	shipment.ToStation = strings.TrimSpace(shipment.ToStation)
+
 	if current.ShipmentStatus != model.ShipmentCreated && current.ShipmentStatus != model.ShipmentDraft {
 		return model.Shipment{}, ErrForbidden
 	}
@@ -156,15 +163,12 @@ func (s *ShipmentService) CalculateTariff(ctx context.Context, id string) (model
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	weightSurcharge := 0.0
-	if shipment.Weight != "" {
-		var weight float64
-		fmt.Sscanf(shipment.Weight, "%f", &weight)
-		if weight > 20 {
-			weightSurcharge = (weight - 20) * 150
-		}
+	cost := calculateCostByTariff(shipment.FromStation, shipment.ToStation, shipment.Weight, shipment.Description)
+	if cost > 0 {
+		shipment.Cost = cost
+	} else if shipment.Cost == 0 {
+		shipment.Cost = 5000 // Fallback
 	}
-	shipment.Cost = 5000 + weightSurcharge
 	shipment.UpdatedAt = time.Now().UTC()
 	shipment.LastUpdatedAt = shipment.UpdatedAt
 	return s.repo.UpdateShipment(ctx, shipment)
@@ -256,6 +260,10 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 	}
 	if station != shipment.ToStation {
 		return model.Shipment{}, nil, ErrForbidden
+	}
+	// Re-scan: if already arrived/issued at this station, return without error
+	if shipment.ShipmentStatus == model.ShipmentArrived || shipment.ShipmentStatus == model.ShipmentReadyForIssue || shipment.ShipmentStatus == model.ShipmentIssued {
+		return shipment, nil, nil
 	}
 	shipment, err = s.transition(ctx, id, model.ShipmentArrived, operatorID, operatorName, &station, "Shipment arrived", nil)
 	if err != nil {
@@ -368,10 +376,10 @@ func (s *ShipmentService) CorrectAfterPayment(ctx context.Context, id string, op
 		shipment.ClientEmail = *req.ClientEmail
 	}
 	if req.FromStation != nil {
-		shipment.FromStation = *req.FromStation
+		shipment.FromStation = strings.TrimSpace(*req.FromStation)
 	}
 	if req.ToStation != nil {
-		shipment.ToStation = *req.ToStation
+		shipment.ToStation = strings.TrimSpace(*req.ToStation)
 	}
 	if req.Weight != nil {
 		shipment.Weight = *req.Weight
@@ -456,6 +464,23 @@ func (s *ShipmentService) ActionContext(ctx context.Context, id string, user *Au
 		result.AllowedActions = []string{"view"}
 		return result, nil
 	}
+	// Management roles can view shipments across the whole route/network.
+	// Direction head can view shipments that are relevant to their station (route/from/to/current/next).
+	if user.Role == model.RoleAdmin || user.Role == model.RoleManager || user.Role == model.RoleChiefHead {
+		result.UserRole = "staff"
+		result.AllowedActions = []string{"view"}
+		return result, nil
+	}
+	if user.Role == model.RoleDirectionHead {
+		station := strings.TrimSpace(user.Station)
+		if station != "" {
+			if station == shipment.FromStation || station == shipment.ToStation || station == shipment.CurrentStation || (shipment.NextStation != nil && station == *shipment.NextStation) || indexOf(shipment.Route, station) != -1 {
+				result.UserRole = "staff"
+				result.AllowedActions = []string{"view"}
+				return result, nil
+			}
+		}
+	}
 	if user.ID == shipment.ClientID {
 		result.UserRole = "sender"
 		result.AllowedActions = []string{"view"}
@@ -474,6 +499,20 @@ func (s *ShipmentService) ActionContext(ctx context.Context, id string, user *Au
 	result.UserRole = "none"
 	result.AllowedActions = []string{"view"}
 	return result, nil
+}
+
+func (s *ShipmentService) LastTransitAtStation(ctx context.Context, shipmentID, station string) (*time.Time, error) {
+	events, err := s.repo.ListTransitEvents(ctx, shipmentID)
+	if err != nil {
+		return nil, err
+	}
+	for i := len(events) - 1; i >= 0; i-- {
+		if events[i].StationID == station {
+			ts := events[i].EventTime
+			return &ts, nil
+		}
+	}
+	return nil, nil
 }
 
 func (s *ShipmentService) transition(ctx context.Context, id string, next model.ShipmentLifecycle, operatorID, operatorName, station *string, action string, transportUnitID *string, reason ...*string) (model.Shipment, error) {
@@ -558,6 +597,9 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 }
 
 func validateCreateShipment(req CreateShipmentRequest) error {
+	from := strings.TrimSpace(req.FromStation)
+	to := strings.TrimSpace(req.ToStation)
+
 	switch {
 	case req.ClientID == "":
 		return fmt.Errorf("%w: client_id is required", ErrValidation)
@@ -565,16 +607,14 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 		return fmt.Errorf("%w: client_name is required", ErrValidation)
 	case req.ClientEmail == "":
 		return fmt.Errorf("%w: client_email is required", ErrValidation)
-	case req.FromStation == "":
+	case from == "":
 		return fmt.Errorf("%w: from_station is required", ErrValidation)
-	case req.ToStation == "":
+	case to == "":
 		return fmt.Errorf("%w: to_station is required", ErrValidation)
-	case req.FromStation == req.ToStation:
+	case strings.EqualFold(from, to):
 		return fmt.Errorf("%w: route must include different stations", ErrValidation)
 	case req.Weight == "":
 		return fmt.Errorf("%w: weight is required", ErrValidation)
-	case req.Dimensions == "":
-		return fmt.Errorf("%w: dimensions are required", ErrValidation)
 	case req.QuantityPlaces <= 0:
 		return fmt.Errorf("%w: quantity_places must be greater than zero", ErrValidation)
 	}
@@ -582,21 +622,22 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 }
 
 func validateEditableShipment(shipment model.Shipment) error {
+	from := strings.TrimSpace(shipment.FromStation)
+	to := strings.TrimSpace(shipment.ToStation)
+
 	switch {
 	case shipment.ClientName == "":
 		return fmt.Errorf("%w: client_name is required", ErrValidation)
 	case shipment.ClientEmail == "":
 		return fmt.Errorf("%w: client_email is required", ErrValidation)
-	case shipment.FromStation == "":
+	case from == "":
 		return fmt.Errorf("%w: from_station is required", ErrValidation)
-	case shipment.ToStation == "":
+	case to == "":
 		return fmt.Errorf("%w: to_station is required", ErrValidation)
-	case shipment.FromStation == shipment.ToStation:
+	case strings.EqualFold(from, to):
 		return fmt.Errorf("%w: route must include different stations", ErrValidation)
 	case shipment.Weight == "":
 		return fmt.Errorf("%w: weight is required", ErrValidation)
-	case shipment.Dimensions == "":
-		return fmt.Errorf("%w: dimensions are required", ErrValidation)
 	case shipment.QuantityPlaces <= 0:
 		return fmt.Errorf("%w: quantity_places must be greater than zero", ErrValidation)
 	}

@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { withApiBase } from '../lib/api-base';
 
-type UserRole = 'operator' | 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'auditor' | 'mobile_group';
+type UserRole = 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'mobile_group';
 
 interface User {
   id: string;
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, _role?: string) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(withApiBase('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -54,14 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const error = await response.json();
           throw new Error(error.error || 'Login failed');
         } else {
-          console.error("Non-JSON error response from server", await response.text());
-          throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+          throw new Error(`Server Error: ${response.status}`);
         }
       }
 
       const data = await response.json();
-      // Map backend snake_case to frontend camelCase
-      const user: User = {
+      const userData: User = {
         ...data,
         depositBalance: data.deposit_balance,
         contractNumber: data.contract_number
@@ -71,18 +70,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('token', data.token);
       }
 
-      setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
     } catch (error: any) {
-      console.error('Login error details:', error);
-      console.error('Error stack:', error.stack);
-      alert(`${error.name}: ${error.message}`);
+      alert(error.message);
     }
   };
 
   const register = async (data: RegisterData) => {
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(withApiBase('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -94,13 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const error = await response.json();
           throw new Error(error.error || 'Registration failed');
         } else {
-          console.error("Non-JSON error response from server", await response.text());
-          throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+          throw new Error(`Server Error: ${response.status}`);
         }
       }
 
       const rawData = await response.json();
-      // Map backend snake_case to frontend camelCase (same as login)
       const userData: User = {
         ...rawData,
         depositBalance: rawData.deposit_balance,
@@ -113,19 +108,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
-      alert(`Регистрация успешна! Добро пожаловать, ${userData.name}`);
+      alert(`Регистрация успешна!`);
     } catch (error: any) {
-      console.error('Registration error:', error);
       alert(error.message);
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-  };
+  }, []);
 
+  // Global 401 handler: auto-logout on expired/invalid token.
+  // Also normalizes relative /api/... calls using VITE_API_URL.
+  useEffect(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const normalizedUrl = withApiBase(url);
+      const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
+      const isApiRequest = url.includes('/api/');
+      const token = localStorage.getItem('token');
+
+      let nextInit = init;
+      // Auto-attach bearer token for API requests when caller forgot headers.
+      if (isApiRequest && token && !(input instanceof Request)) {
+        const headers = new Headers(init?.headers || {});
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        nextInit = { ...init, headers };
+      }
+
+      const finalInput = input instanceof Request ? new Request(withApiBase(input.url), input) : normalizedUrl;
+      const response = await originalFetch(finalInput, nextInit);
+
+      if (response.status === 401 && !isAuthEndpoint && token) {
+        logout();
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [logout]);
   const updateUser = (updates: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...updates };
@@ -135,8 +162,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAuthenticated = !!user;
-
-  // Auth state is managed via React state — no logging in production
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated, register, updateUser }}>

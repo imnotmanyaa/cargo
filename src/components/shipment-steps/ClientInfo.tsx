@@ -1,4 +1,4 @@
-import { ArrowRight, Users } from "lucide-react";
+import { ArrowRight, Users, Truck } from "lucide-react";
 import { useLanguage } from "../../contexts/LanguageContext";
 
 import { useEffect, useState } from 'react';
@@ -20,19 +20,14 @@ interface CorporateClient {
   deposit_balance: number;
 }
 
-// Моковые данные клиентов от агрегаторов
-const aggregatorClients: Record<string, Array<{ id: string; name: string; phone: string; contractNumber: string }>> = {
-  glovo: [
-    { id: 'GLV-001', name: 'Ермек Асанов', phone: '+7 701 234 5678', contractNumber: 'GLV-2024-001' },
-    { id: 'GLV-002', name: 'Айгүл Сейтова', phone: '+7 702 345 6789', contractNumber: 'GLV-2024-002' },
-    { id: 'GLV-003', name: 'Нұрлан Қасымов', phone: '+7 705 456 7890', contractNumber: 'GLV-2024-003' },
-  ],
-  choko: [
-    { id: 'CHK-001', name: 'Данияр Әлімов', phone: '+7 707 567 8901', contractNumber: 'CHK-2024-001' },
-    { id: 'CHK-002', name: 'Сәуле Жұмабаева', phone: '+7 708 678 9012', contractNumber: 'CHK-2024-002' },
-    { id: 'CHK-003', name: 'Бауыржан Төлеуов', phone: '+7 775 789 0123', contractNumber: 'CHK-2024-003' },
-  ],
-};
+interface FrequentClient {
+  id: string;
+  provider: 'glovo' | 'choko' | 'other';
+  company_name?: string;
+  client_name: string;
+  phone?: string;
+  contract_number?: string;
+}
 
 export function ClientInfo({
   data,
@@ -44,7 +39,15 @@ export function ClientInfo({
   const { t } = useLanguage();
   const { user } = useAuth();
   const [isReceiverDifferent, setIsReceiverDifferent] = useState(() => !!data.receiverName || !!data.receiverPhone);
+  const [isDoorToDoor, setIsDoorToDoor] = useState(() => !!data.isDoorToDoor);
   const [corporateClients, setCorporateClients] = useState<CorporateClient[]>([]);
+  const [frequentClients, setFrequentClients] = useState<FrequentClient[]>([]);
+
+  const normalizeStation = (v: string) => v.trim().toLowerCase();
+  const sameFromTo =
+    Boolean(data.fromStation) &&
+    Boolean(data.toStation) &&
+    normalizeStation(data.fromStation) === normalizeStation(data.toStation);
 
   // Update local state if data changes externally (e.g. going back/forward)
   useEffect(() => {
@@ -60,14 +63,25 @@ export function ClientInfo({
     if (user?.role !== 'individual') {
       const fetchClients = async () => {
         try {
+          const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
           const res = await fetch('/api/clients?ts=' + Date.now(), {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers,
           });
           if (res.ok) {
             setCorporateClients(await res.json());
           }
+          const frequentRes = await fetch('/api/clients/frequent?ts=' + Date.now(), {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          if (frequentRes.ok) {
+            const frequentPayload = await frequentRes.json().catch(() => []);
+            setFrequentClients(Array.isArray(frequentPayload) ? frequentPayload : []);
+          } else {
+            setFrequentClients([]);
+          }
         } catch (error) {
           console.error(error);
+          setFrequentClients([]);
         }
       };
       fetchClients();
@@ -95,6 +109,8 @@ export function ClientInfo({
       updates.clientType = 'legal';
       updates.clientName = user.company || user.name;
       updates.contractNumber = user.contractNumber || '';
+      updates.hasDeposit = true;
+      updates.paymentMethod = 'deposit';
     }
 
     if (Object.keys(updates).length > 0) {
@@ -107,7 +123,7 @@ export function ClientInfo({
     onUpdate({ clientSource: source });
 
     // Если выбран агрегатор, очищаем данные клиента для нового выбора
-    if (source === 'glovo' || source === 'choko') {
+    if (source === 'glovo' || source === 'choko' || source.startsWith('other:')) {
       onUpdate({
         clientSource: source,
         aggregatorClientId: '',
@@ -126,24 +142,36 @@ export function ClientInfo({
 
   // Автозаполнение данных клиента при выборе из списка агрегатора
   const handleAggregatorClientSelect = (clientId: string) => {
-    const source = data.clientSource;
-    if (source === 'glovo' || source === 'choko') {
-      const clients = aggregatorClients[source];
-      const selectedClient = clients.find(c => c.id === clientId);
+    const selectedClient = frequentClients.find(c => c.id === clientId);
 
-      if (selectedClient) {
-        onUpdate({
-          aggregatorClientId: clientId,
-          clientName: selectedClient.name,
-          clientPhone: selectedClient.phone,
-          contractNumber: selectedClient.contractNumber
-        });
-      }
+    if (selectedClient) {
+      onUpdate({
+        aggregatorClientId: clientId,
+        clientName: selectedClient.client_name,
+        clientPhone: selectedClient.phone || '',
+        contractNumber: selectedClient.contract_number || ''
+      });
     }
   };
 
-  const isAggregatorSource = data.clientSource === 'glovo' || data.clientSource === 'choko';
-  const currentAggregatorClients = isAggregatorSource ? aggregatorClients[data.clientSource] : [];
+  const isOtherCompanySource = typeof data.clientSource === 'string' && data.clientSource.startsWith('other:');
+  const selectedOtherCompany = isOtherCompanySource ? data.clientSource.slice('other:'.length) : '';
+  const isAggregatorSource = data.clientSource === 'glovo' || data.clientSource === 'choko' || isOtherCompanySource;
+  const currentAggregatorClients = isAggregatorSource
+    ? frequentClients.filter(c => {
+        if (!isOtherCompanySource) {
+          return c.provider === data.clientSource;
+        }
+        return c.provider === 'other' && (c.company_name || '') === selectedOtherCompany;
+      })
+    : [];
+  const otherCompanies = Array.from(
+    new Set(
+      frequentClients
+        .filter(c => c.provider === 'other' && c.company_name)
+        .map(c => c.company_name as string)
+    )
+  ).sort((a, b) => a.localeCompare(b));
 
   return (
     <div className={`rounded-lg shadow-sm border p-8 ${isDark
@@ -153,8 +181,8 @@ export function ClientInfo({
       <h2 className={`text-xl font-semibold mb-6 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('clientInfo')}</h2>
 
       <div className="space-y-6">
-        {/* Показываем выбор типа клиента только для оператора */}
-        {user?.role !== 'individual' && (
+        {/* Показываем выбор типа клиента только для оператора/менеджера/админа */}
+        {!['individual', 'corporate'].includes(user?.role || '') && (
           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {t('clientType')}
@@ -185,7 +213,7 @@ export function ClientInfo({
         )}
 
         {/* Показываем выбор источника клиента только для оператора и только для физических лиц */}
-        {user?.role !== 'individual' && data.clientType === 'individual' && (
+        {!['individual', 'corporate'].includes(user?.role || '') && data.clientType === 'individual' && (
           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {t('clientSource')}
@@ -201,6 +229,9 @@ export function ClientInfo({
               <option value="">{t('selectSource')}</option>
               <option value="glovo">Glovo</option>
               <option value="choko">Choko</option>
+              {otherCompanies.map(company => (
+                <option key={company} value={`other:${company}`}>{company}</option>
+              ))}
               <option value="direct">{t('directContact')}</option>
             </select>
           </div>
@@ -215,7 +246,7 @@ export function ClientInfo({
             <div className="flex items-center gap-2 mb-3">
               <Users className="w-5 h-5 text-blue-600" />
               <span className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-900'}`}>
-                Выберите клиента из {data.clientSource === 'glovo' ? 'Glovo' : 'Choko'}
+                Выберите клиента из {data.clientSource === 'glovo' ? 'Glovo' : data.clientSource === 'choko' ? 'Choko' : selectedOtherCompany}
               </span>
             </div>
             <select
@@ -229,7 +260,7 @@ export function ClientInfo({
               <option value="">Выберите клиента...</option>
               {currentAggregatorClients.map(client => (
                 <option key={client.id} value={client.id}>
-                  {client.name} - {client.phone}
+                  {client.client_name}{client.company_name ? ` (${client.company_name})` : ''}{client.phone ? ` - ${client.phone}` : ''}
                 </option>
               ))}
             </select>
@@ -241,7 +272,7 @@ export function ClientInfo({
             {data.clientType === 'legal' ? t('clientName') : t('fullName')}
           </label>
           
-          {data.clientType === 'legal' && user?.role !== 'individual' ? (
+          {data.clientType === 'legal' && !['individual', 'corporate'].includes(user?.role || '') ? (
             <div className="relative">
               <input
                 type="text"
@@ -250,7 +281,7 @@ export function ClientInfo({
                   setSearchQuery(e.target.value);
                   setShowSuggestions(true);
                   // Update data.clientName directly so they can type custom names too
-                  onUpdate({ clientName: e.target.value, corporateClientId: null, hasDeposit: false, contractNumber: '' });
+                    onUpdate({ clientName: e.target.value, corporateClientId: null, hasDeposit: false, contractNumber: '', clientDepositBalance: 0 });
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
@@ -279,7 +310,9 @@ export function ClientInfo({
                             clientName: client.company || client.name,
                             clientPhone: client.phone || '',
                             contractNumber: client.contract_number || '',
-                            hasDeposit: true
+                            hasDeposit: (client.deposit_balance || 0) > 0,
+                            clientDepositBalance: client.deposit_balance || 0,
+                            paymentMethod: (client.deposit_balance || 0) > 0 ? 'deposit' : 'cash',
                           });
                         }}
                       >
@@ -311,7 +344,7 @@ export function ClientInfo({
                 : 'border-gray-300'
                 }`}
               placeholder={t('enterClientName')}
-              readOnly={isAggregatorSource && data.aggregatorClientId}
+              readOnly={(isAggregatorSource && !!data.aggregatorClientId) || user?.role === 'individual' || user?.role === 'corporate'}
             />
           )}
         </div>
@@ -435,10 +468,67 @@ export function ClientInfo({
           )}
         </div>
 
+        {/* До двери */}
+        <div className={`rounded-lg border p-4 ${isDark ? 'border-gray-700 bg-gray-700/30' : 'border-blue-100 bg-blue-50/50'}`}>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isDoorToDoor}
+              onChange={(e) => {
+                setIsDoorToDoor(e.target.checked);
+                onUpdate({ isDoorToDoor: e.target.checked, pickupAddress: '', deliveryAddress: '', doorToDoorPhone: '' });
+              }}
+              className="w-4 h-4 text-blue-600 rounded"
+            />
+            <div className="flex items-center gap-2">
+              <Truck className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+              <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                Доставка «До двери»
+              </span>
+              <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>(необязательно)</span>
+            </div>
+          </label>
+
+          {isDoorToDoor && (
+            <div className="mt-4 grid gap-3">
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Адрес забора груза</label>
+                <input
+                  type="text"
+                  value={data.pickupAddress || ''}
+                  onChange={(e) => onUpdate({ pickupAddress: e.target.value })}
+                  placeholder="Например: ул. Абая 12, кв. 5"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300 bg-white'}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Адрес доставки получателю</label>
+                <input
+                  type="text"
+                  value={data.deliveryAddress || ''}
+                  onChange={(e) => onUpdate({ deliveryAddress: e.target.value })}
+                  placeholder="Например: пр. Достык 88, офис 301"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300 bg-white'}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Контактный телефон (для курьера)</label>
+                <input
+                  type="tel"
+                  value={data.doorToDoorPhone || ''}
+                  onChange={(e) => onUpdate({ doorToDoorPhone: e.target.value })}
+                  placeholder="+7 ___ ___ ____"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'border-gray-300 bg-white'}`}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className={`pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('route')}</h3>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 {t('from')}
@@ -484,6 +574,12 @@ export function ClientInfo({
             </div>
           </div>
 
+          {sameFromTo && (
+            <div className="mb-4 text-sm text-red-600">
+              Пункты отправления и назначения не могут совпадать.
+            </div>
+          )}
+
           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               {t('departureDate')}
@@ -504,7 +600,7 @@ export function ClientInfo({
               <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Время поезда
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${data.trainTime === '15:00'
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : isDark
@@ -546,7 +642,7 @@ export function ClientInfo({
         <div className="flex justify-end pt-4">
           <button
             onClick={onNext}
-            disabled={!data.clientName || !data.fromStation || !data.toStation || !data.departureDate || !data.trainTime}
+            disabled={!data.clientName || !data.fromStation || !data.toStation || !data.departureDate || !data.trainTime || sameFromTo}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}

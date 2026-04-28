@@ -1,5 +1,6 @@
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { calculateShipmentCost } from '../../lib/tariff';
 
 interface PaymentProps {
   data: any;
@@ -12,61 +13,30 @@ export function Payment({ data, onUpdate: _onUpdate, onNext, onBack }: PaymentPr
   const { t } = useLanguage();
 
   const calculateTotal = () => {
-    if (!data.fromStation || !data.toStation || !data.weight) {
-      return 0;
-    }
-
-    const rates: Record<string, number> = {
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u0441\u0442\u0430\u043d\u0430 \u043d\u04b1\u0440\u043b\u044b \u0436\u043e\u043b': 976,
-      '\u0430\u0441\u0442\u0430\u043d\u0430 \u043d\u04b1\u0440\u043b\u044b \u0436\u043e\u043b-\u0430\u043b\u043c\u0430\u0442\u044b-1': 976,
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u049b\u0430\u0440\u0430\u0493\u0430\u043d\u0434\u044b': 825,
-      '\u049b\u0430\u0440\u0430\u0493\u0430\u043d\u0434\u044b-\u0430\u043b\u043c\u0430\u0442\u044b-1': 825,
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u0442\u044b\u0440\u0430\u0443': 1145,
-      '\u0430\u0442\u044b\u0440\u0430\u0443-\u0430\u043b\u043c\u0430\u0442\u044b-1': 1145,
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0448\u044b\u043c\u043a\u0435\u043d\u0442': 590,
-      '\u0448\u044b\u043c\u043a\u0435\u043d\u0442-\u0430\u043b\u043c\u0430\u0442\u044b-1': 590,
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u049b\u0442\u04e9\u0431\u0435': 1114,
-      '\u0430\u049b\u0442\u04e9\u0431\u0435-\u0430\u043b\u043c\u0430\u0442\u044b-1': 1114,
-    };
-
-    const route = `${data.fromStation.toLowerCase()}-${data.toStation.toLowerCase()}`;
-    const baseRate = rates[route] || 5000;
-
-    const weight = parseFloat(data.weight) || 0;
-    let basePrice = (weight / 10) * baseRate;
-
-    if (data.isFragile) basePrice += 1000;
-    if (data.isOversized) basePrice += 2500;
-
-    if (data.hasTicket) {
-      basePrice = basePrice * 0.5;
-    }
-
-    return Math.round(basePrice);
+    return calculateShipmentCost(data) || 0;
   };
 
-  const getBaseRate = () => {
-    const rates: Record<string, number> = {
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u0441\u0442\u0430\u043d\u0430 \u043d\u04b1\u0440\u043b\u044b \u0436\u043e\u043b': 976,
-      '\u0430\u0441\u0442\u0430\u043d\u0430 \u043d\u04b1\u0440\u043b\u044b \u0436\u043e\u043b-\u0430\u043b\u043c\u0430\u0442\u044b-1': 976,
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u049b\u0430\u0440\u0430\u0493\u0430\u043d\u0434\u044b': 825,
-      '\u049b\u0430\u0440\u0430\u0493\u0430\u043d\u0434\u044b-\u0430\u043b\u043c\u0430\u0442\u044b-1': 825,
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u0442\u044b\u0440\u0430\u0443': 1145,
-      '\u0430\u0442\u044b\u0440\u0430\u0443-\u0430\u043b\u043c\u0430\u0442\u044b-1': 1145,
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0448\u044b\u043c\u043a\u0435\u043d\u0442': 590,
-      '\u0448\u044b\u043c\u043a\u0435\u043d\u0442-\u0430\u043b\u043c\u0430\u0442\u044b-1': 590,
-      '\u0430\u043b\u043c\u0430\u0442\u044b-1-\u0430\u049b\u0442\u04e9\u0431\u0435': 1114,
-      '\u0430\u049b\u0442\u04e9\u0431\u0435-\u0430\u043b\u043c\u0430\u0442\u044b-1': 1114,
-    };
-    if (!data.fromStation || !data.toStation) return 5000;
-    const route = `${data.fromStation.toLowerCase()}-${data.toStation.toLowerCase()}`;
-    return rates[route] || 5000;
+  const getBaseTransportCost = () => {
+    // Return cost without fragile/oversized/ticket modifiers
+    return calculateShipmentCost({
+      fromStation: data.fromStation,
+      toStation: data.toStation,
+      weight: data.weight,
+      isFragile: false,
+      isOversized: false,
+      hasTicket: false
+    }) || 0;
   };
 
-  const baseRate = getBaseRate();
-  const transportCost = Math.round(((parseFloat(data.weight) || 0) / 10) * baseRate);
+  const transportCost = getBaseTransportCost();
 
   const total = calculateTotal();
+  const isLegal = data.clientType === 'legal';
+  const paymentMethod = data.paymentMethod || 'cash';
+  const depositBalance = Number(data.clientDepositBalance || 0);
+  const depositAvailable = isLegal && depositBalance > 0;
+  const canUseDeposit = depositAvailable && depositBalance >= total;
+  const onUpdate = _onUpdate;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
@@ -173,12 +143,47 @@ export function Payment({ data, onUpdate: _onUpdate, onNext, onBack }: PaymentPr
           </div>
         </div>
 
+        {isLegal && (
+          <div className="rounded-lg border border-gray-200 p-4">
+            <div className="text-sm font-medium text-gray-700 mb-3">Способ оплаты</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => onUpdate({ paymentMethod: 'cash' })}
+                className={`px-4 py-2 rounded-lg border text-sm ${paymentMethod === 'cash' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'}`}
+              >
+                Наличными/картой
+              </button>
+              <button
+                type="button"
+                onClick={() => canUseDeposit && onUpdate({ paymentMethod: 'deposit' })}
+                disabled={!canUseDeposit}
+                className={`px-4 py-2 rounded-lg border text-sm disabled:opacity-50 ${paymentMethod === 'deposit' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700'}`}
+              >
+                Списать с депозита
+              </button>
+            </div>
+            <div className={`mt-2 text-xs ${canUseDeposit ? 'text-green-600' : 'text-amber-600'}`}>
+              {canUseDeposit
+                ? `Депозит доступен: ${depositBalance.toLocaleString()} ₸`
+                : `Списание с депозита недоступно. Баланс: ${depositBalance.toLocaleString()} ₸`}
+            </div>
+          </div>
+        )}
+
         <button
-          onClick={onNext}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+          onClick={() => {
+            if (isLegal && paymentMethod === 'deposit' && !canUseDeposit) {
+              alert('Недостаточно средств на депозите для списания');
+              return;
+            }
+            onNext();
+          }}
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400"
+          disabled={isLegal && paymentMethod === 'deposit' && !canUseDeposit}
         >
           <CreditCard className="w-5 h-5" />
-          {t('payButton')} {total.toLocaleString()} ₸
+          {paymentMethod === 'deposit' ? 'Списать с депозита' : t('payButton')} {total.toLocaleString()} ₸
         </button>
 
         <p className="text-xs text-center text-gray-500">

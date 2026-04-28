@@ -23,7 +23,7 @@ func (s *Server) handleReadyForLoading(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -110,7 +110,7 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager, model.RoleOperator); err != nil {
+	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -146,7 +146,7 @@ func (s *Server) handleCloseShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager, model.RoleOperator); err != nil {
+	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -172,7 +172,7 @@ func (s *Server) handleLegacyStatusPatch(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleReceiver, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleLoading, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -192,6 +192,9 @@ func (s *Server) handleLegacyStatusPatch(w http.ResponseWriter, r *http.Request)
 	switch req.Status {
 	case "Погружен":
 		shipment, err = s.services.Shipments.Load(r.Context(), chi.URLParam(r, "id"), req.OperatorID, req.OperatorName, nil, nil)
+	case "Готов к погрузке":
+		// Revert from LOADED back to READY_FOR_LOADING (unloading/cancellation)
+		shipment, err = s.services.Shipments.ReadyForLoading(r.Context(), chi.URLParam(r, "id"), req.OperatorID, req.OperatorName)
 	case "В пути":
 		shipment, err = s.services.Shipments.Dispatch(r.Context(), chi.URLParam(r, "id"), req.OperatorID, req.OperatorName, nil)
 	case "Выдан":

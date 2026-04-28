@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { calculateShipmentCost } from '../lib/tariff';
 import { useAuth } from '../contexts/AuthContext';
 import { ClientInfo } from './shipment-steps/ClientInfo';
 import { CargoDetails } from './shipment-steps/CargoDetails';
@@ -35,7 +36,6 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     departureDate: '',
     trainTime: '',
     weight: '',
-    dimensions: '',
     isFragile: false,
     isOversized: false,
     packaging: '',
@@ -45,7 +45,13 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     hasTicket: false,
     ticketNumber: '',
     receiverName: '',
-    receiverPhone: ''
+    receiverPhone: '',
+    paymentMethod: 'cash' as 'cash' | 'deposit',
+    clientDepositBalance: 0,
+    isDoorToDoor: false,
+    pickupAddress: '',
+    deliveryAddress: '',
+    doorToDoorPhone: '',
   });
 
   const updateShipmentData = (data: Partial<typeof shipmentData>) => {
@@ -53,40 +59,28 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   };
 
   const calculateCost = () => {
-    if (!shipmentData.fromStation || !shipmentData.toStation || !shipmentData.weight) {
-      return 0;
-    }
-
-    const rates: Record<string, number> = {
-      'алматы-1-астана нұрлы жол': 976,
-      'астана нұрлы жол-алматы-1': 976,
-      'алматы-1-қарағанды': 825,
-      'қарағанды-алматы-1': 825,
-      'алматы-1-атырау': 1145,
-      'атырау-алматы-1': 1145,
-      'алматы-1-шымкент': 590,
-      'шымкент-алматы-1': 590,
-      'алматы-1-ақтөбе': 1114,
-      'ақтөбе-алматы-1': 1114,
-    };
-
-    const route = `${shipmentData.fromStation.toLowerCase()}-${shipmentData.toStation.toLowerCase()}`;
-    const baseRate = rates[route] || 5000; // Default fallback rate
-
-    const weight = parseFloat(shipmentData.weight) || 0;
-    // Calculation is exactly proportional: (weight / 10) * baseRate
-    let basePrice = (weight / 10) * baseRate;
-
-    if (shipmentData.isFragile) basePrice += 1000;
-    if (shipmentData.isOversized) basePrice += 2500;
-
-    if (shipmentData.hasTicket) {
-      basePrice = basePrice * 0.5;
-    }
-    return Math.round(basePrice);
+    return calculateShipmentCost({
+      fromStation: shipmentData.fromStation,
+      toStation: shipmentData.toStation,
+      weight: shipmentData.weight,
+      isFragile: shipmentData.value?.toLowerCase().includes('хрупк') || shipmentData.description?.toLowerCase().includes('хрупк'),
+      isOversized: shipmentData.value?.toLowerCase().includes('негабарит') || shipmentData.description?.toLowerCase().includes('негабарит'),
+      hasTicket: false // Currently not asked on single page form, left default
+    }) || 0;
   };
 
+  const normalizeStation = (v: string) => v.trim().toLowerCase();
+  const sameFromTo =
+    Boolean(shipmentData.fromStation) &&
+    Boolean(shipmentData.toStation) &&
+    normalizeStation(shipmentData.fromStation) === normalizeStation(shipmentData.toStation);
+
   const handleCreateShipment = async () => {
+    if (sameFromTo) {
+      alert('Пункты отправления и назначения не могут совпадать.');
+      return;
+    }
+
     const token = localStorage.getItem('token');
     const headers = {
       'Content-Type': 'application/json',
@@ -105,14 +99,18 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           to_station: shipmentData.toStation,
           departure_date: shipmentData.departureDate ? new Date(shipmentData.departureDate).toISOString() : new Date().toISOString(),
           weight: shipmentData.weight,
-          dimensions: shipmentData.dimensions,
+          dimensions: '',
           description: shipmentData.description,
           value: shipmentData.value,
           cost: calculateCost(),
           quantity_places: shipmentData.quantityPlaces || 1,
           receiver_name: shipmentData.receiverName || null,
           receiver_phone: shipmentData.receiverPhone || null,
-          train_time: shipmentData.trainTime || null
+          train_time: shipmentData.trainTime || null,
+          is_door_to_door: shipmentData.isDoorToDoor,
+          pickup_address: shipmentData.isDoorToDoor ? shipmentData.pickupAddress : null,
+          delivery_address: shipmentData.isDoorToDoor ? shipmentData.deliveryAddress : null,
+          door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null
         })
       });
 
@@ -144,7 +142,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         body: JSON.stringify({
           shipment_id: shipmentId,
           amount: calculatedCost,
-          payment_method: shipmentData.clientType === 'legal' && shipmentData.hasDeposit ? 'deposit' : 'cash'
+          payment_method: shipmentData.clientType === 'legal' ? shipmentData.paymentMethod : 'cash'
         })
       });
       if (!payRes.ok) {
@@ -185,6 +183,29 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
 
     const printWindow = window.open('', '_blank');
     if (printWindow && createdShipmentNumber) {
+      const totalPlaces = Math.max(1, Number(shipmentData.quantityPlaces) || 1);
+      const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
+        const placeNum = idx + 1;
+        const stickerCode = `${createdShipmentNumber}-${totalPlaces}`;
+        return `
+          <section class="label">
+            <div class="header">CargoTrans</div>
+            <div class="shipment-id">${stickerCode}</div>
+            <div class="qr-container">${qrSvg}</div>
+            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
+              ${shipmentData.fromStation} -> ${shipmentData.toStation}
+            </div>
+            <div class="row info">
+              <span>Вес:</span>
+              <span>${shipmentData.weight} кг</span>
+            </div>
+            <div class="row info">
+              <span>Место:</span>
+              <span>${placeNum} из ${totalPlaces}</span>
+            </div>
+          </section>
+        `;
+      }).join('');
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -195,9 +216,16 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 font-family: 'Courier New', monospace;
                 width: 58mm;
                 margin: 0;
-                padding: 5px;
+                padding: 0;
                 color: black;
                 background: white;
+              }
+              .label {
+                page-break-after: always;
+                margin-bottom: 8px;
+              }
+              .label:last-child {
+                page-break-after: auto;
               }
               .header {
                 text-align: center;
@@ -208,7 +236,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               }
               .shipment-id {
                 text-align: center;
-                font-size: 22px;
+                font-size: 18px;
                 font-weight: bold;
                 margin: 5px 0;
               }
@@ -233,29 +261,12 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               }
               @media print {
                 @page { margin: 0; size: 58mm auto; }
-                body { margin: 0; padding: 5px; }
+                body { margin: 0; padding: 0; }
               }
             </style>
           </head>
           <body>
-            <div class="header">CargoTrans</div>
-            <div class="shipment-id">${createdShipmentNumber}</div>
-            <div class="qr-container">${qrSvg}</div>
-            
-            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
-              ${shipmentData.fromStation} -> ${shipmentData.toStation}
-            </div>
-            
-            <div class="row info">
-              <span>Вес:</span>
-              <span>${shipmentData.weight} кг</span>
-            </div>
-            
-            ${shipmentData.dimensions ? `
-            <div class="row info">
-              <span>Габариты:</span>
-              <span>${shipmentData.dimensions}</span>
-            </div>` : ''}
+            ${labelsHtml}
           </body>
         </html>
       `);
@@ -347,7 +358,6 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       departureDate: '',
                       trainTime: '',
                       weight: '',
-                      dimensions: '',
                       isFragile: false,
                       isOversized: false,
                       packaging: '',
@@ -357,7 +367,13 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       hasTicket: false,
                       ticketNumber: '',
                       receiverName: '',
-                      receiverPhone: ''
+                      receiverPhone: '',
+                      paymentMethod: 'cash',
+                      clientDepositBalance: 0,
+                      isDoorToDoor: false,
+                      pickupAddress: '',
+                      deliveryAddress: '',
+                      doorToDoorPhone: '',
                     });
                   }}
                   className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
@@ -394,7 +410,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
 
       {currentStep !== 'documents' && (
         <div className="mb-8">
-          <div className="flex items-center justify-between max-w-3xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between max-w-3xl gap-3">
             <div className="flex items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'client' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
                 }`}>
@@ -408,7 +424,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               </span>
             </div>
 
-            <div className="flex-1 h-px bg-gray-200 mx-4" />
+            <div className="hidden sm:block flex-1 h-px bg-gray-200 mx-4" />
 
             <div className="flex items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'cargo' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
@@ -421,7 +437,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               </span>
             </div>
 
-            <div className="flex-1 h-px bg-gray-200 mx-4" />
+            <div className="hidden sm:block flex-1 h-px bg-gray-200 mx-4" />
 
             <div className="flex items-center">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'payment' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'

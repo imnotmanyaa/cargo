@@ -32,7 +32,11 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin, model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading); err != nil {
+	if err := s.requireRole(user,
+		model.RoleManager, model.RoleAdmin,
+		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
+		model.RoleCorporate, model.RoleIndividual,
+	); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -56,9 +60,14 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if err := s.requireStation(user, req.FromStation); err != nil {
-		handleServiceError(w, err)
-		return
+	// Client roles (corporate/individual) have no assigned station — allow any from_station.
+	// Staff roles must work from their assigned station only.
+	isClientRole := user.Role == model.RoleCorporate || user.Role == model.RoleIndividual
+	if !isClientRole {
+		if err := s.requireStation(user, req.FromStation); err != nil {
+			handleServiceError(w, err)
+			return
+		}
 	}
 	departure := time.Now().UTC()
 	if req.DepartureDate != "" {
@@ -105,12 +114,32 @@ func (s *Server) handleGetShipment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListShipments(w http.ResponseWriter, r *http.Request) {
-	shipments, err := s.services.Shipments.List(r.Context(), model.ShipmentFilter{
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user,
+		model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead,
+		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
+		model.RoleCorporate, model.RoleIndividual, model.RoleMobileGroup,
+	); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	filter := model.ShipmentFilter{
 		Type:     r.URL.Query().Get("type"),
 		Station:  r.URL.Query().Get("station"),
 		ClientID: r.URL.Query().Get("client_id"),
 		Query:    r.URL.Query().Get("q"),
-	})
+	}
+	if user.Role == model.RoleDirectionHead {
+		filter.Station = user.Station
+		if filter.Type == "" {
+			filter.Type = "by-station"
+		}
+	}
+	shipments, err := s.services.Shipments.List(r.Context(), filter)
 	if err != nil {
 		handleServiceError(w, err)
 		return
@@ -119,9 +148,21 @@ func (s *Server) handleListShipments(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleShipmentsByStation(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	station := chi.URLParam(r, "station")
+	if user.Role == model.RoleDirectionHead {
+		station = user.Station
+	}
 	shipments, err := s.services.Shipments.List(r.Context(), model.ShipmentFilter{
 		Type:    "by-station",
-		Station: chi.URLParam(r, "station"),
+		Station: station,
 	})
 	if err != nil {
 		handleServiceError(w, err)
@@ -135,7 +176,7 @@ func (s *Server) handleUpdateShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -161,7 +202,7 @@ func (s *Server) handleCalculateTariff(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -187,7 +228,7 @@ func (s *Server) handleSendToPayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -213,7 +254,11 @@ func (s *Server) handleGenerateQR(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user,
+		model.RoleManager, model.RoleAdmin,
+		model.RoleReceiver, model.RoleTransit, model.RoleIssue, model.RoleLoading,
+		model.RoleCorporate, model.RoleIndividual,
+	); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -222,9 +267,13 @@ func (s *Server) handleGenerateQR(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	if err := s.requireStation(user, current.FromStation); err != nil {
-		handleServiceError(w, err)
-		return
+	// Client roles (corporate/individual) have no assigned station — bypass station check.
+	isClientRole := user.Role == model.RoleCorporate || user.Role == model.RoleIndividual
+	if !isClientRole {
+		if err := s.requireStation(user, current.FromStation); err != nil {
+			handleServiceError(w, err)
+			return
+		}
 	}
 	log.Printf("generate_qr shipment_id=%s", chi.URLParam(r, "id"))
 	code, shipment, err := s.services.Tracking.GenerateQRCode(r.Context(), chi.URLParam(r, "id"))
@@ -242,7 +291,7 @@ func (s *Server) handleCancelShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleOperator, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}

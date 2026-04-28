@@ -15,7 +15,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/shipments?type=arrived&station=${user.station}`, {
+      const res = await fetch(`/api/arrivals/pending?station=${encodeURIComponent(user.station)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -159,38 +159,38 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
             </div>
           ) : (
             arrivals.map((arrival) => (
-              <div key={arrival.id} className={`p-6 ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Package className="w-6 h-6 text-green-600" />
+              <div key={arrival.id} className={`p-4 md:p-6 ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex gap-3 min-w-0">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Package className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
                     </div>
 
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="text-sm font-medium text-blue-600">{arrival.shipment_number}</span>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          arrival.shipment_status === 'READY_FOR_ISSUE' 
-                            ? 'bg-blue-100 text-blue-800' 
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-blue-600 truncate">{arrival.shipment_number}</span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          arrival.shipment_status === 'READY_FOR_ISSUE'
+                            ? 'bg-blue-100 text-blue-800'
                             : 'bg-green-100 text-green-800'
                         }`}>
                           {arrival.shipment_status === 'READY_FOR_ISSUE' ? 'На складе' : 'Прибыл'}
                         </span>
                       </div>
                       <h4 className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{arrival.client_name}</h4>
-                      <div className={`text-sm space-y-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <div className={`text-sm space-y-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                         <div>{t('arrivedFrom')} {arrival.from_station}</div>
                         <div>{t('arrivedAt')} {new Date(arrival.updated_at || Date.now()).toLocaleString()}</div>
                         <div>{t('weightColumn')}: {arrival.weight} кг</div>
-                        <div>{t('phone')} {arrival.client_email}</div>
+                        <div>{t('phone')} {arrival.receiver_phone || arrival.client_email}</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0 sm:flex-col md:flex-row">
                     <button
                       onClick={() => alert(`Сообщение отправлено клиенту: ${arrival.client_name || 'Клиент'}`)}
-                      className={`px-4 py-2 border rounded-lg ${theme === 'dark'
+                      className={`flex-1 sm:flex-none px-3 py-2 text-sm border rounded-lg whitespace-nowrap ${theme === 'dark'
                           ? 'border-blue-500 text-blue-400 hover:bg-gray-700'
                           : 'border-blue-600 text-blue-600 hover:bg-blue-50'
                         }`}>
@@ -198,7 +198,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                     </button>
                     <button
                       onClick={() => handleIssue(arrival.id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      className="flex-1 sm:flex-none px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
                     >
                       {t('issue')}
                     </button>
