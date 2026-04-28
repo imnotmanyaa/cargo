@@ -25,28 +25,20 @@ interface ShipmentDetailsModalProps {
   theme?: 'light' | 'dark';
 }
 
-export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModalProps) {
+export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: ShipmentDetailsModalProps) {
   const { t } = useLanguage();
+  const isDark = theme === 'dark';
 
-  // Format date for display
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
+      return new Date(dateString).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch { return dateString; }
   };
 
   const handlePrint = () => {
     const qrContainer = document.getElementById('qr-code-container');
     const qrSvg = qrContainer?.innerHTML || '';
-
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       const totalPlaces = Math.max(1, Number(shipment.quantity_places) || 1);
@@ -58,248 +50,186 @@ export function ShipmentDetailsModal({ shipment, onClose }: ShipmentDetailsModal
             <div class="header">CargoTrans</div>
             <div class="shipment-id">${stickerCode}</div>
             <div class="qr-container">${qrSvg}</div>
-            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
+            <div class="info" style="text-align:center;border-bottom:2px solid black;padding-bottom:5px;margin-bottom:5px;">
               ${shipment.from} -> ${shipment.to}
             </div>
-            <div class="row info">
-              <span>Вес:</span>
-              <span>${shipment.weight}</span>
-            </div>
-            <div class="row info">
-              <span>Место:</span>
-              <span>${placeNum} из ${totalPlaces}</span>
-            </div>
-          </section>
-        `;
+            <div class="row info"><span>Вес:</span><span>${shipment.weight}</span></div>
+            <div class="row info"><span>Место:</span><span>${placeNum} из ${totalPlaces}</span></div>
+          </section>`;
       }).join('');
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Печать ${shipment.shipment_number}</title>
-            <style>
-              body {
-                font-family: 'Courier New', monospace;
-                width: 58mm;
-                margin: 0;
-                padding: 5px;
-                color: black;
-                background: white;
-              }
-              .label {
-                page-break-after: always;
-                margin-bottom: 8px;
-              }
-              .label:last-child {
-                page-break-after: auto;
-              }
-              .header {
-                text-align: center;
-                font-weight: bold;
-                font-size: 20px;
-                margin-bottom: 5px;
-                text-transform: uppercase;
-              }
-              .shipment-id {
-                text-align: center;
-                font-size: 22px;
-                font-weight: bold;
-                margin: 5px 0;
-              }
-              .qr-container {
-                display: flex;
-                justify-content: center;
-                margin: 10px 0;
-              }
-              .qr-container svg {
-                width: 45mm !important;
-                height: 45mm !important;
-              }
-              .info {
-                font-size: 14px;
-                font-weight: bold;
-                margin-bottom: 5px;
-              }
-              .row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 4px;
-              }
-              @media print {
-                @page { margin: 0; size: 58mm auto; }
-                body { margin: 0; padding: 5px; }
-              }
-            </style>
-          </head>
-          <body>
-            ${labelsHtml}
-          </body>
-        </html>
-      `);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Печать ${shipment.shipment_number}</title>
+        <style>
+          body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:5px;color:black;background:white;}
+          .label{page-break-after:always;margin-bottom:8px;}.label:last-child{page-break-after:auto;}
+          .header{text-align:center;font-weight:bold;font-size:20px;margin-bottom:5px;text-transform:uppercase;}
+          .shipment-id{text-align:center;font-size:22px;font-weight:bold;margin:5px 0;}
+          .qr-container{display:flex;justify-content:center;margin:10px 0;}
+          .qr-container svg{width:45mm!important;height:45mm!important;}
+          .info{font-size:14px;font-weight:bold;margin-bottom:5px;}
+          .row{display:flex;justify-content:space-between;margin-bottom:4px;}
+          @media print{@page{margin:0;size:58mm auto;}body{margin:0;padding:5px;}}
+        </style></head><body>${labelsHtml}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
     }
   };
 
+  // Shared card class
+  const card = `rounded-lg p-4 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50'}`;
+  const label = `text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`;
+  const value = `text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`;
+  const sectionTitle = `text-sm font-semibold mb-3 ${isDark ? 'text-gray-200' : 'text-gray-900'}`;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-xl font-semibold text-gray-900">{t('details')} {shipment.shipment_number}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+      <div className={`rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+        {/* Header */}
+        <div className={`p-6 border-b flex items-center justify-between sticky top-0 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {t('details')} {shipment.shipment_number}
+          </h2>
+          <button onClick={onClose} className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Status Badge */}
+        <div className="p-6 space-y-4">
+          {/* Status */}
           <div className="flex items-center justify-between">
-            <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${shipment.status === 'В пути' || shipment.status === 'In Transit' || shipment.status === 'Жолда'
-              ? 'bg-blue-100 text-blue-700'
-              : shipment.status === 'Погружен' || shipment.status === 'Loaded' || shipment.status === 'Тиелген'
-                ? 'bg-purple-100 text-purple-700'
-                : 'bg-green-100 text-green-700'
-              }`}>
-              {shipment.status}
-            </span>
-            <span className="text-sm text-gray-500">{shipment.date}</span>
+            <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
+              shipment.status === 'В пути' ? 'bg-blue-100 text-blue-700' :
+              shipment.status === 'Погружен' ? 'bg-purple-100 text-purple-700' :
+              shipment.status === 'Прибыл' ? 'bg-green-100 text-green-700' :
+              shipment.status === 'Выдан' ? 'bg-emerald-100 text-emerald-700' :
+              'bg-gray-100 text-gray-700'
+            }`}>{shipment.status}</span>
+            <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.date}</span>
           </div>
 
-          {/* Client Information */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('clientInfo')}</h3>
+          {/* Client */}
+          <div className={card}>
+            <h3 className={sectionTitle}>{t('clientInfo')}</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <User className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-600">{t('client')}:</span>
-                <span className="text-sm font-medium text-gray-900">{shipment.client}</span>
+                <User className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <span className={label}>{t('client')}:</span>
+                <span className={value}>{shipment.client}</span>
               </div>
               {shipment.client_email && (
                 <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">Email:</span>
-                  <span className="text-sm font-medium text-gray-900">{shipment.client_email}</span>
+                  <Phone className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                  <span className={label}>Email:</span>
+                  <span className={value}>{shipment.client_email}</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Receiver Information */}
+          {/* Receiver */}
           {(shipment.receiver_name || shipment.receiver_phone) && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Информация о получателе</h3>
+            <div className={`rounded-lg border p-4 ${isDark ? 'bg-blue-900/20 border-blue-800/50' : 'bg-blue-50 border-blue-100'}`}>
+              <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-blue-300' : 'text-blue-800'}`}>Получатель</h3>
               <div className="space-y-2">
                 {shipment.receiver_name && (
                   <div className="flex items-center gap-3">
-                    <User className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">Получатель:</span>
-                    <span className="text-sm font-medium text-gray-900">{shipment.receiver_name}</span>
+                    <User className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>ФИО:</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-blue-900'}`}>{shipment.receiver_name}</span>
                   </div>
                 )}
                 {shipment.receiver_phone && (
                   <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">Телефон:</span>
-                    <span className="text-sm font-medium text-gray-900">{shipment.receiver_phone}</span>
+                    <Phone className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>Телефон:</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-blue-900'}`}>{shipment.receiver_phone}</span>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Route Information */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('route')}</h3>
+          {/* Route */}
+          <div className={card}>
+            <h3 className={sectionTitle}>{t('route')}</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <MapPin className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-gray-600">{t('from')}:</span>
-                <span className="text-sm font-medium text-gray-900">{shipment.from}</span>
+                <MapPin className="w-4 h-4 text-green-500" />
+                <span className={label}>{t('from')}:</span>
+                <span className={value}>{shipment.from}</span>
               </div>
               <div className="flex items-center gap-3">
-                <MapPin className="w-4 h-4 text-red-600" />
-                <span className="text-sm text-gray-600">{t('to')}:</span>
-                <span className="text-sm font-medium text-gray-900">{shipment.to}</span>
+                <MapPin className="w-4 h-4 text-red-500" />
+                <span className={label}>{t('to')}:</span>
+                <span className={value}>{shipment.to}</span>
               </div>
               <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-600">{t('departureDate')}:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {formatDate(shipment.departure_date || shipment.date)}
-                </span>
+                <Calendar className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <span className={label}>{t('departureDate')}:</span>
+                <span className={value}>{formatDate(shipment.departure_date || shipment.date)}</span>
               </div>
             </div>
           </div>
 
-          {/* Cargo Information */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('cargoDetails')}</h3>
+          {/* Cargo */}
+          <div className={card}>
+            <h3 className={sectionTitle}>{t('cargoDetails')}</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <Weight className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-600">{t('weight')}:</span>
-                <span className="text-sm font-medium text-gray-900">{shipment.weight}</span>
+                <Weight className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <span className={label}>{t('weight')}:</span>
+                <span className={value}>{shipment.weight}</span>
               </div>
               <div className="flex items-center gap-3">
-                <Package className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-600">Количество мест:</span>
-                <span className="text-sm font-medium text-gray-900">{Math.max(1, Number(shipment.quantity_places) || 1)}</span>
+                <Package className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <span className={label}>Количество мест:</span>
+                <span className={value}>{Math.max(1, Number(shipment.quantity_places) || 1)}</span>
               </div>
               {shipment.description && (
                 <div className="flex items-center gap-3">
-                  <Package className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">{t('description')}:</span>
-                  <span className="text-sm font-medium text-gray-900">{shipment.description}</span>
+                  <Package className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                  <span className={label}>{t('description')}:</span>
+                  <span className={value}>{shipment.description}</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Payment Information */}
+          {/* Payment */}
           {shipment.value && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('payment')}</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{t('declaredValue')}:</span>
-                  <span className="text-sm font-medium text-gray-900">{shipment.value} ₸</span>
-                </div>
+            <div className={card}>
+              <h3 className={sectionTitle}>{t('payment')}</h3>
+              <div className="flex items-center justify-between">
+                <span className={label}>{t('declaredValue')}:</span>
+                <span className={value}>{shipment.value} ₸</span>
               </div>
             </div>
           )}
 
           {/* QR Code */}
-          <div className="bg-gray-50 rounded-lg p-4 flex flex-col items-center">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">QR-код отправки</h3>
-            <div id="qr-code-container" className="p-2 bg-white border-2 border-gray-300 rounded-lg shadow-sm">
-              <QRCodeSVG
-                value={shipment.shipment_number || shipment.id}
-                size={96}
-                level={"H"}
-              />
+          <div className={`${card} flex flex-col items-center`}>
+            <h3 className={`${sectionTitle} text-center`}>QR-код отправки</h3>
+            <div id="qr-code-container" className={`p-3 rounded-lg border-2 ${isDark ? 'bg-white border-gray-600' : 'bg-white border-gray-200'} shadow-sm`}>
+              <QRCodeSVG value={shipment.shipment_number || shipment.id} size={96} level="H" />
             </div>
-            <p className="text-xs text-gray-500 mt-2">{shipment.shipment_number}</p>
+            <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.shipment_number}</p>
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0 flex gap-4">
+        {/* Footer */}
+        <div className={`p-6 border-t sticky bottom-0 flex gap-3 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
           <button
             onClick={handlePrint}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border transition-colors ${
+              isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
           >
             <Printer className="w-4 h-4" />
             Распечатать чек
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             {t('close')}
           </button>

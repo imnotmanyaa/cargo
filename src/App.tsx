@@ -268,7 +268,7 @@ function AppContent() {
       case 'frequent-clients':
         return <FrequentClients theme={theme} />;
       case 'door-to-door':
-        return <DoorToDoorShipments />;
+        return <DoorToDoorShipments theme={theme} />;
       default:
         return <NewShipment theme={theme} />;
     }
