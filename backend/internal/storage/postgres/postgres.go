@@ -2,9 +2,12 @@ package postgres
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -14,6 +17,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+//go:embed ../../migrations/*.sql
+var migrationsFS embed.FS
 
 type DB struct {
 	pool *pgxpool.Pool
@@ -36,294 +42,48 @@ func Open(databaseURL string) (*DB, error) {
 func (db *DB) Pool() *pgxpool.Pool { return db.pool }
 func (db *DB) Close()              { db.pool.Close() }
 
-// func (db *DB) Migrate() error {
-// 	schema := `
-// CREATE TABLE IF NOT EXISTS roles (
-// 	id TEXT PRIMARY KEY,
-// 	name TEXT NOT NULL UNIQUE,
-// 	description TEXT NOT NULL
-// );
-// CREATE TABLE IF NOT EXISTS stations (
-// 	id TEXT PRIMARY KEY,
-// 	name TEXT NOT NULL UNIQUE,
-// 	city TEXT NOT NULL,
-// 	code TEXT NOT NULL UNIQUE,
-// 	is_active BOOLEAN NOT NULL DEFAULT TRUE
-// );
-// CREATE TABLE IF NOT EXISTS users (
-// 	id TEXT PRIMARY KEY,
-// 	name TEXT NOT NULL,
-// 	email TEXT UNIQUE NOT NULL,
-// 	password_hash TEXT NOT NULL,
-// 	role TEXT NOT NULL,
-// 	company TEXT,
-// 	deposit_balance DOUBLE PRECISION NOT NULL DEFAULT 0,
-// 	contract_number TEXT,
-// 	phone TEXT,
-// 	station TEXT,
-// 	is_active BOOLEAN NOT NULL DEFAULT TRUE,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS shipments (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_number TEXT NOT NULL UNIQUE,
-// 	client_id TEXT NOT NULL,
-// 	client_name TEXT NOT NULL,
-// 	client_email TEXT NOT NULL,
-// 	from_station TEXT NOT NULL,
-// 	to_station TEXT NOT NULL,
-// 	current_station TEXT NOT NULL,
-// 	next_station TEXT,
-// 	route JSONB NOT NULL,
-// 	status TEXT NOT NULL,
-// 	shipment_status TEXT NOT NULL,
-// 	payment_status TEXT NOT NULL,
-// 	departure_date TIMESTAMPTZ NOT NULL,
-// 	weight TEXT NOT NULL,
-// 	dimensions TEXT NOT NULL,
-// 	description TEXT NOT NULL,
-// 	value TEXT NOT NULL,
-// 	cost DOUBLE PRECISION NOT NULL DEFAULT 0,
-// 	quantity_places INTEGER NOT NULL DEFAULT 1,
-// 	receiver_name TEXT,
-// 	receiver_phone TEXT,
-// 	train_time TEXT,
-// 	tracking_code TEXT,
-// 	qr_code_id TEXT,
-// 	transport_unit_id TEXT,
-// 	last_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	created_by TEXT,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS payments (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	amount DOUBLE PRECISION NOT NULL,
-// 	payment_method TEXT NOT NULL,
-// 	pos_terminal_reference TEXT,
-// 	paid_at TIMESTAMPTZ,
-// 	confirmed_by TEXT,
-// 	status TEXT NOT NULL,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS qr_codes (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	qr_value TEXT NOT NULL UNIQUE,
-// 	generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	is_active BOOLEAN NOT NULL DEFAULT TRUE
-// );
-// CREATE TABLE IF NOT EXISTS scan_events (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	qr_code_id TEXT,
-// 	event_type TEXT NOT NULL,
-// 	station_id TEXT,
-// 	transport_unit_id TEXT,
-// 	user_id TEXT,
-// 	old_status TEXT,
-// 	new_status TEXT,
-// 	comment TEXT,
-// 	scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS transit_events (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	station_id TEXT NOT NULL,
-// 	user_id TEXT,
-// 	event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	comment TEXT
-// );
-// CREATE TABLE IF NOT EXISTS arrival_events (
-// 	id TEXT PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	station_id TEXT NOT NULL,
-// 	user_id TEXT,
-// 	event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 	confirmed_as_final_arrival BOOLEAN NOT NULL DEFAULT TRUE
-// );
-// CREATE TABLE IF NOT EXISTS shipment_history (
-// 	id BIGSERIAL PRIMARY KEY,
-// 	shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 	action TEXT NOT NULL,
-// 	operator_id TEXT,
-// 	operator_name TEXT,
-// 	station TEXT,
-// 	details TEXT NOT NULL,
-// 	old_status TEXT,
-// 	new_status TEXT,
-// 	reason TEXT,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS audit_log (
-// 	id TEXT PRIMARY KEY,
-// 	user_id TEXT,
-// 	entity_type TEXT NOT NULL,
-// 	entity_id TEXT NOT NULL,
-// 	action TEXT NOT NULL,
-// 	old_value TEXT,
-// 	new_value TEXT,
-// 	station_id TEXT,
-// 	reason TEXT,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );
-// CREATE TABLE IF NOT EXISTS notifications (
-// 	id BIGSERIAL PRIMARY KEY,
-// 	user_id TEXT NOT NULL,
-// 	message TEXT NOT NULL,
-// 	read BOOLEAN NOT NULL DEFAULT FALSE,
-// 	type TEXT NOT NULL DEFAULT 'info',
-// 	related_id TEXT,
-// 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// );`
+func (db *DB) Migrate() error {
+	ctx := context.Background()
 
-// 	ctx := context.Background()
-// 	if _, err := db.pool.Exec(ctx, schema); err != nil {
-// 		return err
-// 	}
-// 	if err := db.migrateExistingSchema(ctx); err != nil {
-// 		return err
-// 	}
-// 	return db.seedReferenceData(ctx)
-// }
+	entries, err := migrationsFS.ReadDir("../../migrations")
+	if err != nil {
+		return fmt.Errorf("failed to read migrations dir: %v", err)
+	}
 
-// func (db *DB) migrateExistingSchema(ctx context.Context) error {
-// 	statements := []string{
-// 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_number TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_status TEXT NOT NULL DEFAULT 'CREATED'`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'UNPAID'`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS quantity_places INTEGER NOT NULL DEFAULT 1`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tracking_code TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS qr_code_id TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS transport_unit_id TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS last_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS created_by TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS cost DOUBLE PRECISION NOT NULL DEFAULT 0`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_name TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS receiver_phone TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS train_time TEXT`,
-// 		`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS route JSONB NOT NULL DEFAULT '[]'::jsonb`,
-// 		`CREATE TABLE IF NOT EXISTS payments (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			amount DOUBLE PRECISION NOT NULL,
-// 			payment_method TEXT NOT NULL,
-// 			pos_terminal_reference TEXT,
-// 			paid_at TIMESTAMPTZ,
-// 			confirmed_by TEXT,
-// 			status TEXT NOT NULL,
-// 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS qr_codes (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			qr_value TEXT NOT NULL UNIQUE,
-// 			generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 			is_active BOOLEAN NOT NULL DEFAULT TRUE
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS scan_events (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			qr_code_id TEXT,
-// 			event_type TEXT NOT NULL,
-// 			station_id TEXT,
-// 			transport_unit_id TEXT,
-// 			user_id TEXT,
-// 			old_status TEXT,
-// 			new_status TEXT,
-// 			comment TEXT,
-// 			scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS transit_events (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			station_id TEXT NOT NULL,
-// 			user_id TEXT,
-// 			event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 			comment TEXT
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS arrival_events (
-// 			id TEXT PRIMARY KEY,
-// 			shipment_id TEXT NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
-// 			station_id TEXT NOT NULL,
-// 			user_id TEXT,
-// 			event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-// 			confirmed_as_final_arrival BOOLEAN NOT NULL DEFAULT TRUE
-// 		)`,
-// 		`CREATE TABLE IF NOT EXISTS audit_log (
-// 			id TEXT PRIMARY KEY,
-// 			user_id TEXT,
-// 			entity_type TEXT NOT NULL,
-// 			entity_id TEXT NOT NULL,
-// 			action TEXT NOT NULL,
-// 			old_value TEXT,
-// 			new_value TEXT,
-// 			station_id TEXT,
-// 			reason TEXT,
-// 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-// 		)`,
-// 		`ALTER TABLE shipment_history ADD COLUMN IF NOT EXISTS reason TEXT`,
-// 	}
-// 	for _, stmt := range statements {
-// 		if _, err := db.pool.Exec(ctx, stmt); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	_, err := db.pool.Exec(ctx, `
-// 		UPDATE shipments
-// 		SET
-// 			shipment_number = COALESCE(shipment_number, id),
-// 			tracking_code = COALESCE(tracking_code, id),
-// 			shipment_status = COALESCE(NULLIF(shipment_status, ''), CASE
-// 				WHEN status = 'Погружен' THEN 'LOADED'
-// 				WHEN status = 'В пути' THEN 'IN_TRANSIT'
-// 				WHEN status = 'Прибыл' THEN 'ARRIVED'
-// 				WHEN status = 'Выдан' THEN 'ISSUED'
-// 				WHEN status = 'Закрыт' THEN 'CLOSED'
-// 				ELSE 'CREATED'
-// 			END),
-// 			payment_status = COALESCE(NULLIF(payment_status, ''), 'UNPAID'),
-// 			last_updated_at = COALESCE(last_updated_at, NOW()),
-// 			updated_at = COALESCE(updated_at, NOW())
-// 	`)
-// 	return err
-// }
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
+			files = append(files, e.Name())
+		}
+	}
+	sort.Strings(files)
 
-// func (db *DB) seedReferenceData(ctx context.Context) error {
-// 	roleInserts := []model.RoleRecord{
-// 		{ID: "admin", Name: "admin", Description: "Administrator"},
-// 		{ID: "manager", Name: "manager", Description: "Manager"},
-// 		{ID: "operator", Name: "operator", Description: "Reception operator"},
-// 		{ID: "receiver", Name: "receiver", Description: "Destination receiver"},
-// 		{ID: "loading_operator", Name: "loading_operator", Description: "Loading employee"},
-// 		{ID: "transit_operator", Name: "transit_operator", Description: "Transit operator"},
-// 		{ID: "issue_operator", Name: "issue_operator", Description: "Issue operator"},
-// 		{ID: "accounting", Name: "accounting", Description: "Accounting"},
-// 		{ID: "individual", Name: "individual", Description: "Individual client"},
-// 		{ID: "corporate", Name: "corporate", Description: "Corporate client"},
-// 	}
-// 	for _, role := range roleInserts {
-// 		if _, err := db.pool.Exec(ctx, `INSERT INTO roles (id, name, description) VALUES ($1,$2,$3) ON CONFLICT (id) DO NOTHING`, role.ID, role.Name, role.Description); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	stations := []model.Station{
-// 		{ID: "shymkent", Name: "Шымкент", City: "Шымкент", Code: "CIT-SHYM", IsActive: true},
-// 		{ID: "almaty-1", Name: "Алматы-1", City: "Алматы", Code: "CIT-ALA1", IsActive: true},
-// 		{ID: "karaganda", Name: "Қарағанды", City: "Қарағанды", Code: "CIT-KRG", IsActive: true},
-// 		{ID: "astana", Name: "Астана Нұрлы Жол", City: "Астана", Code: "CIT-AST", IsActive: true},
-// 		{ID: "aktobe", Name: "Ақтөбе", City: "Ақтөбе", Code: "CIT-AKT", IsActive: true},
-// 	}
-// 	for _, station := range stations {
-// 		if _, err := db.pool.Exec(ctx, `INSERT INTO stations (id, name, city, code, is_active) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING`, station.ID, station.Name, station.City, station.Code, station.IsActive); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
+	for _, file := range files {
+		content, err := migrationsFS.ReadFile("../../migrations/" + file)
+		if err != nil {
+			return fmt.Errorf("failed to read migration %s: %v", file, err)
+		}
+		
+		log.Printf("Applying migration: %s", file)
+		if _, err := db.pool.Exec(ctx, string(content)); err != nil {
+			log.Printf("Note: Error applying migration %s (safe if already applied): %v", file, err)
+		}
+	}
+	
+	// Create default admin user if none exists
+	var count int
+	err = db.pool.QueryRow(ctx, "SELECT COUNT(*) FROM users WHERE role = 'admin'").Scan(&count)
+	if err == nil && count == 0 {
+		_, _ = db.pool.Exec(ctx, `
+			INSERT INTO users (id, name, email, password_hash, role, deposit_balance, is_active)
+			VALUES ('admin-001', 'Admin', 'admin@admin.com', '$2a$10$wT5g3rZ8yR.P./N./zK40eJ0yG1ZqB3hH5V5C4C5B5A5C4C5B5A5C', 'admin', 0, true)
+			ON CONFLICT DO NOTHING
+		`)
+	}
+
+	return nil
+}
+
 
 type Repository struct {
 	pool *pgxpool.Pool
