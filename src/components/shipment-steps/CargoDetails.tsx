@@ -7,33 +7,36 @@ interface CargoDetailsProps {
   onUpdate: (data: any) => void;
   onNext: () => void;
   onBack: () => void;
+  theme?: 'light' | 'dark';
 }
 
-export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsProps) {
+export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }: CargoDetailsProps) {
   const { t } = useLanguage();
+  const isDark = theme === 'dark';
 
-  const calculatePrice = () => {
-    return calculateShipmentCost({
-      fromStation: data.fromStation,
-      toStation: data.toStation,
-      weight: data.weight,
-      isFragile: data.isFragile,
-      isOversized: data.isOversized,
-      hasTicket: data.hasTicket
-    });
-  };
+  const price = calculateShipmentCost({
+    fromStation: data.fromStation,
+    toStation: data.toStation,
+    weight: data.weight,
+    isFragile: data.isFragile,
+    isOversized: data.isOversized,
+    hasTicket: data.hasTicket
+  });
 
-  const price = calculatePrice();
+  const input = `w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+    isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'
+  }`;
+  const label = `block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`;
+  const checkLabel = `ml-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('cargoDetailsTitle')}</h2>
+    <div className={`rounded-lg shadow-sm border p-8 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <h2 className={`text-xl font-semibold mb-6 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('cargoDetailsTitle')}</h2>
 
       <div className="space-y-6">
+        {/* Билет Mobius */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('mobiusTicket')}
-          </label>
+          <label className={label}>{t('mobiusTicket')}</label>
           <div className="flex items-center gap-4 mb-2">
             <label className="flex items-center">
               <input
@@ -42,7 +45,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
                 onChange={(e) => onUpdate({ hasTicket: e.target.checked })}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="ml-2 text-sm text-gray-700">{t('hasTicket')}</span>
+              <span className={checkLabel}>{t('hasTicket')}</span>
             </label>
           </div>
           {data.hasTicket && (
@@ -52,7 +55,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
                 value={data.ticketNumber}
                 onChange={(e) => onUpdate({ ticketNumber: e.target.value })}
                 placeholder={t('ticketNumber')}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={input}
               />
               <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
                 <AlertCircle className="w-4 h-4" />
@@ -62,31 +65,27 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
           )}
         </div>
 
+        {/* Вес и количество мест */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('weight')}
-            </label>
+            <label className={label}>{t('weight')}</label>
             <input
               type="number"
               value={data.weight}
               onChange={(e) => onUpdate({ weight: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={input}
               placeholder="0"
               min="0"
               step="0.1"
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Количество мест
-            </label>
+            <label className={label}>Количество мест</label>
             <input
               type="number"
               value={data.quantityPlaces || 1}
               onChange={(e) => onUpdate({ quantityPlaces: Math.max(1, Number(e.target.value) || 1) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={input}
               placeholder="1"
               min="1"
               step="1"
@@ -94,21 +93,19 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
           </div>
         </div>
 
-
-
+        {/* Стоимость доставки */}
         {price !== null && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className={`rounded-lg border p-4 ${isDark ? 'bg-blue-900/20 border-blue-800/50' : 'bg-blue-50 border-blue-200'}`}>
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">{t('transportCost')}:</span>
-              <span className="text-2xl font-bold text-blue-600">{price.toLocaleString()} ₸</span>
+              <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('transportCost')}:</span>
+              <span className={`text-2xl font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{price.toLocaleString()} ₸</span>
             </div>
           </div>
         )}
 
+        {/* Хрупкость / Негабарит */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('cargoValue')}
-          </label>
+          <label className={label}>{t('cargoValue')}</label>
           <div className="flex gap-4">
             <label className="flex items-center">
               <input
@@ -117,7 +114,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
                 onChange={(e) => onUpdate({ isFragile: e.target.checked })}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="ml-2 text-sm text-gray-700">{t('fragile')}</span>
+              <span className={checkLabel}>{t('fragile')}</span>
             </label>
             <label className="flex items-center">
               <input
@@ -126,19 +123,18 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
                 onChange={(e) => onUpdate({ isOversized: e.target.checked })}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="ml-2 text-sm text-gray-700">{t('oversized')}</span>
+              <span className={checkLabel}>{t('oversized')}</span>
             </label>
           </div>
         </div>
 
+        {/* Упаковка */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('packaging')}
-          </label>
+          <label className={label}>{t('packaging')}</label>
           <select
             value={data.packaging}
             onChange={(e) => onUpdate({ packaging: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={input}
           >
             <option value="">{t('selectPackaging')}</option>
             <option value="wood">{t('woodCrate')}</option>
@@ -149,37 +145,42 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
           </select>
         </div>
 
+        {/* Объявленная ценность */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('declaredValue')} <span className="text-gray-400 font-normal text-xs">(необязательно)</span>
+          <label className={label}>
+            {t('declaredValue')} <span className={`font-normal text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>(необязательно)</span>
           </label>
           <input
             type="number"
             value={data.value}
             onChange={(e) => onUpdate({ value: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={input}
             placeholder="0"
             min="0"
           />
         </div>
 
+        {/* Описание груза */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('cargoDescription')} <span className="text-gray-400 font-normal text-xs">(необязательно)</span>
+          <label className={label}>
+            {t('cargoDescription')} <span className={`font-normal text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>(необязательно)</span>
           </label>
           <textarea
             value={data.description}
             onChange={(e) => onUpdate({ description: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`${input} resize-none`}
             rows={3}
             placeholder={t('describeContent')}
           />
         </div>
 
+        {/* Кнопки */}
         <div className="flex justify-between pt-4">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            className={`flex items-center gap-2 px-6 py-3 border rounded-lg ${
+              isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
           >
             <ArrowLeft className="w-5 h-5" />
             {t('back')}

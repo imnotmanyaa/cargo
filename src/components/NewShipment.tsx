@@ -297,6 +297,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
             onUpdate={updateShipmentData}
             onNext={() => setCurrentStep('payment')}
             onBack={() => setCurrentStep('client')}
+            theme={theme}
           />
         );
       case 'payment':
