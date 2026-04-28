@@ -41,21 +41,25 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		ClientID       string   `json:"client_id"`
-		ClientName     string   `json:"client_name"`
-		ClientEmail    string   `json:"client_email"`
-		FromStation    string   `json:"from_station"`
-		ToStation      string   `json:"to_station"`
-		DepartureDate  string   `json:"departure_date"`
-		Weight         string   `json:"weight"`
-		Dimensions     string   `json:"dimensions"`
-		Description    string   `json:"description"`
-		Value          string   `json:"value"`
-		Cost           float64  `json:"cost"`
-		QuantityPlaces int      `json:"quantity_places"`
-		ReceiverName   *string  `json:"receiver_name"`
-		ReceiverPhone  *string  `json:"receiver_phone"`
-		TrainTime      *string  `json:"train_time"`
+		ClientID        string   `json:"client_id"`
+		ClientName      string   `json:"client_name"`
+		ClientEmail     string   `json:"client_email"`
+		FromStation     string   `json:"from_station"`
+		ToStation       string   `json:"to_station"`
+		DepartureDate   string   `json:"departure_date"`
+		Weight          string   `json:"weight"`
+		Dimensions      string   `json:"dimensions"`
+		Description     string   `json:"description"`
+		Value           string   `json:"value"`
+		Cost            float64  `json:"cost"`
+		QuantityPlaces  int      `json:"quantity_places"`
+		ReceiverName    *string  `json:"receiver_name"`
+		ReceiverPhone   *string  `json:"receiver_phone"`
+		TrainTime       *string  `json:"train_time"`
+		IsDoorToDoor    bool     `json:"is_door_to_door"`
+		PickupAddress   *string  `json:"pickup_address"`
+		DeliveryAddress *string  `json:"delivery_address"`
+		DoorToDoorPhone *string  `json:"door_to_door_phone"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -76,22 +80,26 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	shipment, err := s.services.Shipments.Create(r.Context(), service.CreateShipmentRequest{
-		ClientID:       req.ClientID,
-		ClientName:     req.ClientName,
-		ClientEmail:    req.ClientEmail,
-		FromStation:    req.FromStation,
-		ToStation:      req.ToStation,
-		DepartureDate:  departure,
-		Weight:         req.Weight,
-		Dimensions:     req.Dimensions,
-		Description:    req.Description,
-		Value:          req.Value,
-		Cost:           req.Cost,
-		QuantityPlaces: req.QuantityPlaces,
-		ReceiverName:   req.ReceiverName,
-		ReceiverPhone:  req.ReceiverPhone,
-		TrainTime:      req.TrainTime,
-		CreatedBy:      &user.ID,
+		ClientID:        req.ClientID,
+		ClientName:      req.ClientName,
+		ClientEmail:     req.ClientEmail,
+		FromStation:     req.FromStation,
+		ToStation:       req.ToStation,
+		DepartureDate:   departure,
+		Weight:          req.Weight,
+		Dimensions:      req.Dimensions,
+		Description:     req.Description,
+		Value:           req.Value,
+		Cost:            req.Cost,
+		QuantityPlaces:  req.QuantityPlaces,
+		ReceiverName:    req.ReceiverName,
+		ReceiverPhone:   req.ReceiverPhone,
+		TrainTime:       req.TrainTime,
+		CreatedBy:       &user.ID,
+		IsDoorToDoor:    req.IsDoorToDoor,
+		PickupAddress:   req.PickupAddress,
+		DeliveryAddress: req.DeliveryAddress,
+		DoorToDoorPhone: req.DoorToDoorPhone,
 	})
 	if err != nil {
 		handleServiceError(w, err)

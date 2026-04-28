@@ -12,22 +12,26 @@ import (
 )
 
 type CreateShipmentRequest struct {
-	ClientID       string
-	ClientName     string
-	ClientEmail    string
-	FromStation    string
-	ToStation      string
-	DepartureDate  time.Time
-	Weight         string
-	Dimensions     string
-	Description    string
-	Value          string
-	Cost           float64
-	QuantityPlaces int
-	ReceiverName   *string
-	ReceiverPhone  *string
-	TrainTime      *string
-	CreatedBy      *string
+	ClientID        string
+	ClientName      string
+	ClientEmail     string
+	FromStation     string
+	ToStation       string
+	DepartureDate   time.Time
+	Weight          string
+	Dimensions      string
+	Description     string
+	Value           string
+	Cost            float64
+	QuantityPlaces  int
+	ReceiverName    *string
+	ReceiverPhone   *string
+	TrainTime       *string
+	CreatedBy       *string
+	IsDoorToDoor    bool
+	PickupAddress   *string
+	DeliveryAddress *string
+	DoorToDoorPhone *string
 }
 
 type CorrectionRequest struct {
@@ -89,6 +93,10 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		ReceiverName:    req.ReceiverName,
 		ReceiverPhone:   req.ReceiverPhone,
 		TrainTime:       req.TrainTime,
+		IsDoorToDoor:    req.IsDoorToDoor,
+		PickupAddress:   req.PickupAddress,
+		DeliveryAddress: req.DeliveryAddress,
+		DoorToDoorPhone: req.DoorToDoorPhone,
 		TrackingCode:    ptr(number),
 		LastUpdatedAt:   now,
 		CreatedBy:       req.CreatedBy,

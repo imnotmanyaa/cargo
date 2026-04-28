@@ -482,8 +482,8 @@ export function ClientInfo({
             />
             <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
               <Truck className={`inline w-4 h-4 mr-1 -mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              Доставка «До двери»{' '}
-              <span className="text-gray-400 font-normal text-xs ml-1">(необязательно)</span>
+              {t('doorToDoorDelivery')}{' '}
+              <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>
             </span>
           </label>
 
@@ -492,7 +492,7 @@ export function ClientInfo({
               <div className="grid gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Адрес забора груза
+                    {t('pickupAddress')}
                   </label>
                   <input
                     type="text"
@@ -504,7 +504,7 @@ export function ClientInfo({
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Адрес доставки получателю
+                    {t('deliveryAddress')}
                   </label>
                   <input
                     type="text"
@@ -516,7 +516,7 @@ export function ClientInfo({
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Контактный телефон (для курьера)
+                    {t('courierPhone')}
                   </label>
                   <input
                     type="tel"
