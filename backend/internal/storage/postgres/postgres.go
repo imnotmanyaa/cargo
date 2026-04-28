@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,13 +12,11 @@ import (
 
 	"cargo/backend/internal/model"
 	"cargo/backend/internal/service"
+	"cargo/backend/migrations"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-//go:embed ../../migrations/*.sql
-var migrationsFS embed.FS
 
 type DB struct {
 	pool *pgxpool.Pool
@@ -45,7 +42,7 @@ func (db *DB) Close()              { db.pool.Close() }
 func (db *DB) Migrate() error {
 	ctx := context.Background()
 
-	entries, err := migrationsFS.ReadDir("../../migrations")
+	entries, err := migrations.FS.ReadDir(".")
 	if err != nil {
 		return fmt.Errorf("failed to read migrations dir: %v", err)
 	}
@@ -59,7 +56,7 @@ func (db *DB) Migrate() error {
 	sort.Strings(files)
 
 	for _, file := range files {
-		content, err := migrationsFS.ReadFile("../../migrations/" + file)
+		content, err := migrations.FS.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed to read migration %s: %v", file, err)
 		}
