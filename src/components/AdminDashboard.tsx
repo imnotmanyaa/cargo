@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { UserPlus, Shield, Users, Edit2, Trash2, Search } from 'lucide-react';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { UserPlus, Shield, Users, Edit2, Trash2, Search, QrCode } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface Employee {
   id: string;
@@ -22,6 +23,10 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [_isLoading, setIsLoading] = useState(true);
+  const [qrEmployee, setQrEmployee] = useState<Employee | null>(null);
+  const [qrToken, setQrToken] = useState<string>('');
+  const [qrError, setQrError] = useState<string>('');
+  const qrSvgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -165,6 +170,47 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
         console.error('Failed to delete employee:', error);
       }
     }
+  };
+
+  const openQrModal = async (emp: Employee) => {
+    try {
+      setQrError('');
+      setQrEmployee(emp);
+      setQrToken('');
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/admin/employees/${emp.id}/qr-login-token`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Не удалось получить QR-токен');
+      }
+      const data = await res.json();
+      setQrToken(data.token || '');
+    } catch (e: any) {
+      setQrError(e?.message || 'Ошибка получения QR');
+    }
+  };
+
+  const qrUrl = useMemo(() => {
+    if (!qrToken) return '';
+    const origin = window.location.origin;
+    return `${origin}/qr-login?token=${encodeURIComponent(qrToken)}`;
+  }, [qrToken]);
+
+  const downloadQrSvg = () => {
+    if (!qrEmployee || !qrSvgRef.current) return;
+    const serializer = new XMLSerializer();
+    const svgText = serializer.serializeToString(qrSvgRef.current);
+    const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `qr-login-${qrEmployee.email}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   const handleToggleStatus = (id: string) => {
@@ -464,6 +510,13 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
                       <button
+                        onClick={() => openQrModal(employee)}
+                        className={isDark ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-900'}
+                        title="QR-логин (скачать)"
+                      >
+                        <QrCode className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleOpenEdit(employee)}
                         className={isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-900'}
                         title="Редактировать"
@@ -563,6 +616,57 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Модалка QR-логина */}
+      {qrEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className={`w-full max-w-md rounded-xl shadow-2xl p-6 ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>QR-логин для ТСД</h3>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{qrEmployee.email}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setQrEmployee(null);
+                  setQrToken('');
+                  setQrError('');
+                }}
+                className={isDark ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}
+                title="Закрыть"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-5 flex flex-col items-center">
+              {qrError ? (
+                <div className={`w-full text-sm rounded-lg p-3 ${isDark ? 'bg-red-900/30 text-red-200 border border-red-800' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  {qrError}
+                </div>
+              ) : !qrUrl ? (
+                <div className={isDark ? 'text-gray-300' : 'text-gray-600'}>Генерируем QR...</div>
+              ) : (
+                <>
+                  <div className={`p-4 rounded-xl ${isDark ? 'bg-white' : 'bg-white'} border border-gray-200`}>
+                    <QRCodeSVG value={qrUrl} size={240} includeMargin ref={(node) => (qrSvgRef.current = node)} />
+                  </div>
+                  <div className={`mt-3 text-xs break-all text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {qrUrl}
+                  </div>
+                  <button
+                    onClick={downloadQrSvg}
+                    className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    Скачать QR (SVG)
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

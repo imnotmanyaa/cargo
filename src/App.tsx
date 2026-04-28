@@ -25,6 +25,7 @@ import { ShipmentActionPage } from './components/ShipmentActionPage';
 import { ScannerTerminal } from './components/ScannerTerminal';
 import { DailySheet } from './components/DailySheet';
 import { FrequentClients } from './components/FrequentClients';
+import { QrLogin } from './components/QrLogin';
 
 import { ZebraTerminal } from './components/ZebraTerminal';
 import { LeaderOverview } from './components/LeaderOverview';
@@ -90,6 +91,9 @@ function AppContent() {
 
   // Standalone scanner terminal — available for scanning roles
   const path = window.location.pathname;
+  if (path === '/qr-login') {
+    return <QrLogin />;
+  }
   if (path === '/scanner' && isAuthenticated) {
     return <ScannerTerminal />;
   }

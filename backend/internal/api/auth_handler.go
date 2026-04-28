@@ -11,6 +11,7 @@ import (
 func (s *Server) mountAuthRoutes(r chi.Router) {
 	r.Post("/auth/login", s.handleLogin)
 	r.Post("/auth/register", s.handleRegister)
+	r.Post("/auth/qr-login", s.handleQRLogin)
 	r.With(s.requireAuth).Get("/auth/me", s.handleMe)
 	r.Post("/auth/logout", s.handleLogout)
 }
@@ -67,4 +68,19 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLogout(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func (s *Server) handleQRLogin(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token string `json:"token"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	user, authToken, err := s.services.Auth.QRLogin(r.Context(), req.Token)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, withToken(user, authToken))
 }

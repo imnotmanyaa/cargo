@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -84,6 +85,46 @@ func (s *AuthService) ParseToken(token string) (AuthenticatedUser, error) {
 		Name:    name,
 		Station: station,
 	}, nil
+}
+
+func (s *AuthService) IssueQRLoginToken(ctx context.Context, userID string) (string, error) {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	claims := jwt.MapClaims{
+		"sub": user.ID,
+		"typ": "qr_login",
+		"exp": time.Now().Add(365 * 24 * time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.jwtSecret))
+}
+
+func (s *AuthService) QRLogin(ctx context.Context, qrToken string) (model.User, string, error) {
+	claims := jwt.MapClaims{}
+	parsed, err := jwt.ParseWithClaims(qrToken, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.jwtSecret), nil
+	})
+	if err != nil || !parsed.Valid {
+		return model.User{}, "", ErrUnauthorized
+	}
+	if typ, _ := claims["typ"].(string); typ != "qr_login" {
+		return model.User{}, "", fmt.Errorf("%w: invalid qr token type", ErrForbidden)
+	}
+	userID, _ := claims["sub"].(string)
+	if userID == "" {
+		return model.User{}, "", ErrUnauthorized
+	}
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return model.User{}, "", err
+	}
+	if !user.IsActive {
+		return model.User{}, "", ErrForbidden
+	}
+	authToken, err := s.issueToken(user)
+	return user, authToken, err
 }
 
 func (s *AuthService) issueToken(user model.User) (string, error) {

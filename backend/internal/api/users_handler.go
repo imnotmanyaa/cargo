@@ -15,6 +15,7 @@ func (s *Server) mountUserRoutes(r chi.Router) {
 	r.Put("/users/{id}", s.handleUpdateUser)
 	r.Get("/admin/employees", s.handleListEmployees)
 	r.Post("/admin/employees", s.handleCreateEmployee)
+	r.Get("/admin/employees/{id}/qr-login-token", s.handleEmployeeQRLoginToken)
 	r.Delete("/admin/employees/{id}", s.handleDeleteEmployee)
 }
 
@@ -145,6 +146,24 @@ func (s *Server) handleCreateEmployee(w http.ResponseWriter, r *http.Request) {
 		"created_at": createdUser.CreatedAt,
 		"status":     "active",
 	})
+}
+
+func (s *Server) handleEmployeeQRLoginToken(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	employeeID := chi.URLParam(r, "id")
+	token, err := s.services.Auth.IssueQRLoginToken(r.Context(), employeeID)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"token": token})
 }
 
 func (s *Server) handleDeleteEmployee(w http.ResponseWriter, r *http.Request) {
