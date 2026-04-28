@@ -55,7 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // If it's a relative API call, prepend the base URL
       if (url.startsWith('/api/')) {
-        url = API_URL + url;
+        const base = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
+        url = base + url;
       }
 
       const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
