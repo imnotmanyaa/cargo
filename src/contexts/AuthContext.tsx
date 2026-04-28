@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { API_URL } from '../config';
+import { withApiBase } from '../lib/api-base';
 
 type UserRole = 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'mobile_group';
 
@@ -41,53 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-  }, []);
-
-  // Global 401 handler: auto-logout on expired/invalid token + API_URL prepender
-  useEffect(() => {
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      let url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-      
-      // If it's a relative API call, prepend the base URL
-      if (url.startsWith('/api/')) {
-        const base = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
-        url = base + url;
-      }
-
-      const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
-      const isApiRequest = url.includes('/api/');
-      const token = localStorage.getItem('token');
-
-      let nextInit = init;
-      // Auto-attach bearer token for API requests
-      if (isApiRequest && token) {
-        const headers = new Headers(init?.headers || {});
-        if (!headers.has('Authorization')) {
-          headers.set('Authorization', `Bearer ${token}`);
-        }
-        nextInit = { ...init, headers };
-      }
-
-      const response = await originalFetch(url, nextInit);
-
-      if (response.status === 401 && !isAuthEndpoint && token) {
-        logout();
-      }
-      return response;
-    };
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [logout]);
-
   const login = async (email: string, password: string, _role?: string) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(withApiBase('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -123,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: RegisterData) => {
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(withApiBase('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -158,6 +114,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const logout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+  }, []);
+
+  // Global 401 handler: auto-logout on expired/invalid token.
+  // Also normalizes relative /api/... calls using VITE_API_URL.
+  useEffect(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const normalizedUrl = withApiBase(url);
+      const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
+      const isApiRequest = url.includes('/api/');
+      const token = localStorage.getItem('token');
+
+      let nextInit = init;
+      // Auto-attach bearer token for API requests when caller forgot headers.
+      if (isApiRequest && token && !(input instanceof Request)) {
+        const headers = new Headers(init?.headers || {});
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        nextInit = { ...init, headers };
+      }
+
+      const finalInput = input instanceof Request ? new Request(withApiBase(input.url), input) : normalizedUrl;
+      const response = await originalFetch(finalInput, nextInit);
+
+      if (response.status === 401 && !isAuthEndpoint && token) {
+        logout();
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [logout]);
   const updateUser = (updates: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...updates };

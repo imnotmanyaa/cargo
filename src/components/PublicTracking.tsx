@@ -13,7 +13,7 @@ interface Shipment {
     departure_date: string;
     created_at: string;
     weight: string;
-    dimensions: string;
+    quantity_places?: number;
     description: string;
 }
 
@@ -188,9 +188,9 @@ export function PublicTracking({ shipmentId }: PublicTrackingProps) {
                             </div>
 
                             <div className="p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
-                                <h4 className="text-sm font-medium text-gray-500 mb-1">Вес и габариты</h4>
+                                <h4 className="text-sm font-medium text-gray-500 mb-1">Вес и места</h4>
                                 <div className="font-medium">{shipment.weight} кг</div>
-                                <div className="text-sm text-gray-500">{shipment.dimensions}</div>
+                                <div className="text-sm text-gray-500">Количество мест: {Math.max(1, Number(shipment.quantity_places) || 1)}</div>
                             </div>
 
                             <div className="p-4 bg-white rounded-lg border border-gray-100 shadow-sm">

@@ -11,7 +11,7 @@ interface Shipment {
     to_station: string;
     status: string;
     weight: string;
-    dimensions: string;
+    quantity_places?: number;
     description: string;
     departure_date: string;
     train_time?: string;
@@ -207,7 +207,7 @@ export function ShipmentActionPage() {
                                 <h3 className="text-sm font-semibold text-gray-900 mb-2">Детали</h3>
                                 <div className="space-y-1 text-sm text-gray-700">
                                     <p><strong>Вес:</strong> {shipment.weight} кг</p>
-                                    <p><strong>Размеры:</strong> {shipment.dimensions}</p>
+                                    <p><strong>Количество мест:</strong> {Math.max(1, Number(shipment.quantity_places) || 1)}</p>
                                     <p><strong>Описание:</strong> {shipment.description}</p>
                                     {shipment.receiver_name && (
                                         <p><strong>Получатель:</strong> {shipment.receiver_name}</p>
@@ -265,7 +265,7 @@ export function ShipmentActionPage() {
                                 <h3 className="text-sm font-semibold text-gray-900 mb-2">Детали</h3>
                                 <div className="space-y-1 text-sm text-gray-700">
                                     <p><strong>Вес:</strong> {shipment.weight} кг</p>
-                                    <p><strong>Размеры:</strong> {shipment.dimensions}</p>
+                                    <p><strong>Количество мест:</strong> {Math.max(1, Number(shipment.quantity_places) || 1)}</p>
                                     <p><strong>Описание:</strong> {shipment.description}</p>
                                     {shipment.receiver_name && (
                                         <p><strong>Получатель:</strong> {shipment.receiver_name}</p>
@@ -316,7 +316,7 @@ export function ShipmentActionPage() {
                                 <h3 className="text-sm font-semibold text-gray-900 mb-2">Детали</h3>
                                 <div className="space-y-1 text-sm text-gray-700">
                                     <p><strong>Вес:</strong> {shipment.weight} кг</p>
-                                    <p><strong>Размеры:</strong> {shipment.dimensions}</p>
+                                    <p><strong>Количество мест:</strong> {Math.max(1, Number(shipment.quantity_places) || 1)}</p>
                                     <p><strong>Описание:</strong> {shipment.description}</p>
                                     {shipment.receiver_name && (
                                         <p><strong>Получатель:</strong> {shipment.receiver_name}</p>

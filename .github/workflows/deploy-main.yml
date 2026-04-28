@@ -1,0 +1,48 @@
+# После каждого push в ветку main — сборка и деплой на Oracle (scripts/deploy-remote.sh).
+# Секрет репозитория: ORACLE_SSH_PRIVATE_KEY — полный текст ssh-key-cargo.pem (Settings → Secrets → Actions).
+name: Deploy main to Oracle
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-oracle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install and build frontend
+        run: npm ci && npm run build
+
+      - name: Write SSH key
+        env:
+          ORACLE_SSH_PRIVATE_KEY: ${{ secrets.ORACLE_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "${ORACLE_SSH_PRIVATE_KEY}" ]; then
+            echo "Missing GitHub secret ORACLE_SSH_PRIVATE_KEY. Add it in repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          echo "$ORACLE_SSH_PRIVATE_KEY" > ~/.ssh/oracle_deploy.pem
+          chmod 600 ~/.ssh/oracle_deploy.pem
+
+      - name: Trust Oracle host key (strict SSH)
+        run: mkdir -p ~/.ssh && ssh-keyscan -H 141.148.236.58 >> ~/.ssh/known_hosts
+
+      - name: Rsync + remote build
+        run: |
+          export DEPLOY_SSH_KEY_PATH="${HOME}/.ssh/oracle_deploy.pem"
+          export DEPLOY_SSH_STRICT_HOST_KEY=1
+          export SKIP_NPM_BUILD=1
+          bash scripts/deploy-remote.sh

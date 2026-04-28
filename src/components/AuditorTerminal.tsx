@@ -4,7 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { CheckCircle, QrCode, Package, MapPin, AlertTriangle, Scan } from 'lucide-react';
 
 type AuditResult = {
-  type: 'found' | 'not-found' | 'error' | 'station-mismatch';
+  type: 'found' | 'already-scanned' | 'not-found' | 'error' | 'station-mismatch';
   shipmentId: string;
   shipmentNumber?: string;
   fromStation?: string;
@@ -12,6 +12,7 @@ type AuditResult = {
   currentStation?: string;
   status?: string;
   stationMatch?: boolean;
+  lastScannedAt?: string;
   message: string;
 };
 
@@ -143,8 +144,12 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
         const data = await res.json();
         const s = data.shipment;
         const sm: boolean = data.station_match;
-        const type: AuditResult['type'] = sm ? 'found' : 'station-mismatch';
+        const alreadyScanned: boolean = Boolean(data.already_scanned_at_station);
+        const type: AuditResult['type'] = !sm ? 'station-mismatch' : (alreadyScanned ? 'already-scanned' : 'found');
         playBeep(sm ? 880 : 440, sm ? 150 : 300);
+        const alreadyText = data.last_scanned_at
+          ? new Date(data.last_scanned_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
+          : '';
         const auditResult: AuditResult = {
           type,
           shipmentId: trimmed,
@@ -154,9 +159,12 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
           currentStation: s.current_station,
           status: s.shipment_status,
           stationMatch: sm,
-          message: sm
-            ? `✅ ${t('mobileGroupApproved')} — ${s.shipment_number}`
-            : `⚠️ ${s.shipment_number} (${s.current_station})`,
+          lastScannedAt: data.last_scanned_at || undefined,
+          message: !sm
+            ? `❌ ${s.shipment_number} (${s.current_station})`
+            : alreadyScanned
+              ? `⚠️ ✅ Уже принят${alreadyText ? ` (${alreadyText})` : ''}`
+              : `✅ ${t('mobileGroupApproved')} — ${s.shipment_number}`,
         };
         setResult(auditResult);
         addToHistory({
@@ -194,11 +202,13 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
 
   const resultOverlayBg =
     result?.type === 'found' ? 'bg-green-600' :
+    result?.type === 'already-scanned' ? 'bg-yellow-500' :
     result?.type === 'station-mismatch' ? 'bg-orange-500' :
     'bg-red-600';
 
   const historyBorderColor = (type: HistoryItem['type']) =>
     type === 'found' ? 'border-green-500' :
+    type === 'already-scanned' ? 'border-yellow-500' :
     type === 'station-mismatch' ? 'border-yellow-500' :
     'border-red-500';
 
@@ -260,6 +270,9 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
           <p className="text-xs opacity-90 mb-1">{t('mobileGroupMismatch')}</p>
           <p className="text-2xl font-bold">{stats.mismatch}</p>
         </div>
+      </div>
+      <div className={`mb-4 text-sm font-medium ${textSecondary}`}>
+        Отсканировано: {stats.approved} из {stats.total}
       </div>
 
       {/* Scan Input Card */}
@@ -355,7 +368,7 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
               )}
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-              {result.type === 'found' ? t('mobileGroupSuccess') : t('mobileGroupError')}
+              {result.type === 'found' || result.type === 'already-scanned' ? t('mobileGroupSuccess') : t('mobileGroupError')}
             </h2>
             <div className="text-xl md:text-2xl font-bold text-white mb-6">
               {result.message}

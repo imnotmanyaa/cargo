@@ -501,6 +501,20 @@ func (s *ShipmentService) ActionContext(ctx context.Context, id string, user *Au
 	return result, nil
 }
 
+func (s *ShipmentService) LastTransitAtStation(ctx context.Context, shipmentID, station string) (*time.Time, error) {
+	events, err := s.repo.ListTransitEvents(ctx, shipmentID)
+	if err != nil {
+		return nil, err
+	}
+	for i := len(events) - 1; i >= 0; i-- {
+		if events[i].StationID == station {
+			ts := events[i].EventTime
+			return &ts, nil
+		}
+	}
+	return nil, nil
+}
+
 func (s *ShipmentService) transition(ctx context.Context, id string, next model.ShipmentLifecycle, operatorID, operatorName, station *string, action string, transportUnitID *string, reason ...*string) (model.Shipment, error) {
 	shipment, err := s.Get(ctx, id)
 	if err != nil {
