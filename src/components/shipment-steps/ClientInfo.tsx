@@ -102,11 +102,13 @@ export function ClientInfo({
     }
 
     // Авто-заполнение данных клиента (для физ. лиц и компаний)
-    if (user.role === 'individual' && user.name) {
+    if (user.role === 'individual') {
       updates.clientType = 'individual';
-      updates.clientName = user.name;
+      updates.clientName = user.name || '';
       updates.clientPhone = user.phone || '';
       updates.clientSource = 'direct';
+      updates.isDoorToDoor = true;
+      setIsDoorToDoor(true);
     } else if (user.role === 'corporate') {
       updates.clientType = 'legal';
       updates.clientName = user.company || user.name;
@@ -470,28 +472,30 @@ export function ClientInfo({
           )}
         </div>
 
-        {/* До двери — стиль как «Получатель другое лицо» */}
-        {/* До двери — стиль как «Получатель другое лицо» */}
-        {user?.role === 'individual' && (
+        {/* До двери — обязательно для физ. лиц, опционально для других (если им разрешено) */}
+        {(user?.role === 'individual' || user?.role === 'admin' || user?.role === 'manager') && (
           <div>
             <label className="flex items-center mb-4">
               <input
                 type="checkbox"
-                checked={isDoorToDoor}
+                checked={user?.role === 'individual' ? true : isDoorToDoor}
+                disabled={user?.role === 'individual'}
                 onChange={(e) => {
+                  if (user?.role === 'individual') return;
                   setIsDoorToDoor(e.target.checked);
                   onUpdate({ isDoorToDoor: e.target.checked, pickupAddress: '', deliveryAddress: '', doorToDoorPhone: '' });
                 }}
-                className="w-4 h-4 text-blue-600 rounded"
+                className={`w-4 h-4 rounded ${user?.role === 'individual' ? 'text-blue-400 bg-gray-100 cursor-not-allowed' : 'text-blue-600'}`}
               />
               <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
                 <Truck className={`inline w-4 h-4 mr-1 -mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
                 {t('doorToDoorDelivery')}{' '}
-                <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>
+                {user?.role !== 'individual' && <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>}
+                {user?.role === 'individual' && <span className="text-blue-500 font-normal text-xs ml-1">(Обязательно)</span>}
               </span>
             </label>
 
-            {isDoorToDoor && (
+            {(user?.role === 'individual' || isDoorToDoor) && (
               <div className={`p-4 rounded-lg border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                 <div className="grid gap-4">
                   <div>
