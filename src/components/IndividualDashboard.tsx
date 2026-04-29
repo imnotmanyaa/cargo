@@ -23,6 +23,9 @@ interface Shipment {
   value?: string;
   receiver_name?: string;
   receiver_phone?: string;
+  pickup_address?: string;
+  delivery_address?: string;
+  door_to_door_phone?: string;
   cost: number;
 }
 
@@ -105,6 +108,9 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
             value: selectedShipment.value || '',
             receiver_name: selectedShipment.receiver_name,
             receiver_phone: selectedShipment.receiver_phone,
+            pickup_address: selectedShipment.pickup_address,
+            delivery_address: selectedShipment.delivery_address,
+            door_to_door_phone: selectedShipment.door_to_door_phone,
           }}
         />
       )}

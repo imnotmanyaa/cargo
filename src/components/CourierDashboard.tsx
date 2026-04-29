@@ -212,7 +212,7 @@ export function CourierDashboard() {
     setLoading(true);
     try {
       const resp = await fetch(withApiBase('/api/courier/tasks'), {
-        headers: { Authorization: `Bearer ${user?.token || ''}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (!resp.ok) throw new Error('Failed to load tasks');
       const data = await resp.json();
@@ -254,8 +254,9 @@ export function CourierDashboard() {
   };
 
   useEffect(() => {
-    if (user?.token) loadTasks();
-  }, [user?.token]);
+    const token = localStorage.getItem('token');
+    if (token) loadTasks();
+  }, []);
 
 
   const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');

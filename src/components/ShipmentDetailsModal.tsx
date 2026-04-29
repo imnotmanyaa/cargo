@@ -19,6 +19,9 @@ interface ShipmentDetailsModalProps {
     departure_date?: string;
     receiver_name?: string;
     receiver_phone?: string;
+    pickup_address?: string;
+    delivery_address?: string;
+    door_to_door_phone?: string;
   };
   onClose: () => void;
   theme?: 'light' | 'dark';
@@ -125,23 +128,44 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
             </div>
           </div>
 
-          {/* Receiver */}
-          {(shipment.receiver_name || shipment.receiver_phone) && (
+          {/* Receiver & Door to door */}
+          {(shipment.receiver_name || shipment.receiver_phone || shipment.pickup_address || shipment.delivery_address || shipment.door_to_door_phone) && (
             <div className={`rounded-lg border p-4 ${isDark ? 'bg-blue-900/20 border-blue-800/50' : 'bg-blue-50 border-blue-100'}`}>
-              <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-blue-300' : 'text-blue-800'}`}>Получатель</h3>
+              <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-blue-300' : 'text-blue-800'}`}>Адреса и Получатель</h3>
               <div className="space-y-2">
                 {shipment.receiver_name && (
                   <div className="flex items-center gap-3">
-                    <User className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
-                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>ФИО:</span>
+                    <User className={`w-4 h-4 shrink-0 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`text-sm shrink-0 ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>ФИО:</span>
                     <span className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-blue-900'}`}>{shipment.receiver_name}</span>
                   </div>
                 )}
                 {shipment.receiver_phone && (
                   <div className="flex items-center gap-3">
-                    <Phone className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
-                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>Телефон:</span>
+                    <Phone className={`w-4 h-4 shrink-0 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`text-sm shrink-0 ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>Телефон:</span>
                     <span className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-blue-900'}`}>{shipment.receiver_phone}</span>
+                  </div>
+                )}
+                {shipment.door_to_door_phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className={`w-4 h-4 shrink-0 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`text-sm shrink-0 ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>Тел (курьер):</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-blue-900'}`}>{shipment.door_to_door_phone}</span>
+                  </div>
+                )}
+                {shipment.pickup_address && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`text-sm shrink-0 ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>Откуда:</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-blue-900'}`}>{shipment.pickup_address}</span>
+                  </div>
+                )}
+                {shipment.delivery_address && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`text-sm shrink-0 ${isDark ? 'text-gray-300' : 'text-blue-700'}`}>Куда:</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-blue-900'}`}>{shipment.delivery_address}</span>
                   </div>
                 )}
               </div>
