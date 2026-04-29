@@ -211,10 +211,22 @@ export function CourierDashboard() {
   const loadTasks = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('No token found, skipping task load');
+        setLoading(false);
+        return;
+      }
       const resp = await fetch(withApiBase('/api/courier/tasks'), {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
-      if (!resp.ok) throw new Error('Failed to load tasks');
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        console.error('Load tasks error:', resp.status, errData);
+        // Don't clear existing tasks on error
+        setLoading(false);
+        return;
+      }
       const data = await resp.json();
       
       const mapped = (data || []).map((sh: any) => {
@@ -246,16 +258,16 @@ export function CourierDashboard() {
         };
       });
       setTasks(mapped);
-    } catch {
-      setTasks([]);
+    } catch (e) {
+      console.error('Load tasks exception:', e);
+      // Don't clear existing tasks on network error
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) loadTasks();
+    loadTasks();
   }, []);
 
 
