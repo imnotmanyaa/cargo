@@ -50,7 +50,7 @@ export function CourierDashboard() {
   const getDict = (key: string) => {
     const dict: Record<string, Record<string, string>> = {
       ru: {
-        courierPosition: 'Курьер Cargo Trans',
+        courierPosition: 'Cargo Trans',
         active: 'Активен',
         tasksToday: 'Задач сегодня',
         completed: 'Завершено',
