@@ -254,8 +254,8 @@ export function CourierDashboard() {
   };
 
   useEffect(() => {
-    loadTasks();
-  }, []);
+    if (user?.token) loadTasks();
+  }, [user?.token]);
 
 
   const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
