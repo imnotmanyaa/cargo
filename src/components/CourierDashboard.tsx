@@ -19,7 +19,9 @@ import {
   Home,
   Building2,
   ArrowRight,
-  XCircle
+  XCircle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,6 +51,19 @@ export function CourierDashboard() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
 
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
   
   const [tasks, setTasks] = useState<DeliveryTask[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,25 +72,25 @@ export function CourierDashboard() {
     const lang = localStorage.getItem('language') || 'ru';
     const dict: Record<string, any> = {
       ru: {
-        'Created (Door-to-door)': 'Ожидает курьера',
-        'Pickup Assigned': 'Назначена курьеру',
-        'Picked Up': 'Забрана курьером',
-        'Payment Pending': 'Ожидает оплаты',
-        'Paid': 'Оплачена',
+        'CREATED_DOOR': 'Ожидает курьера',
+        'PICKUP_ASSIGNED': 'Назначена курьеру',
+        'PICKED_UP': 'Забрана курьером',
+        'PAYMENT_PENDING': 'Ожидает оплаты',
+        'PAID': 'Оплачена',
       },
       kz: {
-        'Created (Door-to-door)': 'Курьерді күтуде',
-        'Pickup Assigned': 'Курьерге тағайындалды',
-        'Picked Up': 'Курьер алып кетті',
-        'Payment Pending': 'Төлемді күтуде',
-        'Paid': 'Төленді',
+        'CREATED_DOOR': 'Курьерді күтуде',
+        'PICKUP_ASSIGNED': 'Курьерге тағайындалды',
+        'PICKED_UP': 'Курьер алып кетті',
+        'PAYMENT_PENDING': 'Төлемді күтуде',
+        'PAID': 'Төленді',
       },
       en: {
-        'Created (Door-to-door)': 'Waiting for Courier',
-        'Pickup Assigned': 'Assigned to Courier',
-        'Picked Up': 'Picked Up by Courier',
-        'Payment Pending': 'Payment Pending',
-        'Paid': 'Paid',
+        'CREATED_DOOR': 'Waiting for Courier',
+        'PICKUP_ASSIGNED': 'Assigned to Courier',
+        'PICKED_UP': 'Picked Up by Courier',
+        'PAYMENT_PENDING': 'Payment Pending',
+        'PAID': 'Paid',
       }
     };
     return dict[lang]?.[status] || status;
@@ -94,9 +109,9 @@ export function CourierDashboard() {
         let type: 'pickup' | 'delivery' = 'pickup';
         let status: 'pending' | 'in_progress' | 'completed' | 'cancelled' = 'pending';
         
-        if (sh.shipment_status === 'Pickup Assigned') status = 'in_progress';
-        if (sh.shipment_status === 'Picked Up') status = 'completed';
-        if (sh.shipment_status === 'Payment Pending' || sh.shipment_status === 'Paid') {
+        if (sh.shipment_status === 'PICKUP_ASSIGNED') status = 'in_progress';
+        if (sh.shipment_status === 'PICKED_UP') status = 'completed';
+        if (sh.shipment_status === 'PAYMENT_PENDING' || sh.shipment_status === 'PAID') {
             status = 'pending';
         }
 
