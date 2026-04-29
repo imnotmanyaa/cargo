@@ -125,7 +125,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
           <div className={card}>
             <h3 className={sectionTitle}>
               <User className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              Информация о клиенте
+              {t('mainInfo')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
@@ -144,7 +144,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
           <div className={card}>
             <h3 className={sectionTitle}>
               <MapPin className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              Маршрут
+              {t('routeInfo')}
             </h3>
             <div className={`flex items-center gap-4 p-4 rounded-xl ${isDark ? 'bg-gray-900/50' : 'bg-gray-50'} mb-6`}>
               <div className="flex-1">
@@ -158,29 +158,13 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
               </div>
             </div>
 
-            {(shipment.departure_date || shipment.train_time) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {shipment.departure_date && (
-                  <div>
-                    <p className={label}>{t('departureDate')}</p>
-                    <p className={value}>{formatDate(shipment.departure_date)}</p>
-                  </div>
-                )}
-                {shipment.train_time && (
-                  <div>
-                    <p className={label}>Время поезда</p>
-                    <p className={value}>{shipment.train_time}</p>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {(shipment.receiver_name || shipment.receiver_phone) && (
             <div className={card}>
               <h3 className={sectionTitle}>
                 <User className={`w-5 h-5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
-                Получатель (другое лицо)
+                {t('receiverOther')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {shipment.receiver_name && (
@@ -205,7 +189,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
           <div className={card}>
             <h3 className={sectionTitle}>
               <Package className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              Параметры груза
+              {t('cargoParams')}
             </h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
@@ -249,7 +233,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
             : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
         }`}>
           <Download className="w-5 h-5" />
-          Скачать накладную
+          {t('downloadWaybill')}
         </button>
         <button className={`flex-1 flex justify-center items-center gap-2 py-4 rounded-xl font-medium transition-all ${
           isDark 
@@ -257,7 +241,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
             : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
         }`}>
           <Download className="w-5 h-5" />
-          Скачать сдаточный список
+          {t('downloadSurrenderList')}
         </button>
       </div>
     </div>

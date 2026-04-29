@@ -14,7 +14,6 @@ interface Shipment {
     quantity_places?: number;
     description: string;
     departure_date: string;
-    train_time?: string;
     receiver_name?: string;
     receiver_phone?: string;
 }
@@ -352,9 +351,6 @@ export function ShipmentActionPage() {
                                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
                                     Поезд отправления
                                 </h2>
-                                <div className="text-3xl font-bold text-green-700">
-                                    {shipment.train_time || 'Время не указано'}
-                                </div>
                                 <p className="text-sm text-gray-600 mt-2">
                                     {new Date(shipment.departure_date).toLocaleDateString('ru-RU')}
                                 </p>

@@ -12,6 +12,7 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('newest');
 
   const getStatus = (status: string) => {
     if (language === 'en') {
@@ -61,7 +62,6 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
     quantity_places: Number(s.quantity_places) || 1,
     receiver_name: s.receiver_name,
     receiver_phone: s.receiver_phone,
-    train_time: s.train_time,
     is_door_to_door: s.is_door_to_door,
   });
 
@@ -89,7 +89,7 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
     return () => clearInterval(interval);
   }, [user?.role, user?.station]);
 
-  const filteredShipments = shipments.filter(s => {
+  let filteredShipments = shipments.filter(s => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (s.shipment_number?.toLowerCase().includes(q) ||
@@ -97,6 +97,20 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
             s.from?.toLowerCase().includes(q) ||
             s.to?.toLowerCase().includes(q) ||
             s.status?.toLowerCase().includes(q));
+  });
+
+  // Apply sorting
+  filteredShipments = filteredShipments.sort((a, b) => {
+    if (sortOrder === 'newest') {
+      return new Date(b.created_at || b.departure_date || 0).getTime() - new Date(a.created_at || a.departure_date || 0).getTime();
+    }
+    if (sortOrder === 'oldest') {
+      return new Date(a.created_at || a.departure_date || 0).getTime() - new Date(b.created_at || b.departure_date || 0).getTime();
+    }
+    if (sortOrder === 'status') {
+      return (a.status || '').localeCompare(b.status || '');
+    }
+    return 0;
   });
 
   if (selectedShipment) {
@@ -143,13 +157,19 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
                 }`}
               />
             </div>
-            <button className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm ${isDark
-              ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
-              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}>
-              <Filter className="w-4 h-4" />
-              {t('filters')}
-            </button>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isDark 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            >
+              <option value="newest">Сначала новые</option>
+              <option value="oldest">Сначала старые</option>
+              <option value="status">По статусу</option>
+            </select>
           </div>
         </div>
 

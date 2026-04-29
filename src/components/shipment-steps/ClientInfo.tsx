@@ -589,69 +589,12 @@ export function ClientInfo({
             </div>
           )}
 
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              {t('departureDate')}
-            </label>
-            <input
-              type="date"
-              value={data.departureDate}
-              onChange={(e) => onUpdate({ departureDate: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark
-                ? 'bg-gray-700 border-gray-600 text-gray-200'
-                : 'border-gray-300'
-                }`}
-            />
-          </div>
-
-          {data.departureDate && (
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Время поезда
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <label className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${data.trainTime === '15:00'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : isDark
-                    ? 'border-gray-600 hover:bg-gray-700 text-gray-200'
-                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                  }`}>
-                  <input
-                    type="radio"
-                    name="trainTime"
-                    value="15:00"
-                    checked={data.trainTime === '15:00'}
-                    onChange={(e) => onUpdate({ trainTime: e.target.value })}
-                    className="sr-only"
-                  />
-                  <span>15:00</span>
-                </label>
-
-                <label className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors ${data.trainTime === '23:00'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : isDark
-                    ? 'border-gray-600 hover:bg-gray-700 text-gray-200'
-                    : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                  }`}>
-                  <input
-                    type="radio"
-                    name="trainTime"
-                    value="23:00"
-                    checked={data.trainTime === '23:00'}
-                    onChange={(e) => onUpdate({ trainTime: e.target.value })}
-                    className="sr-only"
-                  />
-                  <span>23:00</span>
-                </label>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="flex justify-end pt-4">
           <button
             onClick={onNext}
-            disabled={!data.clientName || !data.fromStation || !data.toStation || !data.departureDate || !data.trainTime || sameFromTo}
+            disabled={!data.clientName || !data.fromStation || !data.toStation || sameFromTo}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}

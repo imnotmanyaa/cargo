@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"cargo/backend/internal/model"
+	"cargo/backend/internal/service"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -21,10 +22,6 @@ func (s *Server) handleCreatePayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
-		handleServiceError(w, err)
-		return
-	}
 	var req struct {
 		ShipmentID   string  `json:"shipment_id"`
 		Amount       float64 `json:"amount"`
@@ -39,10 +36,22 @@ func (s *Server) handleCreatePayment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	if err := s.requireStation(user, shipment.FromStation); err != nil {
-		handleServiceError(w, err)
+
+	isOwner := (user.Role == model.RoleIndividual || user.Role == model.RoleCorporate) && shipment.ClientID == user.ID
+	isEmployee := user.Role == model.RoleManager || user.Role == model.RoleAdmin || user.Role == model.RoleDirectionHead || user.Role == model.RoleChiefHead
+
+	if !isOwner && !isEmployee {
+		handleServiceError(w, service.ErrForbidden)
 		return
 	}
+
+	if isEmployee {
+		if err := s.requireStation(user, shipment.FromStation); err != nil {
+			handleServiceError(w, err)
+			return
+		}
+	}
+
 	payment, err := s.services.Payments.Create(r.Context(), req.ShipmentID, req.Amount, req.Method, req.POSReference)
 	if err != nil {
 		handleServiceError(w, err)
@@ -68,10 +77,6 @@ func (s *Server) handleConfirmPayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleAccounting, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
-		handleServiceError(w, err)
-		return
-	}
 	payment, err := s.services.Payments.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)
@@ -82,9 +87,20 @@ func (s *Server) handleConfirmPayment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	if err := s.requireStation(user, shipment.FromStation); err != nil {
-		handleServiceError(w, err)
+
+	isOwner := (user.Role == model.RoleIndividual || user.Role == model.RoleCorporate) && shipment.ClientID == user.ID
+	isEmployee := user.Role == model.RoleAccounting || user.Role == model.RoleManager || user.Role == model.RoleAdmin || user.Role == model.RoleDirectionHead || user.Role == model.RoleChiefHead
+
+	if !isOwner && !isEmployee {
+		handleServiceError(w, service.ErrForbidden)
 		return
+	}
+
+	if isEmployee {
+		if err := s.requireStation(user, shipment.FromStation); err != nil {
+			handleServiceError(w, err)
+			return
+		}
 	}
 	payment, shipment, err = s.services.Payments.Confirm(r.Context(), chi.URLParam(r, "id"), user.ID)
 	if err != nil {

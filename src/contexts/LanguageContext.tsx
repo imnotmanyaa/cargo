@@ -133,6 +133,19 @@ const translations = {
     inTransit: 'В пути',
     loaded: 'Погружен',
     arrived: 'Прибыл',
+    
+    // Shipment Details
+    mainInfo: 'Основная информация',
+    routeInfo: 'Маршрут',
+    receiverOther: 'Получатель (другое лицо)',
+    cargoParams: 'Параметры груза',
+    downloadWaybill: 'Скачать накладную',
+    downloadSurrenderList: 'Скачать сдаточный список',
+    statusPickup: 'Забор',
+    statusDelivery: 'Доставка',
+    statusWaiting: 'Ожидает',
+    statusInWork: 'В работе',
+    statusDoorToDoor: 'От дома до дома',
 
     // Transit
     transitTitle: 'Транзит',
@@ -141,7 +154,7 @@ const translations = {
     scanQrDesc: 'Отсканируйте QR-код на багаже для регистрации',
     startScanning: 'Начать сканирование',
     recentScans: 'Последние сканирования',
-    loading: 'Погрузка',
+    transitLoading: 'Погрузка',
     arrivalScan: 'Прибытие',
     issuance: 'Выдача',
     action: 'Действие',
@@ -544,6 +557,19 @@ const translations = {
     loaded: 'Loaded',
     arrived: 'Arrived',
 
+    // Shipment Details
+    mainInfo: 'Main Information',
+    routeInfo: 'Route',
+    receiverOther: 'Receiver (other person)',
+    cargoParams: 'Cargo Parameters',
+    downloadWaybill: 'Download Waybill',
+    downloadSurrenderList: 'Download Surrender List',
+    statusPickup: 'Pickup',
+    statusDelivery: 'Delivery',
+    statusWaiting: 'Waiting',
+    statusInWork: 'In Progress',
+    statusDoorToDoor: 'Door to Door',
+
     // Transit
     transitTitle: 'Transit',
     transitDesc: 'Baggage movement registration',
@@ -551,7 +577,7 @@ const translations = {
     scanQrDesc: 'Scan the QR code on baggage for registration',
     startScanning: 'Start Scanning',
     recentScans: 'Recent Scans',
-    loading: 'Loading',
+    transitLoading: 'Loading',
     arrivalScan: 'Arrival',
     issuance: 'Issuance',
     action: 'Action',
@@ -954,6 +980,19 @@ const translations = {
     loaded: 'Тиелген',
     arrived: 'Келді',
 
+    // Shipment Details
+    mainInfo: 'Негізгі ақпарат',
+    routeInfo: 'Маршрут',
+    receiverOther: 'Алушы (басқа тұлға)',
+    cargoParams: 'Жүк параметрлері',
+    downloadWaybill: 'Жүкқұжатты жүктеу',
+    downloadSurrenderList: 'Тапсыру тізімін жүктеу',
+    statusPickup: 'Алып кету',
+    statusDelivery: 'Жеткізу',
+    statusWaiting: 'Күтуде',
+    statusInWork: 'Жұмыста',
+    statusDoorToDoor: 'Үйден үйге',
+
     // Transit
     transitTitle: 'Транзит',
     transitDesc: 'Багаж қозғалысын тіркеу',
@@ -961,7 +1000,7 @@ const translations = {
     scanQrDesc: 'Тіркеу үшін багаждағы QR-кодты сканерлеңіз',
     startScanning: 'Сканерлеуді бастау',
     recentScans: 'Соңғы сканерлеулер',
-    loading: 'Тиеу',
+    transitLoading: 'Тиеу',
     arrivalScan: 'Келу',
     issuance: 'Беру',
     action: 'Әрекет',

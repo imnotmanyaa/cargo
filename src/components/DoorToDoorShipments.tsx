@@ -77,23 +77,23 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
     // In Astana (from_station), it's "Забор"
     // In Almaty (to_station), it's "Доставка"
     if (user?.station === s.from_station && s.pickup_address) {
-      typeLabel = 'Забор';
+      typeLabel = t('statusPickup');
       typeColor = isDark ? 'bg-orange-900/30 text-orange-400 border border-orange-800/50' : 'bg-orange-50 text-orange-600 border border-orange-200';
     } else if (user?.station === s.to_station && s.delivery_address) {
-      typeLabel = 'Доставка';
+      typeLabel = t('statusDelivery');
       typeColor = isDark ? 'bg-indigo-900/30 text-indigo-400 border border-indigo-800/50' : 'bg-indigo-50 text-indigo-600 border border-indigo-200';
     } else {
-      typeLabel = 'От дома до дома';
+      typeLabel = t('statusDoorToDoor');
       typeColor = isDark ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-700 border border-gray-200';
     }
 
     let stateLabel = '';
     let stateColor = '';
     if (s.shipment_status === 'CREATED' || s.status === 'Оформлен') {
-      stateLabel = 'Ожидает';
+      stateLabel = t('statusWaiting');
       stateColor = 'bg-yellow-100 text-yellow-800';
     } else {
-      stateLabel = 'В работе';
+      stateLabel = t('statusInWork');
       stateColor = 'bg-blue-100 text-blue-800';
     }
 
@@ -168,9 +168,9 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
         {/* Card list */}
         <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
           {loading && filteredShipments.length === 0 ? (
-            <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Загрузка...</div>
+            <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('loading')}</div>
           ) : filteredShipments.length === 0 ? (
-            <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Нет отправок</div>
+            <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('nothingFound')}</div>
           ) : filteredShipments.map((shipment) => {
             const { typeLabel, typeColor, stateLabel, stateColor } = getDualStatus(shipment);
             
@@ -219,7 +219,7 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                           <div className="flex items-start gap-2">
                             <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-orange-500 mt-0.5" />
                             <div>
-                              <span className={`text-xs uppercase font-medium block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Забор:</span>
+                              <span className={`text-xs uppercase font-medium block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('statusPickup')}:</span>
                               <span className={isDark ? 'text-gray-300' : 'text-gray-800'}>{shipment.pickup_address}</span>
                             </div>
                           </div>
@@ -228,7 +228,7 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                           <div className="flex items-start gap-2">
                             <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" />
                             <div>
-                              <span className={`text-xs uppercase font-medium block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Доставка:</span>
+                              <span className={`text-xs uppercase font-medium block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('statusDelivery')}:</span>
                               <span className={isDark ? 'text-gray-300' : 'text-gray-800'}>{shipment.delivery_address}</span>
                             </div>
                           </div>

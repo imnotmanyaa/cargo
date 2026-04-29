@@ -117,6 +117,9 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
   // Проверяем, нужно ли показывать станцию и имя сотрудника (станционных ролей)
   const showStationInfo =
     user?.role === 'receiver' ||
+    user?.role === 'manager' ||
+    user?.role === 'loading' ||
+    user?.role === 'issue' ||
     user?.role === 'mobile_group';
 
   return (

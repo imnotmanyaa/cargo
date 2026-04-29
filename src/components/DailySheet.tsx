@@ -16,7 +16,6 @@ interface Shipment {
   status: string;
   shipment_status: string;
   departure_date: string;
-  train_time?: string;
   transport_unit_id?: string;
 }
 
@@ -218,9 +217,6 @@ export function DailySheet() {
                       <span style={{ fontSize: 12, background: '#1d4ed8', color: '#bfdbfe', borderRadius: 6, padding: '2px 8px' }}>
                         Вагон: {s.transport_unit_id}
                       </span>
-                    )}
-                    {s.train_time && (
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>🚂 {s.train_time}</span>
                     )}
                   </div>
                   <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 4 }}>

@@ -15,7 +15,6 @@ interface Shipment {
   quantity_places?: number;
   description: string;
   departure_date: string;
-  train_time?: string;
   loaded?: boolean;
   created_at?: string;
 }
@@ -277,11 +276,11 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     setProcessing(false);
   };
 
-  // Group shipments by destination, date AND train time for accurate "train" grouping
+  // Group shipments by destination and date
   const groupedByDestinationAndTime = shipments.reduce((acc, shipment) => {
     // Format date as YYYY-MM-DD for consistent grouping
-    const departureDate = shipment.departure_date ? new Date(shipment.departure_date).toISOString().split('T')[0] : 'no-date';
-    const key = `${shipment.to_station}|${departureDate}|${shipment.train_time || 'no-time'}`;
+    const departureDate = shipment.created_at ? new Date(shipment.created_at).toISOString().split('T')[0] : 'no-date';
+    const key = `${shipment.to_station}|${departureDate}`;
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -289,21 +288,14 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     return acc;
   }, {} as Record<string, Shipment[]>);
 
-  // Convert time string (HH:MM) to minutes for comparison
-  const timeToMinutes = (timeStr: string) => {
-    if (!timeStr || timeStr === 'no-time') return 9999; // Push 'no-time' to end
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-
   const tasks = Object.entries(groupedByDestinationAndTime)
     .map(([key, items], index) => {
-      const [destination, departureDate, trainTime] = key.split('|');
+      const [destination, departureDate] = key.split('|');
 
       // Sort shipments within train by created_at (FIFO - first in, first out)
       const sortedItems = [...items].sort((a, b) => {
-        const dateA = new Date(a.created_at || a.departure_date || 0).getTime();
-        const dateB = new Date(b.created_at || b.departure_date || 0).getTime();
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
         return dateA - dateB;
       });
 
@@ -318,20 +310,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         carNumber: String(5 + index),
         shipments: sortedItems,
         route: `${user?.station || ''} → ${destination}`,
-        departureTime: trainTime !== 'no-time' ? trainTime : new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-        trainTime: trainTime, // Keep for sorting
         departureDate: departureDate, // Keep for sorting
         formattedDate: formattedDate, // For display
       };
     })
-    // Sort trains by departure date first, then by time
+    // Sort trains by departure date
     .sort((a, b) => {
-      // Compare dates first
-      if (a.departureDate !== b.departureDate) {
-        return a.departureDate.localeCompare(b.departureDate);
-      }
-      // If same date, compare times
-      return timeToMinutes(a.trainTime) - timeToMinutes(b.trainTime);
+      return a.departureDate.localeCompare(b.departureDate);
     });
 
   return (
