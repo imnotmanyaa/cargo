@@ -311,14 +311,14 @@ export function CourierDashboard() {
                       key={task.id}
                       onClick={() => handleTaskClick(task)}
                       className={`p-4 cursor-pointer ${
-                        theme === 'dark' ? 'hover:bg-gray-750' : 'hover:bg-gray-50'
+                        'hover:bg-gray-50 dark:hover:bg-gray-750'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`p-2 rounded-lg shrink-0 ${
                           task.type === 'pickup'
-                            ? theme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-100'
-                            : theme === 'dark' ? 'bg-green-900/30' : 'bg-green-100'
+                            ? 'bg-blue-100 dark:bg-blue-900/30'
+                            : 'bg-green-100 dark:bg-green-900/30'
                         }`}>
                           {task.type === 'pickup' ? (
                             <Home className={`w-5 h-5 ${task.type === 'pickup' ? 'text-blue-600' : 'text-green-600'}`} />
@@ -384,12 +384,12 @@ export function CourierDashboard() {
                       key={task.id}
                       onClick={() => handleTaskClick(task)}
                       className={`p-4 cursor-pointer ${
-                        theme === 'dark' ? 'hover:bg-gray-750' : 'hover:bg-gray-50'
+                        'hover:bg-gray-50 dark:hover:bg-gray-750'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`p-2 rounded-lg shrink-0 ${
-                          theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
+                          'bg-gray-100 dark:bg-gray-700'
                         }`}>
                           <CheckCircle2 className="w-5 h-5 text-green-600" />
                         </div>
