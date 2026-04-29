@@ -37,7 +37,8 @@ function AppContent() {
   const { user, isAuthenticated } = useAuth();
 
   const appMode = import.meta.env.VITE_APP_MODE;
-  if (appMode === 'courier') {
+  const isCourierDomain = typeof window !== 'undefined' && window.location.hostname.includes('courier');
+  if (appMode === 'courier' || isCourierDomain) {
     if (isAuthenticated && user?.role === 'courier') {
       return <CourierDashboard />;
     }
