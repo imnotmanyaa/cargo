@@ -45,7 +45,119 @@ interface DeliveryTask {
 }
 
 export function CourierDashboard() {
-  const { t } = useLanguage();
+
+  const lang = localStorage.getItem('language') || 'ru';
+  const getDict = (key: string) => {
+    const dict: Record<string, Record<string, string>> = {
+      ru: {
+        courierPosition: 'Курьер Cargo Trans',
+        active: 'Активен',
+        tasksToday: 'Задач сегодня',
+        completed: 'Завершено',
+        pending: 'Ожидают',
+        inProgress: 'В работе',
+        deliveryTasks: 'Задачи',
+        noActiveTasks: 'Нет активных задач',
+        noCompletedTasks: 'Нет завершенных задач',
+        pickup: 'Забор',
+        delivery: 'Доставка',
+        clientInfo: 'Информация о клиенте',
+        fullName: 'ФИО',
+        phone: 'Телефон',
+        call: 'Позвонить',
+        address: 'Адрес',
+        openNavigation: 'Открыть 2ГИС',
+        scheduledTime: 'Время',
+        parcelInfo: 'Информация о грузе',
+        weight: 'Вес',
+        numberOfPieces: 'Кол-во мест',
+        pieces: 'шт',
+        contents: 'Содержимое',
+        declaredValue: 'Объявленная ценность',
+        route: 'Маршрут',
+        importantNotes: 'Важные примечания',
+        startTask: 'Начать задание',
+        completeTask: 'Завершить задание',
+        close: 'Закрыть',
+        taskStarted: 'Задание начато',
+        pickupCompleted: 'Забор груза завершен',
+        deliveryCompleted: 'Доставка завершена',
+        navigationOpened: 'Навигатор открыт',
+      },
+      kz: {
+        courierPosition: 'Cargo Trans курьері',
+        active: 'Белсенді',
+        tasksToday: 'Бүгінгі тапсырмалар',
+        completed: 'Аяқталды',
+        pending: 'Күтілуде',
+        inProgress: 'Орындалуда',
+        deliveryTasks: 'Тапсырмалар',
+        noActiveTasks: 'Белсенді тапсырмалар жоқ',
+        noCompletedTasks: 'Аяқталған тапсырмалар жоқ',
+        pickup: 'Алып кету',
+        delivery: 'Жеткізу',
+        clientInfo: 'Клиент туралы ақпарат',
+        fullName: 'Аты-жөні',
+        phone: 'Телефон',
+        call: 'Қоңырау шалу',
+        address: 'Мекенжай',
+        openNavigation: '2ГИС ашу',
+        scheduledTime: 'Уақыты',
+        parcelInfo: 'Жүк туралы ақпарат',
+        weight: 'Салмағы',
+        numberOfPieces: 'Орын саны',
+        pieces: 'дана',
+        contents: 'Ішіндегісі',
+        declaredValue: 'Жарияланған құны',
+        route: 'Бағыт',
+        importantNotes: 'Маңызды ескертпелер',
+        startTask: 'Тапсырманы бастау',
+        completeTask: 'Тапсырманы аяқтау',
+        close: 'Жабу',
+        taskStarted: 'Тапсырма басталды',
+        pickupCompleted: 'Жүкті алып кету аяқталды',
+        deliveryCompleted: 'Жеткізу аяқталды',
+        navigationOpened: 'Навигатор ашылды',
+      },
+      en: {
+        courierPosition: 'Cargo Trans Courier',
+        active: 'Active',
+        tasksToday: 'Tasks Today',
+        completed: 'Completed',
+        pending: 'Pending',
+        inProgress: 'In Progress',
+        deliveryTasks: 'Tasks',
+        noActiveTasks: 'No active tasks',
+        noCompletedTasks: 'No completed tasks',
+        pickup: 'Pickup',
+        delivery: 'Delivery',
+        clientInfo: 'Client Information',
+        fullName: 'Full Name',
+        phone: 'Phone',
+        call: 'Call',
+        address: 'Address',
+        openNavigation: 'Open 2GIS',
+        scheduledTime: 'Time',
+        parcelInfo: 'Parcel Information',
+        weight: 'Weight',
+        numberOfPieces: 'Pieces',
+        pieces: 'pcs',
+        contents: 'Contents',
+        declaredValue: 'Declared Value',
+        route: 'Route',
+        importantNotes: 'Important Notes',
+        startTask: 'Start Task',
+        completeTask: 'Complete Task',
+        close: 'Close',
+        taskStarted: 'Task started',
+        pickupCompleted: 'Pickup completed',
+        deliveryCompleted: 'Delivery completed',
+        navigationOpened: 'Navigation opened',
+      }
+    };
+    return dict[lang]?.[key] || key;
+  };
+
   const { user } = useAuth();
   const [selectedTask, setSelectedTask] = useState<DeliveryTask | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -55,7 +167,7 @@ export function CourierDashboard() {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
   });
 
-  useEffect(() => {
+  useEffecgetDict(() => {
     localStorage.setItem('theme', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -124,7 +236,7 @@ export function CourierDashboard() {
           clientPhone: sh.door_to_door_phone || sh.receiver_phone || '',
           address: sh.pickup_address || '',
           fullAddress: sh.pickup_address || '',
-          weight: parseFloat(sh.weight) || 0,
+          weight: parseFloagetDict(sh.weight) || 0,
           numberOfPieces: sh.quantity_places || 1,
           contents: sh.description || '',
           destination: `${sh.from_station || ''} -> ${sh.to_station || ''}`,
@@ -141,7 +253,7 @@ export function CourierDashboard() {
     }
   };
 
-  useEffect(() => {
+  useEffecgetDict(() => {
     loadTasks();
   }, []);
 
@@ -171,7 +283,7 @@ export function CourierDashboard() {
       if (resp.ok) {
         await loadTasks();
         setSelectedTask({ ...selectedTask, status: 'in_progress' });
-        toast.success(t('taskStarted') || 'Задача начата');
+        toast.success(getDict('taskStarted') || 'Задача начата');
       }
     } catch (e) {}
   };
@@ -188,8 +300,8 @@ export function CourierDashboard() {
         await loadTasks();
         toast.success(
           selectedTask.type === 'pickup' 
-            ? (t('pickupCompleted') || 'Забор завершен')
-            : (t('deliveryCompleted') || 'Доставка завершена')
+            ? (getDict('pickupCompleted') || 'Забор завершен')
+            : (getDict('deliveryCompleted') || 'Доставка завершена')
         );
         setShowDetailsDialog(false);
         setSelectedTask(null);
@@ -200,9 +312,9 @@ export function CourierDashboard() {
   const handleOpenNavigation = () => {
     if (!selectedTask) return;
     // В реальном приложении здесь будет открытие навигации
-    const address = encodeURIComponent(selectedTask.fullAddress);
+    const address = encodeURIComponengetDict(selectedTask.fullAddress);
     window.open(`https://2gis.kz/search/${address}`, '_blank');
-    toast.success(t('navigationOpened'));
+    toast.success(getDict('navigationOpened'));
   };
 
   const handleCallClient = () => {
@@ -222,11 +334,11 @@ export function CourierDashboard() {
                 {user?.name}
               </CardTitle>
               <CardDescription className="text-sm  text-gray-600 dark:text-gray-400">
-                {t('courierPosition')}
+                {getDict('courierPosition')}
               </CardDescription>
             </div>
             <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 shrink-0">
-              {t('active')}
+              {getDict('active')}
             </Badge>
           </div>
           <div className="flex items-center gap-2 mt-2 text-sm  text-gray-600 dark:text-gray-400">
@@ -246,7 +358,7 @@ export function CourierDashboard() {
                 {stats.todayTasks}
               </div>
               <div className="text-xs  text-gray-600 dark:text-gray-400">
-                {t('tasksToday')}
+                {getDict('tasksToday')}
               </div>
             </div>
           </CardContent>
@@ -260,7 +372,7 @@ export function CourierDashboard() {
                 {stats.completed}
               </div>
               <div className="text-xs  text-gray-600 dark:text-gray-400">
-                {t('completed')}
+                {getDict('completed')}
               </div>
             </div>
           </CardContent>
@@ -274,7 +386,7 @@ export function CourierDashboard() {
                 {stats.pending}
               </div>
               <div className="text-xs  text-gray-600 dark:text-gray-400">
-                {t('pending')}
+                {getDict('pending')}
               </div>
             </div>
           </CardContent>
@@ -288,7 +400,7 @@ export function CourierDashboard() {
                 {stats.inProgress}
               </div>
               <div className="text-xs  text-gray-600 dark:text-gray-400">
-                {t('inProgress')}
+                {getDict('inProgress')}
               </div>
             </div>
           </CardContent>
@@ -299,17 +411,17 @@ export function CourierDashboard() {
       <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
         <CardHeader className="pb-3">
           <CardTitle className="text-base sm:text-lg  text-gray-900 dark:text-white">
-            {t('deliveryTasks')}
+            {getDict('deliveryTasks')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'completed')}>
             <TabsList className="w-full grid grid-cols-2  bg-gray-100 dark:bg-gray-700">
               <TabsTrigger value="pending" className="text-sm">
-                {t('active')} ({pendingTasks.length})
+                {getDict('active')} ({pendingTasks.length})
               </TabsTrigger>
               <TabsTrigger value="completed" className="text-sm">
-                {t('completed')} ({completedTasks.length})
+                {getDict('completed')} ({completedTasks.length})
               </TabsTrigger>
             </TabsList>
 
@@ -318,7 +430,7 @@ export function CourierDashboard() {
                 {pendingTasks.length === 0 ? (
                   <div className="p-8 text-center  text-gray-600 dark:text-gray-400">
                     <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>{t('noActiveTasks')}</p>
+                    <p>{getDict('noActiveTasks')}</p>
                   </div>
                 ) : (
                   pendingTasks.map((task) => (
@@ -349,11 +461,11 @@ export function CourierDashboard() {
                                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
                                 : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
                             }`}>
-                              {task.type === 'pickup' ? (t('pickup') || 'Забор') : (t('delivery') || 'Доставка')} - {getStatusTranslation(task.rawStatus)}
+                              {task.type === 'pickup' ? (getDict('pickup') || 'Забор') : (getDict('delivery') || 'Доставка')} - {getStatusTranslation(task.rawStatus)}
                             </Badge>
                             {task.status === 'in_progress' && (
                               <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100 text-xs">
-                                {t('inProgress')}
+                                {getDict('inProgress')}
                               </Badge>
                             )}
                           </div>
@@ -391,7 +503,7 @@ export function CourierDashboard() {
                 {completedTasks.length === 0 ? (
                   <div className="p-8 text-center  text-gray-600 dark:text-gray-400">
                     <CheckCircle2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>{t('noCompletedTasks')}</p>
+                    <p>{getDict('noCompletedTasks')}</p>
                   </div>
                 ) : (
                   completedTasks.map((task) => (
@@ -412,7 +524,7 @@ export function CourierDashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 text-xs">
-                              {task.type === 'pickup' ? (t('pickup') || 'Забор') : (t('delivery') || 'Доставка')} - {getStatusTranslation(task.rawStatus)}
+                              {task.type === 'pickup' ? (getDict('pickup') || 'Забор') : (getDict('delivery') || 'Доставка')} - {getStatusTranslation(task.rawStatus)}
                             </Badge>
                           </div>
                           
@@ -453,7 +565,7 @@ export function CourierDashboard() {
               ) : (
                 <Building2 className="w-5 h-5 text-green-600" />
               )}
-              {selectedTask?.type === 'pickup' ? t('pickup') : t('delivery')}
+              {selectedTask?.type === 'pickup' ? getDict('pickup') : getDict('delivery')}
             </DialogTitle>
             <DialogDescription className="text-gray-600 dark:text-gray-400">
               {selectedTask?.parcelCode}
@@ -465,13 +577,13 @@ export function CourierDashboard() {
               {/* Status Badge */}
               {selectedTask.status === 'in_progress' && (
                 <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100 w-full justify-center py-2">
-                  {t('inProgress')}
+                  {getDict('inProgress')}
                 </Badge>
               )}
               
               {selectedTask.status === 'completed' && (
                 <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 w-full justify-center py-2">
-                  {t('completed')}
+                  {getDict('completed')}
                 </Badge>
               )}
 
@@ -479,13 +591,13 @@ export function CourierDashboard() {
               <div className="p-4 rounded-lg space-y-3  bg-gray-50 dark:bg-gray-750">
                 <div className="font-medium flex items-center gap-2  text-gray-900 dark:text-white">
                   <User className="w-4 h-4" />
-                  {t('clientInfo')}
+                  {getDict('clientInfo')}
                 </div>
                 
                 <div className="space-y-2 text-sm">
                   <div>
                     <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {t('fullName')}
+                      {getDict('fullName')}
                     </div>
                     <div className="font-medium  text-gray-900 dark:text-white">
                       {selectedTask.clientName}
@@ -494,7 +606,7 @@ export function CourierDashboard() {
                   
                   <div>
                     <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {t('phone')}
+                      {getDict('phone')}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="font-medium  text-gray-900 dark:text-white">
@@ -507,7 +619,7 @@ export function CourierDashboard() {
                         className="h-8   dark:border-gray-600"
                       >
                         <Phone className="w-3 h-3 mr-1" />
-                        {t('call')}
+                        {getDict('call')}
                       </Button>
                     </div>
                   </div>
@@ -518,7 +630,7 @@ export function CourierDashboard() {
               <div className="p-4 rounded-lg space-y-3  bg-gray-50 dark:bg-gray-750">
                 <div className="font-medium flex items-center gap-2  text-gray-900 dark:text-white">
                   <MapPin className="w-4 h-4" />
-                  {t('address')}
+                  {getDict('address')}
                 </div>
                 
                 <div className="text-sm  text-gray-700 dark:text-gray-300">
@@ -531,7 +643,7 @@ export function CourierDashboard() {
                     className="w-full bg-blue-600 hover:bg-blue-700"
                   >
                     <Navigation className="w-4 h-4 mr-2" />
-                    {t('openNavigation')}
+                    {getDict('openNavigation')}
                   </Button>
                 )}
               </div>
@@ -540,7 +652,7 @@ export function CourierDashboard() {
               <div className="p-4 rounded-lg  bg-gray-50 dark:bg-gray-750">
                 <div className="font-medium flex items-center gap-2 mb-2  text-gray-900 dark:text-white">
                   <Clock className="w-4 h-4" />
-                  {t('scheduledTime')}
+                  {getDict('scheduledTime')}
                 </div>
                 <div className="text-sm  text-gray-700 dark:text-gray-300">
                   {selectedTask.scheduledTime}
@@ -551,13 +663,13 @@ export function CourierDashboard() {
               <div className="p-4 rounded-lg space-y-3  bg-gray-50 dark:bg-gray-750">
                 <div className="font-medium flex items-center gap-2  text-gray-900 dark:text-white">
                   <Package className="w-4 h-4" />
-                  {t('parcelInfo')}
+                  {getDict('parcelInfo')}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {t('weight')}
+                      {getDict('weight')}
                     </div>
                     <div className="font-medium  text-gray-900 dark:text-white">
                       {selectedTask.weight} кг
@@ -566,17 +678,17 @@ export function CourierDashboard() {
 
                   <div>
                     <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {t('numberOfPieces')}
+                      {getDict('numberOfPieces')}
                     </div>
                     <div className="font-medium  text-gray-900 dark:text-white">
-                      {selectedTask.numberOfPieces} {t('pieces')}
+                      {selectedTask.numberOfPieces} {getDict('pieces')}
                     </div>
                   </div>
                 </div>
 
                 <div>
                   <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                    {t('contents')}
+                    {getDict('contents')}
                   </div>
                   <div className="text-sm  text-gray-900 dark:text-white">
                     {selectedTask.contents}
@@ -586,7 +698,7 @@ export function CourierDashboard() {
                 {selectedTask.declaredValue && (
                   <div>
                     <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {t('declaredValue')}
+                      {getDict('declaredValue')}
                     </div>
                     <div className="text-sm font-medium  text-gray-900 dark:text-white">
                       {selectedTask.declaredValue.toLocaleString()} ₸
@@ -597,7 +709,7 @@ export function CourierDashboard() {
                 {selectedTask.destination && (
                   <div>
                     <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {t('route')}
+                      {getDict('route')}
                     </div>
                     <div className="text-sm  text-gray-900 dark:text-white">
                       {selectedTask.destination}
@@ -610,7 +722,7 @@ export function CourierDashboard() {
               {selectedTask.notes && (
                 <div className="p-4 rounded-lg  bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border dark:border-yellow-800">
                   <div className="text-xs mb-1 font-medium  text-yellow-800 dark:text-yellow-400">
-                    {t('importantNotes')}
+                    {getDict('importantNotes')}
                   </div>
                   <div className="text-sm  text-yellow-900 dark:text-yellow-300">
                     {selectedTask.notes}
@@ -627,7 +739,7 @@ export function CourierDashboard() {
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
                 <Navigation className="w-4 h-4 mr-2" />
-                {t('startTask')}
+                {getDict('startTask')}
               </Button>
             )}
             
@@ -637,7 +749,7 @@ export function CourierDashboard() {
                 className="flex-1 bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle2 className="w-4 h-4 mr-2" />
-                {t('completeTask')}
+                {getDict('completeTask')}
               </Button>
             )}
 
@@ -646,7 +758,7 @@ export function CourierDashboard() {
                 onClick={() => setShowDetailsDialog(false)}
                 className="flex-1"
               >
-                {t('close')}
+                {getDict('close')}
               </Button>
             )}
           </DialogFooter>
