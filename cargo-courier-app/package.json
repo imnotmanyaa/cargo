@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "http-server dist -p $PORT"
+    "start": "http-server dist -p $PORT -c-1"
   },
   "dependencies": {
     "http-server": "^14.1.1",
