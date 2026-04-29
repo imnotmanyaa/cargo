@@ -1,7 +1,7 @@
 import { Search, MapPin, Package, Clock, QrCode, RefreshCw, Filter } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState, useEffect } from 'react';
-import { ShipmentDetailsModal } from './ShipmentDetailsModal';
+import { ActiveShipmentDetails } from './ActiveShipmentDetails';
 import { useAuth } from '../contexts/AuthContext';
 
 export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
@@ -62,6 +62,7 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
     receiver_name: s.receiver_name,
     receiver_phone: s.receiver_phone,
     train_time: s.train_time,
+    is_door_to_door: s.is_door_to_door,
   });
 
   const fetchShipments = async () => {
@@ -97,6 +98,16 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
             s.to?.toLowerCase().includes(q) ||
             s.status?.toLowerCase().includes(q));
   });
+
+  if (selectedShipment) {
+    return (
+      <ActiveShipmentDetails
+        shipment={selectedShipment}
+        onClose={() => setSelectedShipment(null)}
+        theme={theme}
+      />
+    );
+  }
 
   return (
     <div>
@@ -169,6 +180,11 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${shipment.statusColor}`}>
                         {getStatus(shipment.status)}
                       </span>
+                      {shipment.is_door_to_door && (
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${isDark ? 'bg-orange-900/30 text-orange-400 border border-orange-800/50' : 'bg-orange-50 text-orange-600 border border-orange-200'}`}>
+                          От дома до дома
+                        </span>
+                      )}
                     </div>
                     {/* Row 2: client name */}
                     <p className={`text-sm font-medium mb-2 truncate ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
@@ -225,13 +241,6 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
         </div>
       </div>
 
-      {selectedShipment && (
-        <ShipmentDetailsModal
-          shipment={selectedShipment}
-          onClose={() => setSelectedShipment(null)}
-          theme={theme}
-        />
-      )}
     </div>
   );
 }

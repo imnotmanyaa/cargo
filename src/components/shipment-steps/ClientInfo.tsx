@@ -469,67 +469,70 @@ export function ClientInfo({
         </div>
 
         {/* До двери — стиль как «Получатель другое лицо» */}
-        <div>
-          <label className="flex items-center mb-4">
-            <input
-              type="checkbox"
-              checked={isDoorToDoor}
-              onChange={(e) => {
-                setIsDoorToDoor(e.target.checked);
-                onUpdate({ isDoorToDoor: e.target.checked, pickupAddress: '', deliveryAddress: '', doorToDoorPhone: '' });
-              }}
-              className="w-4 h-4 text-blue-600 rounded"
-            />
-            <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-              <Truck className={`inline w-4 h-4 mr-1 -mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              {t('doorToDoorDelivery')}{' '}
-              <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>
-            </span>
-          </label>
+        {/* До двери — стиль как «Получатель другое лицо» */}
+        {user?.role === 'individual' && (
+          <div>
+            <label className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                checked={isDoorToDoor}
+                onChange={(e) => {
+                  setIsDoorToDoor(e.target.checked);
+                  onUpdate({ isDoorToDoor: e.target.checked, pickupAddress: '', deliveryAddress: '', doorToDoorPhone: '' });
+                }}
+                className="w-4 h-4 text-blue-600 rounded"
+              />
+              <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                <Truck className={`inline w-4 h-4 mr-1 -mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                {t('doorToDoorDelivery')}{' '}
+                <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>
+              </span>
+            </label>
 
-          {isDoorToDoor && (
-            <div className={`p-4 rounded-lg border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
-              <div className="grid gap-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {t('pickupAddress')}
-                  </label>
-                  <input
-                    type="text"
-                    value={data.pickupAddress || ''}
-                    onChange={(e) => onUpdate({ pickupAddress: e.target.value })}
-                    placeholder="Например: ул. Абая 12, кв. 5"
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {t('deliveryAddress')}
-                  </label>
-                  <input
-                    type="text"
-                    value={data.deliveryAddress || ''}
-                    onChange={(e) => onUpdate({ deliveryAddress: e.target.value })}
-                    placeholder="Например: пр. Достык 88, офис 301"
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {t('courierPhone')}
-                  </label>
-                  <input
-                    type="tel"
-                    value={data.doorToDoorPhone || ''}
-                    onChange={(e) => onUpdate({ doorToDoorPhone: e.target.value })}
-                    placeholder="+7 ___ ___ ____"
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
-                  />
+            {isDoorToDoor && (
+              <div className={`p-4 rounded-lg border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                <div className="grid gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {t('pickupAddress')}
+                    </label>
+                    <input
+                      type="text"
+                      value={data.pickupAddress || ''}
+                      onChange={(e) => onUpdate({ pickupAddress: e.target.value })}
+                      placeholder="Например: ул. Абая 12, кв. 5"
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {t('deliveryAddress')}
+                    </label>
+                    <input
+                      type="text"
+                      value={data.deliveryAddress || ''}
+                      onChange={(e) => onUpdate({ deliveryAddress: e.target.value })}
+                      placeholder="Например: пр. Достык 88, офис 301"
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {t('courierPhone')}
+                    </label>
+                    <input
+                      type="tel"
+                      value={data.doorToDoorPhone || ''}
+                      onChange={(e) => onUpdate({ doorToDoorPhone: e.target.value })}
+                      placeholder="+7 ___ ___ ____"
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className={`pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('route')}</h3>
