@@ -22,4 +22,4 @@ COPY --from=build /app/dist ./dist
 ENV PORT=3000
 EXPOSE 3000
 
-CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
+CMD serve -s dist -l $PORT
