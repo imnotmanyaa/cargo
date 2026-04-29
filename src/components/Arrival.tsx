@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { Package, Bell, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -15,7 +17,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/arrivals/pending?station=${encodeURIComponent(user.station)}`, {
+      const res = await fetch(withApiBase(`/api/arrivals/pending?station=${encodeURIComponent(user.station)}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -41,7 +43,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
       if (!code) return;
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('/api/scan', {
+        const res = await fetch(withApiBase('/api/scan'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ shipment_id: code, event_type: 'ISSUE_SCAN', station_id: user?.station })
@@ -87,7 +89,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/shipments/${id}/issue`, {
+      const res = await fetch(withApiBase(`/api/shipments/${id}/issue`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

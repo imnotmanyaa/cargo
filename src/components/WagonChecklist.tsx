@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 
 interface WagonShipment {
@@ -44,7 +46,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
   const fetchChecklist = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/wagons/${wagonId}/checklist`, {
+      const res = await fetch(withApiBase(`/api/wagons/${wagonId}/checklist`), {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -65,7 +67,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
     setProcessing(shipmentId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/wagons/${wagonId}/scan/${shipmentId}`, {
+      const res = await fetch(withApiBase(`/api/wagons/${wagonId}/scan/${shipmentId}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ status }),
@@ -87,7 +89,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
     setProcessing(shipmentId);
     try {
       const token = localStorage.getItem('token');
-      await fetch(`/api/wagons/${wagonId}/missing/${shipmentId}`, {
+      await fetch(withApiBase(`/api/wagons/${wagonId}/missing/${shipmentId}`), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -103,7 +105,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
     setDispatchError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/wagons/${wagonId}/dispatch`, {
+      const res = await fetch(withApiBase(`/api/wagons/${wagonId}/dispatch`), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });

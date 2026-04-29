@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -57,7 +59,7 @@ export function ShipmentActionPage() {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`/api/shipments/${shipmentId}/action-context`, {
+            const response = await fetch(withApiBase(`/api/shipments/${shipmentId}/action-context`), {
                 headers
             });
 
@@ -87,7 +89,7 @@ export function ShipmentActionPage() {
         setProcessing(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/api/shipments/${shipmentId}/status`, {
+            const response = await fetch(withApiBase(`/api/shipments/${shipmentId}/status`), {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -120,7 +122,7 @@ export function ShipmentActionPage() {
         setProcessing(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/api/shipments/${shipmentId}/arrive`, {
+            const response = await fetch(withApiBase(`/api/shipments/${shipmentId}/arrive`), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

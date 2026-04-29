@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CreditCard, Calendar, CheckCircle2 } from 'lucide-react';
@@ -27,7 +29,7 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/payments/user', {
+      const res = await fetch(withApiBase('/api/payments/user'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

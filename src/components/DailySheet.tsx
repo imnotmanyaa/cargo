@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -63,7 +65,7 @@ export function DailySheet() {
       // 'loading' — клиентский фильтр, API не знает этот тип
       const apiType = filter === 'all' || filter === 'loading' ? '' : filter;
       const params = new URLSearchParams({ station: user.station, type: apiType });
-      const res = await fetch(`/api/shipments?${params}`, {
+      const res = await fetch(withApiBase(`/api/shipments?${params}`), {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {

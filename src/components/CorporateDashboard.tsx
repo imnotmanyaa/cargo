@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -39,7 +41,7 @@ export function CorporateDashboard({ theme = 'light', onCreateShipment }: Corpor
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/payments/topup', {
+      const res = await fetch(withApiBase('/api/payments/topup'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

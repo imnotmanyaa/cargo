@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Activity, Clock } from 'lucide-react';
@@ -30,7 +32,7 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/audit/logs', {
+      const res = await fetch(withApiBase('/api/audit/logs'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -136,7 +138,7 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
     const token = localStorage.getItem('token');
     try {
       const params = new URLSearchParams({ station: user?.station || '' });
-      const res = await fetch(`/api/shipments/${trimmed}/auditor-check?${params}`, {
+      const res = await fetch(withApiBase(`/api/shipments/${trimmed}/auditor-check?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
 

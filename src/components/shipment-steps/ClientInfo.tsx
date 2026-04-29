@@ -1,3 +1,5 @@
+import { withApiBase } from "../../lib/api-base";
+
 import { ArrowRight, Users, Truck } from "lucide-react";
 import { useLanguage } from "../../contexts/LanguageContext";
 
@@ -64,13 +66,13 @@ export function ClientInfo({
       const fetchClients = async () => {
         try {
           const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
-          const res = await fetch('/api/clients?ts=' + Date.now(), {
+          const res = await fetch(withApiBase('/api/clients?ts=') + Date.now(), {
             headers,
           });
           if (res.ok) {
             setCorporateClients(await res.json());
           }
-          const frequentRes = await fetch('/api/clients/frequent?ts=' + Date.now(), {
+          const frequentRes = await fetch(withApiBase('/api/clients/frequent?ts=') + Date.now(), {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           if (frequentRes.ok) {

@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -91,7 +93,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/shipments/by-station/${encodeURIComponent(user.station)}`, {
+      const response = await fetch(withApiBase(`/api/shipments/by-station/${encodeURIComponent(user.station)}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -135,7 +137,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/shipments/${shipmentId}/status`, {
+      const response = await fetch(withApiBase(`/api/shipments/${shipmentId}/status`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +201,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     try {
       const token = localStorage.getItem('token');
       // Backend now handles both UUID and ShipmentNumber (SH-XXXXXX)
-      const response = await fetch(`/api/shipments/${shipmentId}/arrive`, {
+      const response = await fetch(withApiBase(`/api/shipments/${shipmentId}/arrive`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

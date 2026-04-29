@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 /**
  * ZebraTerminal — восстановленный дизайн согласно фото.
  * Используются только inline-стили для максимальной совместимости с Android 4 WebView.
@@ -66,7 +68,7 @@ export function ZebraTerminal() {
     const token = localStorage.getItem('token') || '';
     try {
       const params = new URLSearchParams({ station: user?.station || '' });
-      const res = await fetch(`/api/shipments/${encodeURIComponent(trimmed)}/auditor-check?${params}`, {
+      const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(trimmed)}/auditor-check?${params}`), {
         headers: { Authorization: 'Bearer ' + token },
       });
       if (res.ok) {

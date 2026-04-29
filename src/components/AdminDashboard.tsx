@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { UserPlus, Shield, Users, Edit2, Trash2, Search, QrCode } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -35,7 +37,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/employees', {
+      const response = await fetch(withApiBase('/api/admin/employees'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -77,7 +79,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/employees', {
+      const response = await fetch(withApiBase('/api/admin/employees'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -124,7 +126,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     if (!editEmployee) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/users/${editEmployee.id}`, {
+      const response = await fetch(withApiBase(`/api/users/${editEmployee.id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +158,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     if (confirm(t('deleteEmployeeConfirm'))) {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`/api/admin/employees/${id}`, {
+        const response = await fetch(withApiBase(`/api/admin/employees/${id}`), {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -178,7 +180,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
       setQrEmployee(emp);
       setQrToken('');
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/admin/employees/${emp.id}/qr-login-token`, {
+      const res = await fetch(withApiBase(`/api/admin/employees/${emp.id}/qr-login-token`), {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!res.ok) {

@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { ArrowDown, ArrowUp, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -22,12 +24,12 @@ export function Transit({ theme = 'light' }: TransitProps) {
     setLoading(true);
     try {
       // Fetch incoming
-      const resIncoming = await fetch(`/api/shipments?type=incoming&station=${user.station}`);
+      const resIncoming = await fetch(withApiBase(`/api/shipments?type=incoming&station=${user.station}`));
       const dataIncoming = await resIncoming.json();
       setIncomingShipments(Array.isArray(dataIncoming) ? dataIncoming : []);
 
       // Fetch outgoing
-      const resOutgoing = await fetch(`/api/shipments?type=outgoing&station=${user.station}`);
+      const resOutgoing = await fetch(withApiBase(`/api/shipments?type=outgoing&station=${user.station}`));
       const dataOutgoing = await resOutgoing.json();
       setOutgoingShipments(Array.isArray(dataOutgoing) ? dataOutgoing : []);
     } catch (error) {

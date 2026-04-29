@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { Package, CheckCircle, FileText, Train } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -32,7 +34,7 @@ export function ManagerDashboard({ theme = 'light' }: ManagerDashboardProps) {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('/api/reports/dashboard', {
+        const res = await fetch(withApiBase('/api/reports/dashboard'), {
           headers: {
             Authorization: `Bearer ${token}`,
           },

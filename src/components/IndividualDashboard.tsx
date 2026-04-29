@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -41,7 +43,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
     const fetchShipments = async () => {
       if (!user?.id) return;
       try {
-        const res = await fetch(`/api/shipments?client_id=${user.id}`);
+        const res = await fetch(withApiBase(`/api/shipments?client_id=${user.id}`));
         if (res.ok) {
           const data = await res.json();
           setShipments(Array.isArray(data) ? data : []);

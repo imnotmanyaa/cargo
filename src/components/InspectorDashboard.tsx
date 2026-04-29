@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect, useRef, useCallback, KeyboardEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -118,7 +120,7 @@ export function InspectorDashboard({ theme }: ThemeProps) {
 
     try {
       const params = new URLSearchParams({ station: user?.station || '' });
-      const res = await fetch(`/api/shipments/${encodeURIComponent(code)}/auditor-check?${params}`, {
+      const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(code)}/auditor-check?${params}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
 

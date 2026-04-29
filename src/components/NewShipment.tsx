@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { calculateShipmentCost } from '../lib/tariff';
@@ -86,7 +88,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     };
 
     try {
-      const createRes = await fetch('/api/shipments', {
+      const createRes = await fetch(withApiBase('/api/shipments'), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -122,7 +124,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       const calculatedCost = calculateCost();
 
       // Step 3: Send to payment
-      const sendRes = await fetch(`/api/shipments/${shipmentId}/send-to-payment`, {
+      const sendRes = await fetch(withApiBase(`/api/shipments/${shipmentId}/send-to-payment`), {
         method: 'POST',
         headers
       });
@@ -133,7 +135,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       }
 
       // Step 4: Create payment record
-      const payRes = await fetch('/api/payments', {
+      const payRes = await fetch(withApiBase('/api/payments'), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -150,7 +152,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       const payment = await payRes.json();
 
       // Step 5: Confirm payment
-      const confirmRes = await fetch(`/api/payments/${payment.id}/confirm`, {
+      const confirmRes = await fetch(withApiBase(`/api/payments/${payment.id}/confirm`), {
         method: 'POST',
         headers
       });
@@ -160,7 +162,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         return;
       }
 
-      await fetch(`/api/shipments/${shipmentId}/generate-qr`, {
+      await fetch(withApiBase(`/api/shipments/${shipmentId}/generate-qr`), {
         method: 'POST',
         headers
       });

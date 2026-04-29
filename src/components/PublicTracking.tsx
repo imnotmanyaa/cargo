@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 
 import { useState, useEffect } from 'react';
 import { Package, Truck, CheckCircle, RefreshCw } from 'lucide-react';
@@ -30,7 +32,7 @@ export function PublicTracking({ shipmentId }: PublicTrackingProps) {
         const fetchShipment = async () => {
             try {
                 // Fetch specific shipment details (public endpoint needed)
-                const res = await fetch(`/api/shipments/${shipmentId}`, {
+                const res = await fetch(withApiBase(`/api/shipments/${shipmentId}`), {
                     headers: {
                         'ngrok-skip-browser-warning': 'true'
                     }

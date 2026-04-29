@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Building2, Plus, Search, Edit, Trash2, Phone, Mail, X, Save } from 'lucide-react';
@@ -35,7 +37,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/clients?ts=' + Date.now(), {
+      const res = await fetch(withApiBase('/api/clients?ts=') + Date.now(), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -72,7 +74,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
   const handleDeleteClient = async (id: string) => {
     if (!window.confirm(t('confirmDeleteClient'))) return;
     try {
-      const res = await fetch(`/api/clients/${id}`, {
+      const res = await fetch(withApiBase(`/api/clients/${id}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

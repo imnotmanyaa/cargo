@@ -1,3 +1,5 @@
+import { withApiBase } from "../lib/api-base";
+
 import { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -34,7 +36,7 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/clients/frequent', {
+      const res = await fetch(withApiBase('/api/clients/frequent'), {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       if (res.status === 401) {
@@ -83,7 +85,7 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
         contract_number: form.contract_number.trim() || null,
         notes: form.notes.trim() || null,
       };
-      const res = await fetch('/api/clients/frequent', {
+      const res = await fetch(withApiBase('/api/clients/frequent'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
