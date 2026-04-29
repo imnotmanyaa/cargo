@@ -7,7 +7,7 @@ interface Employee {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group';
+  role: 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group' | 'courier';
   station: string;
   createdAt: string;
   status: 'active' | 'inactive';
@@ -68,7 +68,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     name: '',
     email: '',
     password: '',
-    role: 'manager' as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group',
+    role: 'manager' as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group' | 'courier',
     station: ''
   });
 
@@ -96,7 +96,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
           name: '',
           email: '',
           password: '',
-          role: 'manager' as 'admin' | 'manager' | 'receiver' | 'mobile_group',
+          role: 'manager' as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group' | 'courier',
           station: ''
         });
         alert(t('employeeCreatedSuccess'));
@@ -371,7 +371,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 </label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group' })}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'mobile_group' | 'courier' })}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'
                     }`}
                   required
@@ -382,6 +382,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <option value="chief_head">Главный руководитель</option>
                   <option value="receiver">{t('receiver')}</option>
                   <option value="mobile_group">{t('roleMobileGroup')}</option>
+                  <option value="courier">Курьер</option>
                 </select>
               </div>
 
@@ -480,6 +481,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                         employee.role === 'receiver' ? 'bg-orange-100 text-orange-800' :
                         employee.role === 'admin' ? 'bg-purple-100 text-purple-800' :
                         employee.role === 'mobile_group' ? 'bg-amber-100 text-amber-800' :
+                        employee.role === 'courier' ? 'bg-cyan-100 text-cyan-800' :
                         'bg-green-100 text-green-800'
                       }`}>
                       {employee.role === 'receiver' ? t('receiver') :
@@ -487,6 +489,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                         employee.role === 'direction_head' ? 'Руководитель по направлению' :
                         employee.role === 'chief_head' ? 'Главный руководитель' :
                         employee.role === 'mobile_group' ? t('roleMobileGroup') :
+                        employee.role === 'courier' ? 'Курьер' :
                         t('roleManager')}
                     </span>
                   </td>
@@ -580,6 +583,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <option value="chief_head">Главный руководитель</option>
                   <option value="receiver">{t('receiver')}</option>
                   <option value="mobile_group">{t('roleMobileGroup')}</option>
+                  <option value="courier">Курьер</option>
                 </select>
               </div>
               <div>
