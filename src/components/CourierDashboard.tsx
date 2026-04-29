@@ -236,7 +236,7 @@ export function CourierDashboard() {
           clientPhone: sh.door_to_door_phone || sh.receiver_phone || '',
           address: sh.pickup_address || '',
           fullAddress: sh.pickup_address || '',
-          weight: parseFloagetDict(sh.weight) || 0,
+          weight: parseFloat(sh.weight) || 0,
           numberOfPieces: sh.quantity_places || 1,
           contents: sh.description || '',
           destination: `${sh.from_station || ''} -> ${sh.to_station || ''}`,
@@ -279,7 +279,7 @@ export function CourierDashboard() {
     try {
       const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/pickup-start`), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user?.token || ''}` }
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (resp.ok) {
         await loadTasks();
@@ -294,7 +294,7 @@ export function CourierDashboard() {
     try {
       const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/pickup-confirm`), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user?.token || ''}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
         body: JSON.stringify({ confirmed_at: new Date().toISOString() })
       });
       if (resp.ok) {
