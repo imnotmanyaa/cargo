@@ -24,11 +24,21 @@ func (s *Server) handleCourierTasks(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	if user.Station == "" {
+	// Fetch fresh user from DB to get the latest station (JWT may have stale station)
+	freshUser, err := s.services.Auth.Me(r.Context(), user.ID)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	station := ""
+	if freshUser.Station != nil {
+		station = *freshUser.Station
+	}
+	if station == "" {
 		writeError(w, http.StatusBadRequest, "Courier station is required")
 		return
 	}
-	items, err := s.services.Shipments.ListCourierTasks(r.Context(), user.Station)
+	items, err := s.services.Shipments.ListCourierTasks(r.Context(), station)
 	if err != nil {
 		handleServiceError(w, err)
 		return
