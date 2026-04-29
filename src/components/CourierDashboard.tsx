@@ -333,13 +333,25 @@ export function CourierDashboard() {
               <CardTitle className="text-lg sm:text-xl  text-gray-900 dark:text-white">
                 {user?.name}
               </CardTitle>
-              <CardDescription className="text-sm  text-gray-600 dark:text-gray-400">
-                {getDict('courierPosition')}
+              <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
+                Cargo Trans
               </CardDescription>
             </div>
-            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 shrink-0">
-              {getDict('active')}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => {
+                const next = lang === 'ru' ? 'kz' : lang === 'kz' ? 'en' : 'ru';
+                localStorage.setItem('language', next);
+                window.location.reload();
+              }} className="font-medium text-gray-600 dark:text-gray-300">
+                {lang.toUpperCase()}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+                {theme === 'light' ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-yellow-400" />}
+              </Button>
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 shrink-0">
+                {getDict('active')}
+              </Badge>
+            </div>
           </div>
           <div className="flex items-center gap-2 mt-2 text-sm  text-gray-600 dark:text-gray-400">
             <MapPin className="w-4 h-4 shrink-0" />
