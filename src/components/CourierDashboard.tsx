@@ -325,7 +325,8 @@ export function CourierDashboard() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4 pb-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-4 px-4 pb-20">
+      <div className="max-w-2xl mx-auto space-y-4 pb-6">
       {/* Header with courier info */}
       <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
         <CardHeader className="pb-3">
@@ -777,6 +778,7 @@ export function CourierDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
