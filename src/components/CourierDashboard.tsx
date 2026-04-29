@@ -253,7 +253,7 @@ export function CourierDashboard() {
     }
   };
 
-  useEffect((() => {
+  useEffect(() => {
     loadTasks();
   }, []);
 
