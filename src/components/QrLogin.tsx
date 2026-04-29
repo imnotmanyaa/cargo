@@ -6,11 +6,33 @@ export function QrLogin() {
   const [isError, setIsError] = useState(false);
 
   useEffect(() => {
+    const resolveApiUrl = (path: string) => {
+      const candidates = [withApiBase(path), path];
+      for (const candidate of candidates) {
+        try {
+          const url = new URL(candidate, window.location.href);
+          return url.toString();
+        } catch {
+          continue;
+        }
+      }
+      return path;
+    };
+
     const extractToken = () => {
       try {
-        return new URLSearchParams(window.location.search).get('token') || '';
+        const fromQuery = new URLSearchParams(window.location.search).get('token');
+        if (fromQuery) return fromQuery;
+        if (window.location.hash) {
+          const hashQuery = window.location.hash.includes('?')
+            ? window.location.hash.slice(window.location.hash.indexOf('?'))
+            : window.location.hash.replace(/^#/, '?');
+          const fromHash = new URLSearchParams(hashQuery).get('token');
+          if (fromHash) return fromHash;
+        }
+        return '';
       } catch {
-        const match = window.location.href.match(/[?&]token=([^&#]+)/);
+        const match = window.location.href.match(/[?&#]token=([^&#]+)/);
         if (!match) return '';
         try {
           return decodeURIComponent(match[1]);
@@ -19,7 +41,7 @@ export function QrLogin() {
         }
       }
     };
-    const token = extractToken();
+    const token = extractToken().replace(/[\u0000-\u001F\u007F\s]+/g, '').trim();
     if (!token) {
       setMessage('QR-токен не найден. Попросите администратора выдать новый QR-код.');
       setIsError(true);
@@ -28,7 +50,7 @@ export function QrLogin() {
 
     (async () => {
       try {
-        const res = await fetch(withApiBase('/api/auth/qr-login'), {
+        const res = await fetch(resolveApiUrl('/api/auth/qr-login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
@@ -44,7 +66,7 @@ export function QrLogin() {
         if (data.token) {
           localStorage.setItem('token', data.token);
         }
-        const meRes = await fetch(withApiBase('/api/auth/me'), { cache: 'no-store' });
+        const meRes = await fetch(resolveApiUrl('/api/auth/me'), { cache: 'no-store' });
         const meData = meRes.ok ? await meRes.json() : data;
         const user = {
           ...meData,

@@ -2,14 +2,25 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Package, MapPin, Ticket } from 'lucide-react';
+import { ShipmentDetailsModal } from './ShipmentDetailsModal';
 
 interface Shipment {
   id: string;
   shipment_number?: string;
+  client_name?: string;
+  client_email?: string;
   from_station: string;
   to_station: string;
   status: string;
+  shipment_status?: string;
   created_at: string;
+  departure_date?: string;
+  weight?: string;
+  quantity_places?: number;
+  description?: string;
+  value?: string;
+  receiver_name?: string;
+  receiver_phone?: string;
   cost: number;
 }
 
@@ -23,6 +34,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
   const { t } = useLanguage();
   const isDark = theme === 'dark';
   const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,10 +54,6 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
     };
     fetchShipments();
   }, [user?.id]);
-
-  const handleDetails = (id: string) => {
-    window.location.href = `/shipment/${id}`;
-  };
 
   const prettyStatus = (shipment: Shipment) => {
     const s = String((shipment as any).shipment_status || shipment.status || '').toUpperCase();
@@ -69,8 +77,35 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
     return 'bg-yellow-100 text-yellow-700';
   };
 
+  const openDetails = (shipment: Shipment) => {
+    setSelectedShipment(shipment);
+  };
+
   return (
     <div>
+      {selectedShipment && (
+        <ShipmentDetailsModal
+          theme={theme}
+          onClose={() => setSelectedShipment(null)}
+          shipment={{
+            id: selectedShipment.id,
+            shipment_number: selectedShipment.shipment_number,
+            client: selectedShipment.client_name || user?.name || 'Клиент',
+            client_email: selectedShipment.client_email || user?.email,
+            from: selectedShipment.from_station,
+            to: selectedShipment.to_station,
+            status: prettyStatus(selectedShipment),
+            date: selectedShipment.created_at,
+            departure_date: selectedShipment.departure_date || selectedShipment.created_at,
+            weight: selectedShipment.weight ? `${selectedShipment.weight} кг` : '-',
+            quantity_places: selectedShipment.quantity_places || 1,
+            description: selectedShipment.description || '',
+            value: selectedShipment.value || '',
+            receiver_name: selectedShipment.receiver_name,
+            receiver_phone: selectedShipment.receiver_phone,
+          }}
+        />
+      )}
       <div className="mb-8">
         <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('individualDashboard')}</h1>
         <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{user?.name}</p>
@@ -117,7 +152,11 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
             <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('noShipmentsYet')}</div>
           ) : (
             shipments.map((shipment) => (
-              <div key={shipment.id} className={`p-6 ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}`}>
+              <div
+                key={shipment.id}
+                onClick={() => openDetails(shipment)}
+                className={`p-6 cursor-pointer ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}`}
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex gap-4">
                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${shipment.status === 'Прибыл' ? 'bg-green-100' : 'bg-blue-100'}`}>
@@ -143,12 +182,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
 
                   <div className="text-right">
                     <p className={`text-lg font-bold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{shipment.cost?.toLocaleString() || 0} ₸</p>
-                    <button
-                      onClick={() => handleDetails(shipment.id)}
-                      className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      {t('details')}
-                    </button>
+                    <p className="mt-2 text-sm text-blue-600 font-medium">Нажмите для подробностей</p>
                   </div>
                 </div>
               </div>

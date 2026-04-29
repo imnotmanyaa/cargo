@@ -210,75 +210,48 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
               <div
                 key={shipment.id}
                 onClick={() => setSelectedShipment(mapShipmentForDetails(shipment))}
-                className={`p-5 cursor-pointer transition-colors ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50'}`}
+                className={`p-4 cursor-pointer transition-colors ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50'}`}
               >
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-                  {/* Left: icon + main info */}
-                  <div className="flex gap-4 min-w-0 xl:col-span-9">
-                    <div className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-blue-900/40' : 'bg-blue-50'}`}>
-                      <Truck className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                <div className="hidden lg:grid lg:grid-cols-12 lg:gap-4">
+                  <div className="col-span-2">
+                    <div className="flex items-center gap-2">
+                      <Truck className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                      <span className={`text-sm font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{shipment.shipment_number}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      {/* Row 1: number + status */}
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className={`text-sm font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                          {shipment.shipment_number}
-                        </span>
-                        
-                        {/* Dual Status Badges */}
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${typeColor}`}>
-                          {typeLabel}
-                        </span>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${stateColor}`}>
-                          {stateLabel}
-                        </span>
-                      </div>
-                      
-                      {/* Row 2: client name */}
-                      <p className={`text-sm font-medium mb-2 truncate ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-                        {shipment.client_name}
-                      </p>
-                      
-                      {/* Row 3: Addreses */}
-                      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-2 text-sm mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {shipment.door_to_door_phone && (
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span>{shipment.door_to_door_phone}</span>
-                          </div>
-                        )}
-                        {shipment.pickup_address && (
-                          <div className={`flex items-start gap-2 rounded-lg px-2 py-1.5 ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-orange-500 mt-0.5" />
-                            <div>
-                              <span className={`text-xs uppercase font-medium block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('statusPickup')}:</span>
-                              <span className={`break-words ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{shipment.pickup_address}</span>
-                            </div>
-                          </div>
-                        )}
-                        {shipment.delivery_address && (
-                          <div className={`flex items-start gap-2 rounded-lg px-2 py-1.5 ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" />
-                            <div>
-                              <span className={`text-xs uppercase font-medium block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('statusDelivery')}:</span>
-                              <span className={`break-words ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{shipment.delivery_address}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                    </div>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.client_name}</p>
                   </div>
-
-                  {/* Right: date + weight */}
-                  <div className="xl:col-span-3 flex-shrink-0 text-right flex flex-row xl:flex-col justify-between xl:justify-start items-center xl:items-end gap-2">
-                    <div className={`flex items-center gap-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{formatDate(shipment.created_at)}</span>
+                  <div className="col-span-4">
+                    <p className={`text-[11px] uppercase mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Адрес забора</p>
+                    <p className={`text-sm leading-5 break-words ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{shipment.pickup_address || '—'}</p>
+                  </div>
+                  <div className="col-span-4">
+                    <p className={`text-[11px] uppercase mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Адрес доставки</p>
+                    <p className={`text-sm leading-5 break-words ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{shipment.delivery_address || '—'}</p>
+                  </div>
+                  <div className="col-span-2 text-right">
+                    <div className="flex justify-end gap-1 flex-wrap mb-2">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${typeColor}`}>{typeLabel}</span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${stateColor}`}>{stateLabel}</span>
                     </div>
-                    <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {shipment.weight} кг
-                    </span>
+                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{formatDate(shipment.created_at)}</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.weight} кг</p>
+                    {shipment.door_to_door_phone && (
+                      <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.door_to_door_phone}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="lg:hidden">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-sm font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{shipment.shipment_number}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${stateColor}`}>{stateLabel}</span>
+                  </div>
+                  <p className={`text-sm mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{shipment.client_name}</p>
+                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.pickup_address || '—'}</p>
+                  <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.delivery_address || '—'}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{formatDate(shipment.created_at)}</span>
+                    <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.weight} кг</span>
                   </div>
                 </div>
               </div>
