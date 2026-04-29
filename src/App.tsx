@@ -35,6 +35,15 @@ import { LeaderOverview } from './components/LeaderOverview';
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
+
+  const appMode = import.meta.env.VITE_APP_MODE;
+  if (appMode === 'courier') {
+    if (isAuthenticated && user?.role === 'courier') {
+      return <CourierDashboard />;
+    }
+    return <CourierLogin />;
+  }
+
   const [currentPage, setCurrentPage] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('currentPage');
@@ -362,7 +371,9 @@ function AppContent() {
   );
 }
 
+
 export default function App() {
+
   return (
     <ErrorBoundary>
       <AuthProvider>
