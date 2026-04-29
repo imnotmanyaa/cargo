@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS shipments (
 	quantity_places INTEGER NOT NULL DEFAULT 1,
 	receiver_name TEXT,
 	receiver_phone TEXT,
-	train_time TEXT,
 	tracking_code TEXT,
 	qr_code_id TEXT,
 	transport_unit_id TEXT,

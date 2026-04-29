@@ -5,8 +5,20 @@ export function QrLogin() {
   const [isError, setIsError] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token') || '';
+    const extractToken = () => {
+      try {
+        return new URLSearchParams(window.location.search).get('token') || '';
+      } catch {
+        const match = window.location.href.match(/[?&]token=([^&#]+)/);
+        if (!match) return '';
+        try {
+          return decodeURIComponent(match[1]);
+        } catch {
+          return match[1];
+        }
+      }
+    };
+    const token = extractToken();
     if (!token) {
       setMessage('QR-токен не найден. Попросите администратора выдать новый QR-код.');
       setIsError(true);

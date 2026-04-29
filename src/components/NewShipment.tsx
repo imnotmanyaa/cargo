@@ -44,7 +44,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     ticketNumber: '',
     receiverName: '',
     receiverPhone: '',
-    paymentMethod: 'cash' as 'cash' | 'deposit',
+    paymentMethod: 'cash' as 'cash' | 'card' | 'deposit',
     clientDepositBalance: 0,
     isDoorToDoor: false,
     pickupAddress: '',
@@ -139,7 +139,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         body: JSON.stringify({
           shipment_id: shipmentId,
           amount: calculatedCost,
-          payment_method: shipmentData.clientType === 'legal' ? shipmentData.paymentMethod : 'cash'
+          payment_method: shipmentData.paymentMethod || 'cash'
         })
       });
       if (!payRes.ok) {

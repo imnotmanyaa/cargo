@@ -134,7 +134,6 @@ type Shipment struct {
 	QuantityPlaces   int               `json:"quantity_places"`
 	ReceiverName     *string           `json:"receiver_name,omitempty"`
 	ReceiverPhone    *string           `json:"receiver_phone,omitempty"`
-	TrainTime        *string           `json:"train_time,omitempty"`
 	TrackingCode     *string           `json:"tracking_code,omitempty"`
 	QRCodeID         *string           `json:"qr_code_id,omitempty"`
 	TransportUnitID  *string           `json:"transport_unit_id,omitempty"`

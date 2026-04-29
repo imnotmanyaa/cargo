@@ -43,10 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, _role?: string) => {
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const response = await fetch(withApiBase('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalizedEmail, password }),
         cache: 'no-store',
       });
 
@@ -80,10 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: RegisterData) => {
     try {
+      const normalizedData = {
+        ...data,
+        email: data.email.trim().toLowerCase(),
+      };
       const response = await fetch(withApiBase('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(normalizedData)
       });
 
       if (!response.ok) {

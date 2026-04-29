@@ -62,7 +62,7 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
     to: s.to_station,
     status: s.status,
     statusColor: getStatusColor(s.status),
-    date: new Date(s.departure_date).toLocaleDateString(),
+    date: formatDate(s.departure_date || s.created_at),
     weight: s.weight + ' кг',
     quantity_places: Number(s.quantity_places) || 1,
     receiver_name: s.receiver_name,
@@ -88,6 +88,12 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
     }
   };
 
+  const formatDate = (value?: string) => {
+    if (!value) return '-';
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString();
+  };
+
   useEffect(() => {
     fetchShipments();
     const interval = setInterval(fetchShipments, 10000);
@@ -111,7 +117,9 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
       if (route !== directionFilter) return false;
     }
     if (dateFilter) {
-      const shipmentDate = new Date(s.created_at || s.departure_date || '').toISOString().split('T')[0];
+      const dateValue = new Date(s.created_at || s.departure_date || '');
+      if (Number.isNaN(dateValue.getTime())) return false;
+      const shipmentDate = dateValue.toISOString().split('T')[0];
       if (shipmentDate !== dateFilter) return false;
     }
     return true;

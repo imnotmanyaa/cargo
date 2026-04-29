@@ -26,7 +26,6 @@ type CreateShipmentRequest struct {
 	QuantityPlaces  int
 	ReceiverName    *string
 	ReceiverPhone   *string
-	TrainTime       *string
 	CreatedBy       *string
 	IsDoorToDoor    bool
 	PickupAddress   *string
@@ -92,7 +91,6 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		QuantityPlaces:  req.QuantityPlaces,
 		ReceiverName:    req.ReceiverName,
 		ReceiverPhone:   req.ReceiverPhone,
-		TrainTime:       req.TrainTime,
 		IsDoorToDoor:    req.IsDoorToDoor,
 		PickupAddress:   req.PickupAddress,
 		DeliveryAddress: req.DeliveryAddress,

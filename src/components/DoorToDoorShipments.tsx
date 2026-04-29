@@ -39,6 +39,12 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
+  const formatDate = (value?: string) => {
+    if (!value) return '-';
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString();
+  };
+
   const fetchShipments = async () => {
     setLoading(true);
     try {
@@ -119,9 +125,12 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
     client: s.client_name || 'Неизвестный',
     from: s.from_station,
     to: s.to_station,
-    date: new Date(s.created_at).toLocaleDateString(),
+    date: formatDate(s.created_at),
     weight: s.weight + ' кг',
-    statusColor: getDualStatus(s).stateColor
+    statusColor: getDualStatus(s).stateColor,
+    pickup_address: s.pickup_address,
+    delivery_address: s.delivery_address,
+    door_to_door_phone: s.door_to_door_phone,
   });
 
   if (selectedShipment) {
@@ -231,7 +240,7 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                       </p>
                       
                       {/* Row 3: Addreses */}
-                      <div className={`space-y-1.5 text-sm mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <div className={`space-y-2 text-sm mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         {shipment.door_to_door_phone && (
                           <div className="flex items-center gap-2">
                             <Phone className="w-3.5 h-3.5 flex-shrink-0" />
@@ -239,20 +248,20 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                           </div>
                         )}
                         {shipment.pickup_address && (
-                          <div className="flex items-start gap-2">
+                          <div className={`flex items-start gap-2 rounded-lg px-2 py-1.5 ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                             <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-orange-500 mt-0.5" />
                             <div>
                               <span className={`text-xs uppercase font-medium block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('statusPickup')}:</span>
-                              <span className={isDark ? 'text-gray-300' : 'text-gray-800'}>{shipment.pickup_address}</span>
+                              <span className={`break-words ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{shipment.pickup_address}</span>
                             </div>
                           </div>
                         )}
                         {shipment.delivery_address && (
-                          <div className="flex items-start gap-2">
+                          <div className={`flex items-start gap-2 rounded-lg px-2 py-1.5 ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                             <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" />
                             <div>
                               <span className={`text-xs uppercase font-medium block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('statusDelivery')}:</span>
-                              <span className={isDark ? 'text-gray-300' : 'text-gray-800'}>{shipment.delivery_address}</span>
+                              <span className={`break-words ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{shipment.delivery_address}</span>
                             </div>
                           </div>
                         )}
@@ -265,7 +274,7 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                   <div className="flex-shrink-0 text-right flex flex-col items-end gap-2">
                     <div className={`flex items-center gap-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                       <Clock className="w-3.5 h-3.5" />
-                      <span>{new Date(shipment.created_at).toLocaleDateString()}</span>
+                      <span>{formatDate(shipment.created_at)}</span>
                     </div>
                     <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                       {shipment.weight} кг

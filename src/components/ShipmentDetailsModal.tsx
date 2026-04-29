@@ -30,9 +30,9 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
-    try {
-      return new Date(dateString).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch { return dateString; }
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const handlePrint = () => {

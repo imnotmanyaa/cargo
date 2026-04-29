@@ -1,6 +1,7 @@
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { calculateShipmentCost } from '../../lib/tariff';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface PaymentProps {
   data: any;
@@ -12,6 +13,7 @@ interface PaymentProps {
 
 export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: PaymentProps) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const isDark = theme === 'dark';
 
   const transportCost = calculateShipmentCost({
@@ -25,6 +27,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
 
   const total = calculateShipmentCost(data) || 0;
   const isLegal = data.clientType === 'legal';
+  const isManagerFlow = user?.role === 'manager' || user?.role === 'admin';
   const paymentMethod = data.paymentMethod || 'cash';
   const depositBalance = Number(data.clientDepositBalance || 0);
   const depositAvailable = isLegal && depositBalance > 0;
@@ -112,10 +115,10 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
         </div>
 
         {/* Legal entity deposit */}
-        {isLegal && (
+        {(isLegal || isManagerFlow) && (
           <div className={`rounded-lg border p-4 ${isDark ? 'border-gray-600 bg-gray-700/30' : 'border-gray-200'}`}>
             <div className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Способ оплаты</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className={`grid grid-cols-1 ${isLegal ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2`}>
               <button
                 type="button"
                 onClick={() => onUpdate({ paymentMethod: 'cash' })}
@@ -124,25 +127,39 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
                   : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
                 }`}
               >
-                Наличными/картой
+                Наличные
               </button>
               <button
                 type="button"
-                onClick={() => canUseDeposit && onUpdate({ paymentMethod: 'deposit' })}
-                disabled={!canUseDeposit}
-                className={`px-4 py-2 rounded-lg border text-sm disabled:opacity-50 ${paymentMethod === 'deposit'
+                onClick={() => onUpdate({ paymentMethod: 'card' })}
+                className={`px-4 py-2 rounded-lg border text-sm ${paymentMethod === 'card'
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
                 }`}
               >
-                Списать с депозита
+                Карта
               </button>
+              {isLegal && (
+                <button
+                  type="button"
+                  onClick={() => canUseDeposit && onUpdate({ paymentMethod: 'deposit' })}
+                  disabled={!canUseDeposit}
+                  className={`px-4 py-2 rounded-lg border text-sm disabled:opacity-50 ${paymentMethod === 'deposit'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Списать с депозита
+                </button>
+              )}
             </div>
-            <div className={`mt-2 text-xs ${canUseDeposit ? 'text-green-500' : 'text-amber-500'}`}>
-              {canUseDeposit
-                ? `Депозит доступен: ${depositBalance.toLocaleString()} ₸`
-                : `Списание с депозита недоступно. Баланс: ${depositBalance.toLocaleString()} ₸`}
-            </div>
+            {isLegal && (
+              <div className={`mt-2 text-xs ${canUseDeposit ? 'text-green-500' : 'text-amber-500'}`}>
+                {canUseDeposit
+                  ? `Депозит доступен: ${depositBalance.toLocaleString()} ₸`
+                  : `Списание с депозита недоступно. Баланс: ${depositBalance.toLocaleString()} ₸`}
+              </div>
+            )}
           </div>
         )}
 

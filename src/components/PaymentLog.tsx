@@ -94,7 +94,11 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
                       {payment.amount.toLocaleString()} ₸
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                      {payment.payment_method === 'deposit' ? 'Депозит' : 'Терминал / Наличные'}
+                      {payment.payment_method === 'deposit'
+                        ? 'Депозит'
+                        : payment.payment_method === 'card'
+                          ? 'Карта'
+                          : 'Наличные'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${

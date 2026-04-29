@@ -19,6 +19,9 @@ interface ActiveShipmentDetailsProps {
     departure_date?: string;
     receiver_name?: string;
     receiver_phone?: string;
+    pickup_address?: string;
+    delivery_address?: string;
+    door_to_door_phone?: string;
     statusColor?: string;
   };
   onClose: () => void;
@@ -31,9 +34,9 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
-    try {
-      return new Date(dateString).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch { return dateString; }
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const handlePrint = () => {
@@ -176,6 +179,35 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
                   <div>
                     <p className={label}>{t('contactPhone')}</p>
                     <p className={value}>{shipment.receiver_phone}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(shipment.pickup_address || shipment.delivery_address || shipment.door_to_door_phone) && (
+            <div className={card}>
+              <h3 className={sectionTitle}>
+                <MapPin className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
+                Адреса «До двери»
+              </h3>
+              <div className="space-y-4">
+                {shipment.pickup_address && (
+                  <div>
+                    <p className={label}>Точный адрес забора</p>
+                    <p className={`${value} break-words`}>{shipment.pickup_address}</p>
+                  </div>
+                )}
+                {shipment.delivery_address && (
+                  <div>
+                    <p className={label}>Точный адрес доставки</p>
+                    <p className={`${value} break-words`}>{shipment.delivery_address}</p>
+                  </div>
+                )}
+                {shipment.door_to_door_phone && (
+                  <div>
+                    <p className={label}>Контактный телефон</p>
+                    <p className={value}>{shipment.door_to_door_phone}</p>
                   </div>
                 )}
               </div>

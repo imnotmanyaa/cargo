@@ -55,7 +55,6 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		QuantityPlaces  int      `json:"quantity_places"`
 		ReceiverName    *string  `json:"receiver_name"`
 		ReceiverPhone   *string  `json:"receiver_phone"`
-		TrainTime       *string  `json:"train_time"`
 		IsDoorToDoor    bool     `json:"is_door_to_door"`
 		PickupAddress   *string  `json:"pickup_address"`
 		DeliveryAddress *string  `json:"delivery_address"`
@@ -94,7 +93,6 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		QuantityPlaces:  req.QuantityPlaces,
 		ReceiverName:    req.ReceiverName,
 		ReceiverPhone:   req.ReceiverPhone,
-		TrainTime:       req.TrainTime,
 		CreatedBy:       &user.ID,
 		IsDoorToDoor:    req.IsDoorToDoor,
 		PickupAddress:   req.PickupAddress,
@@ -236,18 +234,24 @@ func (s *Server) handleSendToPayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
-		handleServiceError(w, err)
-		return
-	}
 	current, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)
 		return
 	}
-	if err := s.requireStation(user, current.FromStation); err != nil {
-		handleServiceError(w, err)
+
+	isOwner := (user.Role == model.RoleIndividual || user.Role == model.RoleCorporate) && current.ClientID == user.ID
+	isEmployee := user.Role == model.RoleManager || user.Role == model.RoleAdmin
+
+	if !isOwner && !isEmployee {
+		handleServiceError(w, service.ErrForbidden)
 		return
+	}
+	if isEmployee {
+		if err := s.requireStation(user, current.FromStation); err != nil {
+			handleServiceError(w, err)
+			return
+		}
 	}
 	shipment, err := s.services.Shipments.SendToPayment(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
