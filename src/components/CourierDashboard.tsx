@@ -167,7 +167,7 @@ export function CourierDashboard() {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
   });
 
-  useEffect((() => {
+  useEffect(() => {
     localStorage.setItem('theme', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
