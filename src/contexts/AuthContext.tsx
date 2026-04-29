@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { withApiBase } from '../lib/api-base';
 
-type UserRole = 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'mobile_group';
+type UserRole = 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'mobile_group' | 'courier';
 
 interface User {
   id: string;
@@ -17,7 +17,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, _role?: string) => Promise<void>;
+  login: (email: string, password: string, loginType?: 'default' | 'courier') => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   register: (data: RegisterData) => void;
@@ -41,10 +41,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const login = async (email: string, password: string, _role?: string) => {
+  const login = async (email: string, password: string, loginType: 'default' | 'courier' = 'default') => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const response = await fetch(withApiBase('/api/auth/login'), {
+      const endpoint = loginType === 'courier' ? '/api/auth/courier/login' : '/api/auth/login';
+      const response = await fetch(withApiBase(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizedEmail, password }),

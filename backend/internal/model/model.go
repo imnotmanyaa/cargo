@@ -9,8 +9,8 @@ type ClientSegment string
 
 const (
 	ClientSegmentLegalEntity ClientSegment = "legal_entity" // юрлица (роль corporate) + быстрые клиенты
-	ClientSegmentIndividual  ClientSegment = "individual"  // физлица
-	ClientSegmentStaff       ClientSegment = "staff"      // сотрудники и служебные роли
+	ClientSegmentIndividual  ClientSegment = "individual"   // физлица
+	ClientSegmentStaff       ClientSegment = "staff"        // сотрудники и служебные роли
 )
 
 // ClientSegmentForRole выставляет сегмент по роли пользователя.
@@ -26,18 +26,19 @@ func ClientSegmentForRole(r Role) ClientSegment {
 }
 
 const (
-	RoleAdmin      Role = "admin"
-	RoleManager    Role = "manager"
+	RoleAdmin         Role = "admin"
+	RoleManager       Role = "manager"
 	RoleDirectionHead Role = "direction_head"
 	RoleChiefHead     Role = "chief_head"
-	RoleReceiver   Role = "receiver"
-	RoleMobileGroup Role = "mobile_group" // Мобильная инспекционная группа: выездная проверка груза
-	RoleLoading    Role = "loading_operator"
-	RoleTransit    Role = "transit_operator"
-	RoleIssue      Role = "issue_operator"
-	RoleAccounting Role = "accounting"
-	RoleIndividual Role = "individual"
-	RoleCorporate  Role = "corporate"
+	RoleReceiver      Role = "receiver"
+	RoleCourier       Role = "courier"
+	RoleMobileGroup   Role = "mobile_group" // Мобильная инспекционная группа: выездная проверка груза
+	RoleLoading       Role = "loading_operator"
+	RoleTransit       Role = "transit_operator"
+	RoleIssue         Role = "issue_operator"
+	RoleAccounting    Role = "accounting"
+	RoleIndividual    Role = "individual"
+	RoleCorporate     Role = "corporate"
 )
 
 type ShipmentLifecycle string
@@ -45,6 +46,10 @@ type ShipmentLifecycle string
 const (
 	ShipmentDraft           ShipmentLifecycle = "DRAFT"
 	ShipmentCreated         ShipmentLifecycle = "CREATED"
+	ShipmentCreatedDoor     ShipmentLifecycle = "CREATED_DOOR"
+	ShipmentPickupAssigned  ShipmentLifecycle = "PICKUP_ASSIGNED"
+	ShipmentPickedUp        ShipmentLifecycle = "PICKED_UP"
+	ShipmentAtStationIntake ShipmentLifecycle = "AT_STATION_INTAKE"
 	ShipmentPaymentPending  ShipmentLifecycle = "PAYMENT_PENDING"
 	ShipmentPaid            ShipmentLifecycle = "PAID"
 	ShipmentReadyForLoading ShipmentLifecycle = "READY_FOR_LOADING"
@@ -76,25 +81,25 @@ type User struct {
 	Role           Role          `json:"role"`
 	ClientSegment  ClientSegment `json:"client_segment,omitempty"`
 	Company        *string       `json:"company,omitempty"`
-	DepositBalance float64   `json:"deposit_balance,omitempty"`
-	ContractNumber *string   `json:"contract_number,omitempty"`
-	Phone          *string   `json:"phone,omitempty"`
-	Station        *string   `json:"station,omitempty"`
-	IsActive       bool      `json:"is_active"`
-	CreatedAt      time.Time `json:"created_at"`
+	DepositBalance float64       `json:"deposit_balance,omitempty"`
+	ContractNumber *string       `json:"contract_number,omitempty"`
+	Phone          *string       `json:"phone,omitempty"`
+	Station        *string       `json:"station,omitempty"`
+	IsActive       bool          `json:"is_active"`
+	CreatedAt      time.Time     `json:"created_at"`
 }
 
 type FrequentClient struct {
 	ID             string        `json:"id"`
-	Provider       string        `json:"provider"` // glovo, choko, other
+	Provider       string        `json:"provider"`                 // glovo, choko, other
 	ClientSegment  ClientSegment `json:"client_segment,omitempty"` // всегда legal_entity (юрлица / B2B)
 	CompanyName    *string       `json:"company_name,omitempty"`
-	ClientName     string    `json:"client_name"`
-	Phone          *string   `json:"phone,omitempty"`
-	ContractNumber *string   `json:"contract_number,omitempty"`
-	Notes          *string   `json:"notes,omitempty"`
-	IsActive       bool      `json:"is_active"`
-	CreatedAt      time.Time `json:"created_at"`
+	ClientName     string        `json:"client_name"`
+	Phone          *string       `json:"phone,omitempty"`
+	ContractNumber *string       `json:"contract_number,omitempty"`
+	Notes          *string       `json:"notes,omitempty"`
+	IsActive       bool          `json:"is_active"`
+	CreatedAt      time.Time     `json:"created_at"`
 }
 
 type RoleRecord struct {
@@ -112,39 +117,39 @@ type Station struct {
 }
 
 type Shipment struct {
-	ID               string            `json:"id"`
-	ShipmentNumber   string            `json:"shipment_number"`
-	ClientID         string            `json:"client_id"`
-	ClientName       string            `json:"client_name"`
-	ClientEmail      string            `json:"client_email"`
-	FromStation      string            `json:"from_station"`
-	ToStation        string            `json:"to_station"`
-	CurrentStation   string            `json:"current_station"`
-	NextStation      *string           `json:"next_station"`
-	Route            []string          `json:"route"`
-	Status           string            `json:"status"`
-	ShipmentStatus   ShipmentLifecycle `json:"shipment_status"`
-	PaymentStatus    PaymentStatus     `json:"payment_status"`
-	DepartureDate    time.Time         `json:"departure_date"`
-	Weight           string            `json:"weight"`
-	Dimensions       string            `json:"dimensions"`
-	Description      string            `json:"description"`
-	Value            string            `json:"value"`
-	Cost             float64           `json:"cost"`
-	QuantityPlaces   int               `json:"quantity_places"`
-	ReceiverName     *string           `json:"receiver_name,omitempty"`
-	ReceiverPhone    *string           `json:"receiver_phone,omitempty"`
-	TrackingCode     *string           `json:"tracking_code,omitempty"`
-	QRCodeID         *string           `json:"qr_code_id,omitempty"`
-	TransportUnitID  *string           `json:"transport_unit_id,omitempty"`
+	ID              string            `json:"id"`
+	ShipmentNumber  string            `json:"shipment_number"`
+	ClientID        string            `json:"client_id"`
+	ClientName      string            `json:"client_name"`
+	ClientEmail     string            `json:"client_email"`
+	FromStation     string            `json:"from_station"`
+	ToStation       string            `json:"to_station"`
+	CurrentStation  string            `json:"current_station"`
+	NextStation     *string           `json:"next_station"`
+	Route           []string          `json:"route"`
+	Status          string            `json:"status"`
+	ShipmentStatus  ShipmentLifecycle `json:"shipment_status"`
+	PaymentStatus   PaymentStatus     `json:"payment_status"`
+	DepartureDate   time.Time         `json:"departure_date"`
+	Weight          string            `json:"weight"`
+	Dimensions      string            `json:"dimensions"`
+	Description     string            `json:"description"`
+	Value           string            `json:"value"`
+	Cost            float64           `json:"cost"`
+	QuantityPlaces  int               `json:"quantity_places"`
+	ReceiverName    *string           `json:"receiver_name,omitempty"`
+	ReceiverPhone   *string           `json:"receiver_phone,omitempty"`
+	TrackingCode    *string           `json:"tracking_code,omitempty"`
+	QRCodeID        *string           `json:"qr_code_id,omitempty"`
+	TransportUnitID *string           `json:"transport_unit_id,omitempty"`
 	IsDoorToDoor    bool              `json:"is_door_to_door"`
 	PickupAddress   *string           `json:"pickup_address,omitempty"`
 	DeliveryAddress *string           `json:"delivery_address,omitempty"`
 	DoorToDoorPhone *string           `json:"door_to_door_phone,omitempty"`
-	LastUpdatedAt    time.Time         `json:"last_updated_at"`
-	CreatedBy        *string           `json:"created_by,omitempty"`
-	CreatedAt        time.Time         `json:"created_at"`
-	UpdatedAt        time.Time         `json:"updated_at"`
+	LastUpdatedAt   time.Time         `json:"last_updated_at"`
+	CreatedBy       *string           `json:"created_by,omitempty"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
 type ShipmentHistory struct {
@@ -162,13 +167,13 @@ type ShipmentHistory struct {
 }
 
 type Payment struct {
-	ID            string        `json:"id"`
-	ShipmentID    string        `json:"shipment_id"`
-	Amount        float64       `json:"amount"`
-	PaymentMethod string        `json:"payment_method"`
-	POSReference  *string       `json:"pos_terminal_reference,omitempty"`
-	PaidAt        *time.Time    `json:"paid_at,omitempty"`
-	ConfirmedBy   *string       `json:"confirmed_by,omitempty"`
+	ID             string        `json:"id"`
+	ShipmentID     string        `json:"shipment_id"`
+	Amount         float64       `json:"amount"`
+	PaymentMethod  string        `json:"payment_method"`
+	POSReference   *string       `json:"pos_terminal_reference,omitempty"`
+	PaidAt         *time.Time    `json:"paid_at,omitempty"`
+	ConfirmedBy    *string       `json:"confirmed_by,omitempty"`
 	Status         PaymentStatus `json:"status"`
 	ShipmentNumber string        `json:"shipment_number,omitempty"`
 	CreatedAt      time.Time     `json:"created_at"`
@@ -183,26 +188,26 @@ type QRCode struct {
 }
 
 type ScanEvent struct {
-	ID              string     `json:"id"`
-	ShipmentID      string     `json:"shipment_id"`
-	QRCodeID        *string    `json:"qr_code_id,omitempty"`
-	EventType       string     `json:"event_type"`
-	StationID       *string    `json:"station_id,omitempty"`
-	TransportUnitID *string    `json:"transport_unit_id,omitempty"`
-	UserID          *string    `json:"user_id,omitempty"`
-	OldStatus       *string    `json:"old_status,omitempty"`
-	NewStatus       *string    `json:"new_status,omitempty"`
-	Comment         *string    `json:"comment,omitempty"`
-	ScannedAt       time.Time  `json:"scanned_at"`
+	ID              string    `json:"id"`
+	ShipmentID      string    `json:"shipment_id"`
+	QRCodeID        *string   `json:"qr_code_id,omitempty"`
+	EventType       string    `json:"event_type"`
+	StationID       *string   `json:"station_id,omitempty"`
+	TransportUnitID *string   `json:"transport_unit_id,omitempty"`
+	UserID          *string   `json:"user_id,omitempty"`
+	OldStatus       *string   `json:"old_status,omitempty"`
+	NewStatus       *string   `json:"new_status,omitempty"`
+	Comment         *string   `json:"comment,omitempty"`
+	ScannedAt       time.Time `json:"scanned_at"`
 }
 
 type TransitEvent struct {
-	ID         string     `json:"id"`
-	ShipmentID string     `json:"shipment_id"`
-	StationID  string     `json:"station_id"`
-	UserID     *string    `json:"user_id,omitempty"`
-	EventTime  time.Time  `json:"event_time"`
-	Comment    *string    `json:"comment,omitempty"`
+	ID         string    `json:"id"`
+	ShipmentID string    `json:"shipment_id"`
+	StationID  string    `json:"station_id"`
+	UserID     *string   `json:"user_id,omitempty"`
+	EventTime  time.Time `json:"event_time"`
+	Comment    *string   `json:"comment,omitempty"`
 }
 
 type ArrivalEvent struct {
@@ -225,17 +230,17 @@ type Notification struct {
 }
 
 type AuditLog struct {
-	ID         string     `json:"id"`
-	UserID     *string    `json:"user_id,omitempty"`
-	EntityType string     `json:"entity_type"`
-	EntityID   string     `json:"entity_id"`
-	Action     string     `json:"action"`
-	OldValue   *string    `json:"old_value,omitempty"`
-	NewValue   *string    `json:"new_value,omitempty"`
-	StationID      *string    `json:"station_id,omitempty"`
-	Reason         *string    `json:"reason,omitempty"`
-	ShipmentNumber *string    `json:"shipment_number,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
+	ID             string    `json:"id"`
+	UserID         *string   `json:"user_id,omitempty"`
+	EntityType     string    `json:"entity_type"`
+	EntityID       string    `json:"entity_id"`
+	Action         string    `json:"action"`
+	OldValue       *string   `json:"old_value,omitempty"`
+	NewValue       *string   `json:"new_value,omitempty"`
+	StationID      *string   `json:"station_id,omitempty"`
+	Reason         *string   `json:"reason,omitempty"`
+	ShipmentNumber *string   `json:"shipment_number,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type RouteRevenue struct {
@@ -256,10 +261,10 @@ type CountByStatusItem struct {
 }
 
 type DashboardReport struct {
-	MonthlyShipments   int            `json:"monthlyShipments"`
-	CompletedShipments int            `json:"completedShipments"`
-	ActiveContracts    int            `json:"activeContracts"`
-	RevenueByRoute     []RouteRevenue `json:"revenueByRoute"`
+	MonthlyShipments   int                  `json:"monthlyShipments"`
+	CompletedShipments int                  `json:"completedShipments"`
+	ActiveContracts    int                  `json:"activeContracts"`
+	RevenueByRoute     []RouteRevenue       `json:"revenueByRoute"`
 	RevenueByMonth     []RevenueByMonthItem `json:"revenueByMonth,omitempty"`
 	WagonsByStatus     []CountByStatusItem  `json:"wagonsByStatus,omitempty"`
 }
@@ -295,22 +300,22 @@ const (
 )
 
 type Wagon struct {
-	ID            string      `json:"id"`
-	WagonNumber   string      `json:"wagon_number"`
-	Status        WagonStatus `json:"status"`
+	ID             string      `json:"id"`
+	WagonNumber    string      `json:"wagon_number"`
+	Status         WagonStatus `json:"status"`
 	CurrentStation string      `json:"current_station"`
-	Destination   string      `json:"destination"`
-	DepartureDate time.Time   `json:"departure_date"`
-	Capacity      int         `json:"capacity"`
-	CreatedAt     time.Time   `json:"created_at"`
-	UpdatedAt     time.Time   `json:"updated_at"`
+	Destination    string      `json:"destination"`
+	DepartureDate  time.Time   `json:"departure_date"`
+	Capacity       int         `json:"capacity"`
+	CreatedAt      time.Time   `json:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
 }
 
 type WagonShipment struct {
-	ID         string    `json:"id"`
-	WagonID    string    `json:"wagon_id"`
-	ShipmentID string    `json:"shipment_id"`
-	Status     string    `json:"status"` // E.g., "PENDING", "LOADED", "MISSING"
+	ID         string     `json:"id"`
+	WagonID    string     `json:"wagon_id"`
+	ShipmentID string     `json:"shipment_id"`
+	Status     string     `json:"status"` // E.g., "PENDING", "LOADED", "MISSING"
 	ScannedAt  *time.Time `json:"scanned_at,omitempty"`
 }
 

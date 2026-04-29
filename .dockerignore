@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.gitignore
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+
+# Exclude nested app artifacts
+cargo-courier-app/node_modules
+cargo-courier-app/dist

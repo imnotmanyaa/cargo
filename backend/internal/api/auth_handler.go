@@ -10,6 +10,7 @@ import (
 
 func (s *Server) mountAuthRoutes(r chi.Router) {
 	r.Post("/auth/login", s.handleLogin)
+	r.Post("/auth/courier/login", s.handleCourierLogin)
 	r.Post("/auth/register", s.handleRegister)
 	r.Post("/auth/qr-login", s.handleQRLogin)
 	r.With(s.requireAuth).Get("/auth/me", s.handleMe)
@@ -47,6 +48,26 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	user, token, err := s.services.Auth.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, withToken(user, token))
+}
+
+func (s *Server) handleCourierLogin(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	user, token, err := s.services.Auth.Login(r.Context(), req.Email, req.Password)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if user.Role != model.RoleCourier {
+		writeError(w, http.StatusForbidden, "Courier access only")
 		return
 	}
 	writeJSON(w, http.StatusOK, withToken(user, token))

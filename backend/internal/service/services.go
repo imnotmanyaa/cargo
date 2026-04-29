@@ -115,6 +115,14 @@ func legacyStatusForLifecycle(state model.ShipmentLifecycle) string {
 		return "Черновик"
 	case model.ShipmentCreated:
 		return "Создан"
+	case model.ShipmentCreatedDoor:
+		return "Заявка door-to-door создана"
+	case model.ShipmentPickupAssigned:
+		return "Назначено курьеру"
+	case model.ShipmentPickedUp:
+		return "Забрано курьером"
+	case model.ShipmentAtStationIntake:
+		return "На приемке в багажном отделении"
 	case model.ShipmentPaymentPending:
 		return "Ожидает оплаты"
 	case model.ShipmentPaid:

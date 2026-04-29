@@ -101,6 +101,10 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
+	if req.IsDoorToDoor {
+		shipment.ShipmentStatus = model.ShipmentCreatedDoor
+		shipment.Status = legacyStatusForLifecycle(model.ShipmentCreatedDoor)
+	}
 	created, err := s.repo.CreateShipment(ctx, shipment)
 	if err != nil {
 		return model.Shipment{}, err
@@ -581,6 +585,10 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 	allowed := map[model.ShipmentLifecycle][]model.ShipmentLifecycle{
 		model.ShipmentDraft:           {model.ShipmentCreated},
+		model.ShipmentCreatedDoor:     {model.ShipmentPickupAssigned, model.ShipmentCancelled},
+		model.ShipmentPickupAssigned:  {model.ShipmentPickedUp, model.ShipmentCancelled},
+		model.ShipmentPickedUp:        {model.ShipmentAtStationIntake, model.ShipmentCancelled},
+		model.ShipmentAtStationIntake: {model.ShipmentReadyForLoading, model.ShipmentCancelled},
 		model.ShipmentCreated:         {model.ShipmentPaymentPending, model.ShipmentCancelled},
 		model.ShipmentPaymentPending:  {model.ShipmentPaid, model.ShipmentCancelled},
 		model.ShipmentPaid:            {model.ShipmentReadyForLoading, model.ShipmentOnHold},
@@ -600,6 +608,125 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 		}
 	}
 	return false
+}
+
+func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) ([]model.Shipment, error) {
+	items, err := s.repo.ListShipmentsByOriginStation(ctx, station)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]model.Shipment, 0, len(items))
+	for _, sh := range items {
+		if !sh.IsDoorToDoor {
+			continue
+		}
+		switch sh.ShipmentStatus {
+		case model.ShipmentCreatedDoor, model.ShipmentPickupAssigned, model.ShipmentPickedUp:
+			out = append(out, sh)
+		}
+	}
+	return out, nil
+}
+
+func (s *ShipmentService) CourierPickupStart(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if !shipment.IsDoorToDoor {
+		return model.Shipment{}, fmt.Errorf("%w: pickup is available only for door-to-door shipments", ErrValidation)
+	}
+	return s.transition(ctx, id, model.ShipmentPickupAssigned, operatorID, operatorName, nil, "Courier pickup assigned", nil)
+}
+
+func (s *ShipmentService) CourierPickupConfirm(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if !shipment.IsDoorToDoor {
+		return model.Shipment{}, fmt.Errorf("%w: pickup confirmation is available only for door-to-door shipments", ErrValidation)
+	}
+	return s.transition(ctx, id, model.ShipmentPickedUp, operatorID, operatorName, nil, "Courier pickup confirmed", nil)
+}
+
+func (s *ShipmentService) CourierPickupConfirmWithMeta(ctx context.Context, id string, operatorID, operatorName *string, confirmedAt time.Time, lat, lon *float64) (model.Shipment, error) {
+	shipment, err := s.CourierPickupConfirm(ctx, id, operatorID, operatorName)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	details := fmt.Sprintf("Pickup confirmed at=%s", confirmedAt.UTC().Format(time.RFC3339))
+	if lat != nil && lon != nil {
+		details = fmt.Sprintf("%s lat=%.6f lon=%.6f", details, *lat, *lon)
+	}
+	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{
+		ShipmentID:   shipment.ID,
+		Action:       "Courier pickup meta",
+		OperatorID:   operatorID,
+		OperatorName: operatorName,
+		Details:      details,
+		OldStatus:    ptr(string(model.ShipmentPickedUp)),
+		NewStatus:    ptr(string(model.ShipmentPickedUp)),
+		CreatedAt:    time.Now().UTC(),
+	})
+	return shipment, nil
+}
+
+func (s *ShipmentService) StationIntakeFromCourier(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if !shipment.IsDoorToDoor {
+		return model.Shipment{}, fmt.Errorf("%w: station intake flow is available only for door-to-door shipments", ErrValidation)
+	}
+	return s.transition(ctx, id, model.ShipmentAtStationIntake, operatorID, operatorName, nil, "Station intake from courier", nil)
+}
+
+func (s *ShipmentService) ConfirmFinalWeightAtStation(ctx context.Context, id, finalWeight, reason string, operatorID, operatorName *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if !shipment.IsDoorToDoor {
+		return model.Shipment{}, fmt.Errorf("%w: final weight confirm is available only for door-to-door shipments", ErrValidation)
+	}
+	if shipment.ShipmentStatus != model.ShipmentAtStationIntake {
+		return model.Shipment{}, fmt.Errorf("%w: final weight can be updated only at station intake stage", ErrInvalidState)
+	}
+	if strings.TrimSpace(finalWeight) == "" {
+		return model.Shipment{}, fmt.Errorf("%w: final_weight is required", ErrValidation)
+	}
+
+	oldWeight := shipment.Weight
+	shipment.Weight = strings.TrimSpace(finalWeight)
+	shipment.UpdatedAt = time.Now().UTC()
+	shipment.LastUpdatedAt = shipment.UpdatedAt
+	updated, err := s.repo.UpdateShipment(ctx, shipment)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+
+	details := fmt.Sprintf("Final station weight confirmed: old=%s new=%s", oldWeight, updated.Weight)
+	var reasonPtr *string
+	if strings.TrimSpace(reason) != "" {
+		r := strings.TrimSpace(reason)
+		reasonPtr = &r
+		details = fmt.Sprintf("%s reason=%s", details, r)
+	}
+	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{
+		ShipmentID:   updated.ID,
+		Action:       "Station weight confirm",
+		OperatorID:   operatorID,
+		OperatorName: operatorName,
+		Details:      details,
+		OldStatus:    ptr(string(model.ShipmentAtStationIntake)),
+		NewStatus:    ptr(string(model.ShipmentAtStationIntake)),
+		Reason:       reasonPtr,
+		CreatedAt:    time.Now().UTC(),
+	})
+
+	return s.transition(ctx, updated.ID, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading after station weight confirm", nil, reasonPtr)
 }
 
 func validateCreateShipment(req CreateShipmentRequest) error {

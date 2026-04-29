@@ -81,3 +81,9 @@ pkill -f "go run ./cmd/server"; kill $(lsof -ti:8080) 2>/dev/null; kill $(lsof -
 Пошаговая инструкция для прод-деплоя:
 
 - `DEPLOY_RAILWAY.md`
+
+Поддерживается монорепо из одного GitHub-репозитория:
+
+- `backend` (Go API)
+- `frontend-main` (текущий web UI из корня репозитория)
+- `frontend-courier` (`cargo-courier-app`)

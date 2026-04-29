@@ -23,6 +23,8 @@ func (s *Server) mountShipmentRoutes(r chi.Router) {
 	r.Post("/shipments/{id}/hold", s.handleHoldShipment)
 	r.Post("/shipments/{id}/request-correction", s.handleCorrectionRequest)
 	r.Post("/shipments/{id}/damage-report", s.handleDamageReport)
+	r.Post("/shipments/{id}/station-intake", s.handleStationIntakeFromCourier)
+	r.Post("/shipments/{id}/weight-confirm", s.handleStationWeightConfirm)
 	r.Get("/shipments/{id}/action-context", s.handleActionContext)
 	r.Get("/shipments/by-station/{station}", s.handleShipmentsByStation)
 }
@@ -41,24 +43,24 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		ClientID        string   `json:"client_id"`
-		ClientName      string   `json:"client_name"`
-		ClientEmail     string   `json:"client_email"`
-		FromStation     string   `json:"from_station"`
-		ToStation       string   `json:"to_station"`
-		DepartureDate   string   `json:"departure_date"`
-		Weight          string   `json:"weight"`
-		Dimensions      string   `json:"dimensions"`
-		Description     string   `json:"description"`
-		Value           string   `json:"value"`
-		Cost            float64  `json:"cost"`
-		QuantityPlaces  int      `json:"quantity_places"`
-		ReceiverName    *string  `json:"receiver_name"`
-		ReceiverPhone   *string  `json:"receiver_phone"`
-		IsDoorToDoor    bool     `json:"is_door_to_door"`
-		PickupAddress   *string  `json:"pickup_address"`
-		DeliveryAddress *string  `json:"delivery_address"`
-		DoorToDoorPhone *string  `json:"door_to_door_phone"`
+		ClientID        string  `json:"client_id"`
+		ClientName      string  `json:"client_name"`
+		ClientEmail     string  `json:"client_email"`
+		FromStation     string  `json:"from_station"`
+		ToStation       string  `json:"to_station"`
+		DepartureDate   string  `json:"departure_date"`
+		Weight          string  `json:"weight"`
+		Dimensions      string  `json:"dimensions"`
+		Description     string  `json:"description"`
+		Value           string  `json:"value"`
+		Cost            float64 `json:"cost"`
+		QuantityPlaces  int     `json:"quantity_places"`
+		ReceiverName    *string `json:"receiver_name"`
+		ReceiverPhone   *string `json:"receiver_phone"`
+		IsDoorToDoor    bool    `json:"is_door_to_door"`
+		PickupAddress   *string `json:"pickup_address"`
+		DeliveryAddress *string `json:"delivery_address"`
+		DoorToDoorPhone *string `json:"door_to_door_phone"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -66,6 +68,10 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	// Client roles (corporate/individual) have no assigned station — allow any from_station.
 	// Staff roles must work from their assigned station only.
 	isClientRole := user.Role == model.RoleCorporate || user.Role == model.RoleIndividual
+	if user.Role == model.RoleIndividual && !req.IsDoorToDoor {
+		writeError(w, http.StatusBadRequest, "Individual clients can create only door-to-door shipments")
+		return
+	}
 	if !isClientRole {
 		if err := s.requireStation(user, req.FromStation); err != nil {
 			handleServiceError(w, err)
@@ -104,6 +110,74 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "new-shipment", shipment)
+	writeJSON(w, http.StatusOK, shipment)
+}
+
+func (s *Server) handleStationIntakeFromCourier(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleManager, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	current, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if user.Role == model.RoleReceiver {
+		if err := s.requireStation(user, current.FromStation); err != nil {
+			handleServiceError(w, err)
+			return
+		}
+	}
+	shipment, err := s.services.Shipments.StationIntakeFromCourier(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, shipment)
+}
+
+func (s *Server) handleStationWeightConfirm(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleReceiver); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	var req struct {
+		FinalWeight string `json:"final_weight"`
+		Reason      string `json:"reason"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	current, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if err := s.requireStation(user, current.FromStation); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	shipment, err := s.services.Shipments.ConfirmFinalWeightAtStation(
+		r.Context(),
+		chi.URLParam(r, "id"),
+		req.FinalWeight,
+		req.Reason,
+		&user.ID,
+		&user.Name,
+	)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
 	writeJSON(w, http.StatusOK, shipment)
 }
 
@@ -307,7 +381,9 @@ func (s *Server) handleCancelShipment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	var req struct{ Reason *string `json:"reason"` }
+	var req struct {
+		Reason *string `json:"reason"`
+	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
@@ -337,7 +413,9 @@ func (s *Server) handleHoldShipment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	var req struct{ Reason *string `json:"reason"` }
+	var req struct {
+		Reason *string `json:"reason"`
+	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
@@ -407,7 +485,9 @@ func (s *Server) handleDamageReport(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	var req struct{ Reason *string `json:"reason"` }
+	var req struct {
+		Reason *string `json:"reason"`
+	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}

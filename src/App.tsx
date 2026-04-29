@@ -27,6 +27,8 @@ import { DailySheet } from './components/DailySheet';
 import { FrequentClients } from './components/FrequentClients';
 import { QrLogin } from './components/QrLogin';
 import DoorToDoorShipments from './components/DoorToDoorShipments';
+import { CourierLogin } from './components/CourierLogin';
+import { CourierDashboard } from './components/CourierDashboard';
 
 import { ZebraTerminal } from './components/ZebraTerminal';
 import { LeaderOverview } from './components/LeaderOverview';
@@ -107,6 +109,12 @@ function AppContent() {
   if (path === '/qr-login') {
     return <QrLogin />;
   }
+  if (path === '/courier/login') {
+    if (isAuthenticated && user?.role === 'courier') {
+      return <CourierDashboard />;
+    }
+    return <CourierLogin />;
+  }
   if (path === '/scanner' && isAuthenticated) {
     return <ScannerTerminal />;
   }
@@ -119,6 +127,10 @@ function AppContent() {
 
   if (!isAuthenticated) {
     return <Login />;
+  }
+
+  if (user?.role === 'courier') {
+    return <CourierDashboard />;
   }
 
   // Admin Dashboard
