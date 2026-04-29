@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Phone, Clock, RefreshCw, Filter, Truck } from 'lucide-react';
+import { Search, MapPin, Phone, Clock, RefreshCw, Truck } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ActiveShipmentDetails } from './ActiveShipmentDetails';
@@ -16,7 +16,6 @@ interface Shipment {
   status: string;
   created_at: string;
   departure_date?: string;
-  train_time?: string;
   weight: string;
   quantity_places: number;
   description?: string;
@@ -36,6 +35,9 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const fetchShipments = async () => {
     setLoading(true);
@@ -68,6 +70,17 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
     (s.shipment_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.client_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const visibleShipments = filteredShipments.filter((s) => {
+    if (statusFilter === 'all') return true;
+    return (s.shipment_status || s.status) === statusFilter;
+  });
+  const totalPages = Math.max(1, Math.ceil(visibleShipments.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = visibleShipments.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   const getDualStatus = (s: Shipment) => {
     let typeLabel = '';
@@ -139,9 +152,9 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
       </div>
 
       {/* Search + filter bar */}
-      <div className={`rounded-lg shadow-sm border mb-6 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <div className={`rounded-xl shadow-sm border mb-6 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className={`p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-6 gap-3">
             <div className="flex-1 relative">
               <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-400' : 'text-gray-400'}`} />
               <input
@@ -155,23 +168,33 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                 }`}
               />
             </div>
-            <button className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm ${isDark
-              ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
-              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}>
-              <Filter className="w-4 h-4" />
-              {t('filters')}
-            </button>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            >
+              <option value="all">Все статусы</option>
+              <option value="CREATED">CREATED</option>
+              <option value="READY_FOR_LOADING">READY_FOR_LOADING</option>
+              <option value="LOADED">LOADED</option>
+              <option value="IN_TRANSIT">IN_TRANSIT</option>
+              <option value="ARRIVED">ARRIVED</option>
+            </select>
           </div>
+        </div>
+        <div className={`px-4 py-2 text-xs ${isDark ? 'text-gray-400 border-gray-700' : 'text-gray-500 border-gray-200'} border-b`}>
+          Найдено: {visibleShipments.length}
         </div>
 
         {/* Card list */}
         <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-          {loading && filteredShipments.length === 0 ? (
+          {loading && paginated.length === 0 ? (
             <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('loading')}</div>
-          ) : filteredShipments.length === 0 ? (
+          ) : paginated.length === 0 ? (
             <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('nothingFound')}</div>
-          ) : filteredShipments.map((shipment) => {
+          ) : paginated.map((shipment) => {
             const { typeLabel, typeColor, stateLabel, stateColor } = getDualStatus(shipment);
             
             return (
@@ -252,6 +275,25 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
               </div>
             );
           })}
+        </div>
+        <div className={`p-4 flex items-center justify-between text-sm ${isDark ? 'text-gray-300 border-gray-700' : 'text-gray-600 border-gray-200'} border-t`}>
+          <span>Страница {safePage} из {totalPages}</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className={`px-3 py-1.5 rounded-lg border disabled:opacity-50 ${isDark ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-300 hover:bg-gray-50'}`}
+            >
+              Назад
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className={`px-3 py-1.5 rounded-lg border disabled:opacity-50 ${isDark ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-300 hover:bg-gray-50'}`}
+            >
+              Далее
+            </button>
+          </div>
         </div>
       </div>
     </div>

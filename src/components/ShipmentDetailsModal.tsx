@@ -19,7 +19,6 @@ interface ShipmentDetailsModalProps {
     departure_date?: string;
     receiver_name?: string;
     receiver_phone?: string;
-    train_time?: string;
   };
   onClose: () => void;
   theme?: 'light' | 'dark';

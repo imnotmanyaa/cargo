@@ -43,7 +43,15 @@ function AppContent() {
   // На мобильных закрыты по умолчанию, на десктопе открыты (оба на lg - 1024px)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        return savedTheme;
+      }
+    }
+    return 'light';
+  });
   const [individualPage, setIndividualPage] = useState<'dashboard' | 'new-shipment'>('dashboard');
   const [corporatePage, setCorporatePage] = useState<'dashboard' | 'new-shipment'>('dashboard');
 
@@ -69,6 +77,10 @@ function AppContent() {
       localStorage.setItem('currentPage', allowed[0]);
     }
   }, [user?.role, currentPage]);
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const path = window.location.pathname;

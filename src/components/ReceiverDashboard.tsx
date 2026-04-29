@@ -469,9 +469,9 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                           <span className="font-medium truncate">{task.route}</span>
                         </div>
                         <div className="flex items-center justify-between bg-green-700/50 px-3 py-2 rounded-lg">
-                          <span className="text-green-50 text-xs uppercase tracking-wide">Отправление</span>
+                          <span className="text-green-50 text-xs uppercase tracking-wide">Дата отправления</span>
                           <span className="font-bold">
-                            {task.formattedDate ? `${task.formattedDate} в ` : ''}{task.departureTime}
+                            {task.formattedDate || '—'}
                           </span>
                         </div>
                       </div>
@@ -525,8 +525,6 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                               <div className={`text-xs truncate mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.client_name || 'Клиент не указан'}</div>
                               <div className="text-xs text-blue-600 font-semibold truncate">
                                 <span>Куда: {shipment.to_station}</span>
-                                <span className="mx-2">•</span>
-                                <span>Время: {shipment.train_time}</span>
                               </div>
                             </div>
                           </div>

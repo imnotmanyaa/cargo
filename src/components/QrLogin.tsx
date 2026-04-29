@@ -31,18 +31,22 @@ export function QrLogin() {
           throw new Error(data.error || `Ошибка сервера (${res.status})`);
         }
 
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+        const meRes = await fetch(`${origin}/api/auth/me`, { cache: 'no-store' });
+        const meData = meRes.ok ? await meRes.json() : data;
         const user = {
-          ...data,
-          depositBalance: data.deposit_balance,
-          contractNumber: data.contract_number,
+          ...meData,
+          depositBalance: meData.deposit_balance,
+          contractNumber: meData.contract_number,
         };
-
-        if (data.token) localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(user));
+        localStorage.removeItem('currentPage');
 
         setMessage('Вход выполнен! Переходим...');
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.replace('/');
         }, 500);
       } catch (e: any) {
         const msg = e?.message || 'Ошибка QR-входа';
