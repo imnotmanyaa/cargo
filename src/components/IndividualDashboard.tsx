@@ -18,9 +18,10 @@ interface IndividualDashboardProps {
   onCreateShipment?: () => void;
 }
 
-export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment }: IndividualDashboardProps) {
+export function IndividualDashboard({ theme = 'light', onCreateShipment }: IndividualDashboardProps) {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const isDark = theme === 'dark';
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,14 +44,36 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
   }, [user?.id]);
 
   const handleDetails = (id: string) => {
-    window.open(`/tracking/${id}`, '_blank');
+    window.location.href = `/shipment/${id}`;
+  };
+
+  const prettyStatus = (shipment: Shipment) => {
+    const s = String((shipment as any).shipment_status || shipment.status || '').toUpperCase();
+    if (s === 'CREATED') return 'Оформлен';
+    if (s === 'PAYMENT_PENDING') return 'Оформлен';
+    if (s === 'PAID') return 'Оформлен';
+    if (s === 'READY_FOR_LOADING') return 'Оформлен';
+    if (s === 'LOADED') return 'Погружен';
+    if (s === 'IN_TRANSIT') return 'В пути';
+    if (s === 'ARRIVED') return 'Прибыл';
+    if (s === 'READY_FOR_ISSUE') return 'Готов к выдаче';
+    if (s === 'ISSUED') return 'Выдан';
+    return shipment.status || 'Оформлен';
+  };
+
+  const statusTone = (label: string) => {
+    if (label === 'Выдан') return 'bg-emerald-100 text-emerald-700';
+    if (label === 'Прибыл' || label === 'Готов к выдаче') return 'bg-green-100 text-green-700';
+    if (label === 'В пути') return 'bg-blue-100 text-blue-700';
+    if (label === 'Погружен') return 'bg-purple-100 text-purple-700';
+    return 'bg-yellow-100 text-yellow-700';
   };
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">{t('individualDashboard')}</h1>
-        <p className="text-gray-600">{user?.name}</p>
+        <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('individualDashboard')}</h1>
+        <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{user?.name}</p>
       </div>
 
       {/* Quick Actions */}
@@ -83,18 +106,18 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
       </div>
 
       {/* My Shipments */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">{t('myShipments')}</h2>
+      <div className={`rounded-lg shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className={`p-6 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <h2 className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('myShipments')}</h2>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
           {loading ? (
-            <div className="p-8 text-center text-gray-500">{t('processing')}</div>
+            <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('processing')}</div>
           ) : shipments.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">{t('noShipmentsYet')}</div>
+            <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('noShipmentsYet')}</div>
           ) : (
             shipments.map((shipment) => (
-              <div key={shipment.id} className="p-6 hover:bg-gray-50">
+              <div key={shipment.id} className={`p-6 ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex gap-4">
                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${shipment.status === 'Прибыл' ? 'bg-green-100' : 'bg-blue-100'}`}>
@@ -104,25 +127,22 @@ export function IndividualDashboard({ theme: _theme = 'light', onCreateShipment 
                     <div>
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-sm font-medium text-blue-600">{shipment.shipment_number}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${shipment.status === 'Прибыл'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-blue-100 text-blue-700'
-                          }`}>
-                          {shipment.status}
+                        <span className={`text-xs px-2 py-1 rounded-full ${statusTone(prettyStatus(shipment))}`}>
+                          {prettyStatus(shipment)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                      <div className={`flex items-center gap-2 text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         <MapPin className="w-4 h-4" />
                         <span>{shipment.from_station} → {shipment.to_station}</span>
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         <span className="font-medium">{t('date')}:</span> {new Date(shipment.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-lg font-bold text-gray-900">{shipment.cost?.toLocaleString() || 0} ₸</p>
+                    <p className={`text-lg font-bold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{shipment.cost?.toLocaleString() || 0} ₸</p>
                     <button
                       onClick={() => handleDetails(shipment.id)}
                       className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium"

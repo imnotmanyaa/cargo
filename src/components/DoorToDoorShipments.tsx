@@ -163,8 +163,8 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
       {/* Search + filter bar */}
       <div className={`rounded-xl shadow-sm border mb-6 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className={`p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div className="grid grid-cols-1 lg:grid-cols-6 gap-3">
-            <div className="flex-1 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-8 gap-3">
+            <div className="lg:col-span-5 relative">
               <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-400' : 'text-gray-400'}`} />
               <input
                 type="text"
@@ -180,7 +180,7 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`lg:col-span-3 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
               }`}
             >
@@ -212,9 +212,9 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                 onClick={() => setSelectedShipment(mapShipmentForDetails(shipment))}
                 className={`p-5 cursor-pointer transition-colors ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50'}`}
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
                   {/* Left: icon + main info */}
-                  <div className="flex gap-4 flex-1 min-w-0">
+                  <div className="flex gap-4 min-w-0 xl:col-span-9">
                     <div className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-blue-900/40' : 'bg-blue-50'}`}>
                       <Truck className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
                     </div>
@@ -240,7 +240,7 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                       </p>
                       
                       {/* Row 3: Addreses */}
-                      <div className={`space-y-2 text-sm mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-2 text-sm mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         {shipment.door_to_door_phone && (
                           <div className="flex items-center gap-2">
                             <Phone className="w-3.5 h-3.5 flex-shrink-0" />
@@ -271,7 +271,7 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
                   </div>
 
                   {/* Right: date + weight */}
-                  <div className="flex-shrink-0 text-right flex flex-col items-end gap-2">
+                  <div className="xl:col-span-3 flex-shrink-0 text-right flex flex-row xl:flex-col justify-between xl:justify-start items-center xl:items-end gap-2">
                     <div className={`flex items-center gap-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                       <Clock className="w-3.5 h-3.5" />
                       <span>{formatDate(shipment.created_at)}</span>

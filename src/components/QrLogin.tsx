@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { withApiBase } from '../lib/api-base';
 
 export function QrLogin() {
   const [message, setMessage] = useState('Выполняется вход...');
@@ -25,12 +26,9 @@ export function QrLogin() {
       return;
     }
 
-    const origin = window.location.origin;
-
     (async () => {
       try {
-        // Используем абсолютный URL чтобы обойти сервис-воркер PWA
-        const res = await fetch(`${origin}/api/auth/qr-login`, {
+        const res = await fetch(withApiBase('/api/auth/qr-login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
@@ -46,7 +44,7 @@ export function QrLogin() {
         if (data.token) {
           localStorage.setItem('token', data.token);
         }
-        const meRes = await fetch(`${origin}/api/auth/me`, { cache: 'no-store' });
+        const meRes = await fetch(withApiBase('/api/auth/me'), { cache: 'no-store' });
         const meData = meRes.ok ? await meRes.json() : data;
         const user = {
           ...meData,

@@ -190,6 +190,7 @@ function AppContent() {
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+          hideSidebarButtons={true}
         />
         <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
           <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
