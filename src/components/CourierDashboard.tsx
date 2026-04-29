@@ -313,7 +313,7 @@ export function CourierDashboard() {
   const handleOpenNavigation = () => {
     if (!selectedTask) return;
     // В реальном приложении здесь будет открытие навигации
-    const address = encodeURIComponengetDict(selectedTask.fullAddress);
+    const address = encodeURIComponent(selectedTask.fullAddress);
     window.open(`https://2gis.kz/search/${address}`, '_blank');
     toast.success(getDict('navigationOpened'));
   };
