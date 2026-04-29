@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Package, MapPin, Phone, Clock, RefreshCw, Filter, Truck } from 'lucide-react';
+import { Search, MapPin, Phone, Clock, RefreshCw, Filter, Truck } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ActiveShipmentDetails } from './ActiveShipmentDetails';
@@ -30,7 +30,7 @@ interface Shipment {
 
 export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const isDark = theme === 'dark';
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<any>(null);

@@ -174,6 +174,13 @@ func (m *memoryRepo) CreateFrequentClient(_ context.Context, client model.Freque
 	return client, nil
 }
 
+func (m *memoryRepo) DeleteFrequentClient(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.frequentClients, id)
+	return nil
+}
+
 func (m *memoryRepo) ListRoles(_ context.Context) ([]model.RoleRecord, error) { return m.roles, nil }
 
 func (m *memoryRepo) ListStations(_ context.Context) ([]model.Station, error) {
