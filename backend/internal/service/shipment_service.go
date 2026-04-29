@@ -585,13 +585,13 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 	allowed := map[model.ShipmentLifecycle][]model.ShipmentLifecycle{
 		model.ShipmentDraft:           {model.ShipmentCreated},
-		model.ShipmentCreatedDoor:     {model.ShipmentPickupAssigned, model.ShipmentCancelled},
+		model.ShipmentCreatedDoor:     {model.ShipmentPaymentPending, model.ShipmentPickupAssigned, model.ShipmentCancelled},
 		model.ShipmentPickupAssigned:  {model.ShipmentPickedUp, model.ShipmentCancelled},
 		model.ShipmentPickedUp:        {model.ShipmentAtStationIntake, model.ShipmentCancelled},
-		model.ShipmentAtStationIntake: {model.ShipmentReadyForLoading, model.ShipmentCancelled},
+		model.ShipmentAtStationIntake: {model.ShipmentReadyForLoading, model.ShipmentPaymentPending, model.ShipmentCancelled},
 		model.ShipmentCreated:         {model.ShipmentPaymentPending, model.ShipmentCancelled},
 		model.ShipmentPaymentPending:  {model.ShipmentPaid, model.ShipmentCancelled},
-		model.ShipmentPaid:            {model.ShipmentReadyForLoading, model.ShipmentOnHold},
+		model.ShipmentPaid:            {model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentOnHold},
 		model.ShipmentReadyForLoading: {model.ShipmentLoaded, model.ShipmentOnHold},
 		model.ShipmentLoaded:          {model.ShipmentInTransit, model.ShipmentArrived, model.ShipmentDamaged, model.ShipmentReadyForLoading},
 		model.ShipmentInTransit:       {model.ShipmentArrived, model.ShipmentOnHold, model.ShipmentDamaged},
@@ -602,8 +602,8 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 		model.ShipmentDamaged:         {model.ShipmentOnHold, model.ShipmentClosed},
 		model.ShipmentCancelled:       {model.ShipmentDraft},
 	}
-	for _, item := range allowed[current] {
-		if item == next {
+	for _, a := range allowed[current] {
+		if a == next {
 			return true
 		}
 	}
@@ -621,7 +621,7 @@ func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) 
 			continue
 		}
 		switch sh.ShipmentStatus {
-		case model.ShipmentCreatedDoor, model.ShipmentPickupAssigned, model.ShipmentPickedUp:
+		case model.ShipmentCreatedDoor, model.ShipmentPaymentPending, model.ShipmentPaid, model.ShipmentPickupAssigned, model.ShipmentPickedUp:
 			out = append(out, sh)
 		}
 	}
