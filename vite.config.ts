@@ -12,7 +12,7 @@ export default defineConfig({
       polyfills: true,
     }),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       manifest: {
         name: 'CargoTrans',
         short_name: 'CargoTrans',
@@ -48,7 +48,7 @@ export default defineConfig({
           },
           {
             urlPattern: /\.(js|css|woff2?|png|svg|ico)$/,
-            handler: 'CacheFirst',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'static-assets',
               expiration: { maxEntries: 100, maxAgeSeconds: 3600 },
