@@ -307,19 +307,20 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
             onUpdate={updateShipmentData}
             onNext={handleCreateShipment}
             onBack={() => setCurrentStep('cargo')}
+            theme={theme}
           />
         );
       case 'documents':
         return (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+          <div className={`rounded-lg shadow-sm border p-8 text-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${theme === 'dark' ? 'bg-green-900/30' : 'bg-green-100'}`}>
+                <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t('shipmentCreated')}</h2>
-              <p className="text-gray-600 mb-6">{t('documentsReady')}</p>
+              <h2 className={`text-2xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{t('shipmentCreated')}</h2>
+              <p className={`mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{t('documentsReady')}</p>
 
               {createdShipmentNumber && (
                 <div className="mb-6 flex flex-col items-center">
