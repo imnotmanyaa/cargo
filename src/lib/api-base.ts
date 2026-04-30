@@ -5,6 +5,7 @@ export const API_BASE = rawApiBase.replace(/\/+$/, "");
 export function withApiBase(input: string): string {
   // Use relative URLs so that vite preview proxy intercepts the requests
   if (!input) return input;
+  if (input.startsWith("http://") || input.startsWith("https://")) return input;
   if (!input.startsWith("/")) return `/${input}`;
   return input;
 }
