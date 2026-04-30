@@ -93,15 +93,19 @@ func (s *AuthService) ParseToken(token string) (AuthenticatedUser, error) {
 	}, nil
 }
 
+// IssueQRLoginToken returns a permanent, static QR token for the given user.
+// The token has no expiry ("exp" claim is intentionally omitted) so that:
+//  1. The same receiver always gets the same QR code.
+//  2. The QR code is valid for the entire lifetime of the employee.
 func (s *AuthService) IssueQRLoginToken(ctx context.Context, userID string) (string, error) {
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return "", err
 	}
+	// No "exp" claim → token never expires and is always identical for the same user.
 	claims := jwt.MapClaims{
 		"sub": user.ID,
 		"typ": "qr_login",
-		"exp": time.Now().Add(365 * 24 * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.jwtSecret))

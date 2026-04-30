@@ -514,13 +514,15 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openQrModal(employee)}
-                        className={isDark ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-900'}
-                        title="QR-логин (скачать)"
-                      >
-                        <QrCode className="w-4 h-4" />
-                      </button>
+                      {employee.role === 'receiver' && (
+                        <button
+                          onClick={() => openQrModal(employee)}
+                          className={isDark ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-900'}
+                          title="QR-логин (скачать)"
+                        >
+                          <QrCode className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleOpenEdit(employee)}
                         className={isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-900'}
