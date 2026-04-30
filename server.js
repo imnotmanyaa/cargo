@@ -9,13 +9,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5173;
 
-// Proxy API requests
+// Proxy API requests — rewrite path to restore /api prefix stripped by Express mount
 app.use(
   '/api',
   createProxyMiddleware({
     target: 'https://cargo-trans-mvp-production.up.railway.app',
     changeOrigin: true,
-    secure: false, // Bypass SSL validation for proxy if needed
+    pathRewrite: { '^/': '/api/' },
   })
 );
 
@@ -23,10 +23,10 @@ app.use(
 app.use(
   '/socket.io',
   createProxyMiddleware({
-    target: 'wss://cargo-trans-mvp-production.up.railway.app',
+    target: 'https://cargo-trans-mvp-production.up.railway.app',
     ws: true,
     changeOrigin: true,
-    secure: false,
+    pathRewrite: { '^/': '/socket.io/' },
   })
 );
 
