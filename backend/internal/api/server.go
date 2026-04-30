@@ -7,7 +7,10 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"cargo/backend/internal/config"
 	"cargo/backend/internal/model"
@@ -27,6 +30,9 @@ type Server struct {
 	services service.Services
 	router   chi.Router
 	socket   *socketio.Server
+
+	clients map[string]*rate.Limiter
+	mu      sync.Mutex
 }
 
 func NewServer(cfg config.Config, services service.Services) (*Server, error) {
@@ -35,6 +41,7 @@ func NewServer(cfg config.Config, services service.Services) (*Server, error) {
 		cfg:      cfg,
 		services: services,
 		socket:   socket,
+		clients:  make(map[string]*rate.Limiter),
 	}
 	s.setupSocket()
 	s.router = s.routes()
@@ -67,6 +74,7 @@ func parseCORSAllowedOrigins(value string) []string {
 func (s *Server) routes() chi.Router {
 	r := chi.NewRouter()
 	r.Use(s.requestLogger)
+	r.Use(s.rateLimiter)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: parseCORSAllowedOrigins(s.cfg.CORSAllowedOrigins),
 		AllowedMethods: []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
@@ -103,6 +111,31 @@ func (s *Server) requestLogger(next http.Handler) http.Handler {
 		ww := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(ww, r)
 		log.Printf("http %s %s status=%d duration=%s", r.Method, r.URL.Path, ww.status, time.Since(start))
+	})
+}
+
+func (s *Server) rateLimiter(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := r.RemoteAddr
+		if colon := strings.LastIndex(ip, ":"); colon != -1 {
+			ip = ip[:colon]
+		}
+		
+		s.mu.Lock()
+		limiter, exists := s.clients[ip]
+		if !exists {
+			// 100 requests per second burst 200
+			limiter = rate.NewLimiter(100, 200)
+			s.clients[ip] = limiter
+		}
+		s.mu.Unlock()
+
+		if !limiter.Allow() {
+			writeError(w, http.StatusTooManyRequests, "Too many requests")
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 

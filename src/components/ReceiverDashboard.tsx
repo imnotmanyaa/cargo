@@ -137,13 +137,15 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(withApiBase(`/api/shipments/${shipmentId}/status`), {
-        method: 'PATCH',
+      
+      const endpoint = shipment.loaded ? `/api/shipments/${shipmentId}/ready-for-loading` : `/api/shipments/${shipmentId}/load`;
+      const response = await fetch(withApiBase(endpoint), {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify(shipment.loaded ? {} : { current_station: user?.station })
       });
 
       if (response.ok) {
@@ -280,8 +282,8 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
   // Group shipments by destination and date
   const groupedByDestinationAndTime = shipments.reduce((acc, shipment) => {
-    // Format date as YYYY-MM-DD for consistent grouping
-    const departureDate = shipment.created_at ? new Date(shipment.created_at).toISOString().split('T')[0] : 'no-date';
+    // Format date as YYYY-MM-DD for consistent grouping in local time
+    const departureDate = shipment.created_at ? new Date(shipment.created_at).toLocaleDateString('en-CA') : 'no-date';
     const key = `${shipment.to_station}|${departureDate}`;
     if (!acc[key]) {
       acc[key] = [];

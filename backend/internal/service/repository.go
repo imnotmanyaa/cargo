@@ -42,6 +42,7 @@ type Repository interface {
 	ListPaymentsByShipment(ctx context.Context, shipmentID string) ([]model.Payment, error)
 	ListPaymentsByUser(ctx context.Context, userID string) ([]model.Payment, error)
 	UpdatePayment(ctx context.Context, payment model.Payment) (model.Payment, error)
+	ConfirmPaymentTx(ctx context.Context, paymentID, confirmedBy string) (model.Payment, model.Shipment, error)
 
 	CreateQRCode(ctx context.Context, code model.QRCode) (model.QRCode, error)
 	GetQRCodeByShipment(ctx context.Context, shipmentID string) (model.QRCode, error)

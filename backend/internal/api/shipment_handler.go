@@ -182,12 +182,17 @@ func (s *Server) handleStationWeightConfirm(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleGetShipment(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.mustAuth(w, r); !ok {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
 		return
 	}
 	shipment, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)
+		return
+	}
+	if (user.Role == model.RoleIndividual || user.Role == model.RoleCorporate) && shipment.ClientID != user.ID {
+		handleServiceError(w, service.ErrForbidden)
 		return
 	}
 	writeJSON(w, http.StatusOK, shipment)

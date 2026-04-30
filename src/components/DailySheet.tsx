@@ -53,7 +53,11 @@ export function DailySheet() {
   const { user } = useAuth();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => {
+    const d = new Date();
+    // en-CA outputs YYYY-MM-DD in local time
+    return d.toLocaleDateString('en-CA');
+  });
   const [filter, setFilter] = useState<'all' | 'outgoing' | 'incoming' | 'arrived' | 'loading'>('all');
   const [search, setSearch] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);

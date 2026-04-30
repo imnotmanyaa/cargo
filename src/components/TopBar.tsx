@@ -48,13 +48,17 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       };
 
       socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.event === 'notification:new') {
-          const notification = msg.data;
-          setNotifications(prev => [notification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-          // const audio = new Audio('/notification.mp3'); // Optional
-          // audio.play().catch(e => console.log('Audio play failed', e));
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.event === 'notification:new') {
+            const notification = msg.data;
+            setNotifications(prev => [notification, ...prev]);
+            setUnreadCount(prev => prev + 1);
+            // const audio = new Audio('/notification.mp3'); // Optional
+            // audio.play().catch(e => console.log('Audio play failed', e));
+          }
+        } catch (e) {
+          console.error('Invalid WebSocket message received', e);
         }
       };
 

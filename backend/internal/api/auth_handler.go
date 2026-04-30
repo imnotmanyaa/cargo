@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"cargo/backend/internal/model"
 
@@ -29,6 +30,15 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
+	
+	allowedRoles := map[string]bool{
+		string(model.RoleIndividual): true,
+		string(model.RoleCorporate):  true,
+	}
+	if !allowedRoles[req.Role] {
+		req.Role = string(model.RoleIndividual) // Default to individual if invalid or attempted privilege escalation
+	}
+
 	user, token, err := s.services.Auth.Register(r.Context(), req.Name, req.Email, req.Password, model.Role(req.Role), req.Company, req.Phone)
 	if err != nil {
 		handleServiceError(w, err)
@@ -87,7 +97,12 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, withToken(record, ""))
 }
 
-func (s *Server) handleLogout(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		s.services.Auth.Logout(token)
+	}
 	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 

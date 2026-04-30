@@ -28,7 +28,7 @@ interface ActionContext {
 }
 
 export function ShipmentActionPage() {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const { language: _lang } = useLanguage();
     const [context, setContext] = useState<ActionContext | null>(null);
     const [loading, setLoading] = useState(true);
@@ -89,16 +89,14 @@ export function ShipmentActionPage() {
         setProcessing(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(withApiBase(`/api/shipments/${shipmentId}/status`), {
-                method: 'PATCH',
+            const response = await fetch(withApiBase(`/api/shipments/${shipmentId}/load`), {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    status: 'Погружен',
-                    operator_id: user?.id,
-                    operator_name: user?.name
+                    current_station: user?.station
                 })
             });
 
@@ -478,8 +476,7 @@ export function ShipmentActionPage() {
                     </button>
                     <button
                         onClick={() => {
-                            // Logout via API logic would be better but simple cleanup works for now
-                            localStorage.removeItem('user');
+                            if (logout) logout();
                             window.location.href = `/login?redirect=/shipment/${shipmentId}`;
                         }}
                         className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"

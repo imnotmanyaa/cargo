@@ -34,63 +34,13 @@ func (s *PaymentService) Get(ctx context.Context, id string) (model.Payment, err
 }
 
 func (s *PaymentService) Confirm(ctx context.Context, id string, confirmedBy string) (model.Payment, model.Shipment, error) {
-	payment, err := s.repo.GetPayment(ctx, id)
+	// Let the database transaction handle all locking and updates atomically.
+	payment, shipment, err := s.repo.ConfirmPaymentTx(ctx, id, confirmedBy)
 	if err != nil {
 		return model.Payment{}, model.Shipment{}, err
 	}
-	if payment.Status != model.PaymentPending {
-		return model.Payment{}, model.Shipment{}, ErrInvalidTransition
-	}
-	shipment, err := s.repo.GetShipmentByID(ctx, payment.ShipmentID)
-	if err != nil {
-		return model.Payment{}, model.Shipment{}, err
-	}
-
-	if shipment.PaymentStatus == model.PaymentConfirmed || shipment.ShipmentStatus == model.ShipmentPaid {
-		return model.Payment{}, model.Shipment{}, ErrInvalidTransition
-	}
-
-	if payment.PaymentMethod == "deposit" {
-		clientUser, err := s.repo.GetUserByID(ctx, shipment.ClientID)
-		if err != nil {
-			return model.Payment{}, model.Shipment{}, err
-		}
-		if clientUser.DepositBalance < payment.Amount {
-			return model.Payment{}, model.Shipment{}, ErrInsufficientFunds
-		}
-		_, err = s.repo.TopUpDeposit(ctx, shipment.ClientID, -payment.Amount)
-		if err != nil {
-			return model.Payment{}, model.Shipment{}, err // Could be ErrInsufficientFunds from DB now
-		}
-	}
-
-	now := time.Now().UTC()
-	payment.Status = model.PaymentConfirmed
-	payment.PaidAt = &now
-	payment.ConfirmedBy = &confirmedBy
-	payment, err = s.repo.UpdatePayment(ctx, payment)
-	if err != nil {
-		return model.Payment{}, model.Shipment{}, err
-	}
-	old := shipment.ShipmentStatus
-	shipment.PaymentStatus = model.PaymentConfirmed
-	shipment.ShipmentStatus = model.ShipmentPaid
-	shipment.Status = legacyStatusForLifecycle(shipment.ShipmentStatus)
-	shipment.LastUpdatedAt = now
-	shipment.UpdatedAt = now
-	shipment, err = s.repo.UpdateShipment(ctx, shipment)
-	if err != nil {
-		return model.Payment{}, model.Shipment{}, err
-	}
-	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{
-		ShipmentID: payment.ShipmentID,
-		Action:     "Payment Confirmed",
-		OperatorID: &confirmedBy,
-		Details:    "Payment confirmed",
-		OldStatus:  ptr(string(old)),
-		NewStatus:  ptr(string(shipment.ShipmentStatus)),
-		CreatedAt:  now,
-	})
+	
+	// Audit logging (done outside tx to keep tx short, or could be in tx too. We'll leave it here to avoid changing AuditLog interface)
 	_ = s.repo.AddAuditLog(ctx, model.AuditLog{
 		ID:         uuid.NewString(),
 		UserID:     &confirmedBy,
@@ -98,7 +48,7 @@ func (s *PaymentService) Confirm(ctx context.Context, id string, confirmedBy str
 		EntityID:   payment.ID,
 		Action:     "CONFIRM_PAYMENT",
 		NewValue:   ptr(string(payment.Status)),
-		CreatedAt:  now,
+		CreatedAt:  time.Now().UTC(),
 	})
 	return payment, shipment, nil
 }

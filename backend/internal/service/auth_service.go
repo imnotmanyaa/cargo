@@ -57,6 +57,9 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (model.
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return model.User{}, "", ErrInvalidCredentials
 	}
+	if !user.IsActive {
+		return model.User{}, "", ErrForbidden
+	}
 	token, err := s.issueToken(user)
 	return user, token, err
 }
@@ -66,6 +69,9 @@ func (s *AuthService) Me(ctx context.Context, id string) (model.User, error) {
 }
 
 func (s *AuthService) ParseToken(token string) (AuthenticatedUser, error) {
+	if _, blacklisted := s.blacklist.Load(token); blacklisted {
+		return AuthenticatedUser{}, ErrUnauthorized
+	}
 	claims := jwt.MapClaims{}
 	parsed, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.jwtSecret), nil
@@ -140,4 +146,10 @@ func (s *AuthService) issueToken(user model.User) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.jwtSecret))
+}
+
+func (s *AuthService) Logout(token string) {
+	if token != "" {
+		s.blacklist.Store(token, time.Now().UTC())
+	}
 }

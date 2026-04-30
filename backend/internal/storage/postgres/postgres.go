@@ -339,23 +339,30 @@ func (r *Repository) GetShipmentByTrackingCode(ctx context.Context, code string)
 func (r *Repository) ListShipments(ctx context.Context, filter model.ShipmentFilter) ([]model.Shipment, error) {
 	query := shipmentSelect
 	args := []any{}
-	where := ""
+	conditions := []string{}
+
 	switch filter.Type {
 	case "incoming":
-		where = ` WHERE next_station = $1`
 		args = append(args, filter.Station)
+		conditions = append(conditions, fmt.Sprintf("next_station = $%d", len(args)))
 	case "outgoing":
-		where = ` WHERE current_station = $1 AND shipment_status IN ('READY_FOR_LOADING','LOADED','IN_TRANSIT')`
 		args = append(args, filter.Station)
+		conditions = append(conditions, fmt.Sprintf("current_station = $%d AND shipment_status IN ('READY_FOR_LOADING','LOADED','IN_TRANSIT')", len(args)))
 	case "arrived":
-		where = ` WHERE current_station = $1 AND shipment_status IN ('ARRIVED', 'READY_FOR_ISSUE')`
 		args = append(args, filter.Station)
-	default:
-		if filter.ClientID != "" {
-			where = ` WHERE client_id = $1`
-			args = append(args, filter.ClientID)
-		}
+		conditions = append(conditions, fmt.Sprintf("current_station = $%d AND shipment_status IN ('ARRIVED', 'READY_FOR_ISSUE')", len(args)))
 	}
+
+	if filter.ClientID != "" {
+		args = append(args, filter.ClientID)
+		conditions = append(conditions, fmt.Sprintf("client_id = $%d", len(args)))
+	}
+
+	where := ""
+	if len(conditions) > 0 {
+		where = " WHERE " + strings.Join(conditions, " AND ")
+	}
+
 	rows, err := r.pool.Query(ctx, query+where+` ORDER BY created_at DESC`, args...)
 	if err != nil {
 		return nil, err
@@ -939,4 +946,83 @@ func (r *Repository) UpdateWagonShipmentStatus(ctx context.Context, wagonID, shi
 		WHERE wagon_id = $1 AND shipment_id = $2
 	`, wagonID, shipmentID, status, now)
 	return err
+}
+
+func (r *Repository) ConfirmPaymentTx(ctx context.Context, paymentID, confirmedBy string) (model.Payment, model.Shipment, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return model.Payment{}, model.Shipment{}, err
+	}
+	defer tx.Rollback(ctx)
+
+	var payment model.Payment
+	err = tx.QueryRow(ctx, "SELECT id, shipment_id, amount, payment_method, pos_terminal_reference, paid_at, confirmed_by, status, created_at, shipment_number FROM payments WHERE id = $1 FOR UPDATE", paymentID).
+		Scan(&payment.ID, &payment.ShipmentID, &payment.Amount, &payment.PaymentMethod, &payment.POSReference, &payment.PaidAt, &payment.ConfirmedBy, &payment.Status, &payment.CreatedAt, &payment.ShipmentNumber)
+	if err != nil {
+		return model.Payment{}, model.Shipment{}, err
+	}
+
+	if payment.Status != model.PaymentPending {
+		return model.Payment{}, model.Shipment{}, service.ErrInvalidTransition
+	}
+
+	var shipment model.Shipment
+	err = tx.QueryRow(ctx, "SELECT id, client_id, from_station, to_station, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, shipment_status, payment_status, status, created_at, updated_at, last_updated_at, shipment_number, is_door_to_door, pickup_address, delivery_address FROM shipments WHERE id = $1 FOR UPDATE", payment.ShipmentID).
+		Scan(&shipment.ID, &shipment.ClientID, &shipment.FromStation, &shipment.ToStation, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.Status, &shipment.CreatedAt, &shipment.UpdatedAt, &shipment.LastUpdatedAt, &shipment.ShipmentNumber, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress)
+	if err != nil {
+		return model.Payment{}, model.Shipment{}, err
+	}
+
+	if shipment.PaymentStatus == model.PaymentConfirmed || shipment.ShipmentStatus == model.ShipmentPaid {
+		return model.Payment{}, model.Shipment{}, service.ErrInvalidTransition
+	}
+
+	if payment.PaymentMethod == "deposit" {
+		var balance float64
+		err = tx.QueryRow(ctx, "SELECT deposit_balance FROM users WHERE id = $1 FOR UPDATE", shipment.ClientID).Scan(&balance)
+		if err != nil {
+			return model.Payment{}, model.Shipment{}, err
+		}
+		if balance < payment.Amount {
+			return model.Payment{}, model.Shipment{}, service.ErrInsufficientFunds
+		}
+		_, err = tx.Exec(ctx, "UPDATE users SET deposit_balance = deposit_balance - $2 WHERE id = $1", shipment.ClientID, payment.Amount)
+		if err != nil {
+			return model.Payment{}, model.Shipment{}, err
+		}
+	}
+
+	now := time.Now().UTC()
+	payment.Status = model.PaymentConfirmed
+	payment.PaidAt = &now
+	payment.ConfirmedBy = &confirmedBy
+
+	_, err = tx.Exec(ctx, "UPDATE payments SET status = $2, paid_at = $3, confirmed_by = $4 WHERE id = $1", payment.ID, payment.Status, payment.PaidAt, payment.ConfirmedBy)
+	if err != nil {
+		return model.Payment{}, model.Shipment{}, err
+	}
+
+	oldStatus := shipment.ShipmentStatus
+	shipment.PaymentStatus = model.PaymentConfirmed
+	shipment.ShipmentStatus = model.ShipmentPaid
+	shipment.Status = "Оплачен" // legacy status mapped to PAID
+	shipment.LastUpdatedAt = now
+	shipment.UpdatedAt = now
+
+	_, err = tx.Exec(ctx, "UPDATE shipments SET payment_status = $2, shipment_status = $3, status = $4, last_updated_at = $5, updated_at = $6 WHERE id = $1", shipment.ID, shipment.PaymentStatus, shipment.ShipmentStatus, shipment.Status, shipment.LastUpdatedAt, shipment.UpdatedAt)
+	if err != nil {
+		return model.Payment{}, model.Shipment{}, err
+	}
+
+	_, err = tx.Exec(ctx, "INSERT INTO shipment_history (shipment_id, action, operator_id, details, old_status, new_status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)", shipment.ID, "Payment Confirmed", confirmedBy, "Payment confirmed", oldStatus, shipment.ShipmentStatus, now)
+	if err != nil {
+		return model.Payment{}, model.Shipment{}, err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return model.Payment{}, model.Shipment{}, err
+	}
+
+	return payment, shipment, nil
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"cargo/backend/internal/model"
 )
@@ -56,6 +57,7 @@ func NewServices(repo Repository, jwtSecret string) Services {
 type AuthService struct {
 	repo      Repository
 	jwtSecret string
+	blacklist sync.Map
 }
 
 type AdminService struct{ repo Repository }

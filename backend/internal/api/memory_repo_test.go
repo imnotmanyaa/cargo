@@ -649,3 +649,31 @@ func (m *memoryRepo) UpdateWagonShipmentStatus(_ context.Context, wagonID, shipm
 	}
 	return service.ErrNotFound
 }
+
+func (m *memoryRepo) ConfirmPaymentTx(ctx context.Context, paymentID, confirmedBy string) (model.Payment, model.Shipment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	payment, ok := m.payments[paymentID]
+	if !ok {
+		return model.Payment{}, model.Shipment{}, service.ErrNotFound
+	}
+	shipment, ok := m.shipments[payment.ShipmentID]
+	if !ok {
+		return model.Payment{}, model.Shipment{}, service.ErrNotFound
+	}
+	
+	now := time.Now().UTC()
+	payment.Status = model.PaymentConfirmed
+	payment.PaidAt = &now
+	payment.ConfirmedBy = &confirmedBy
+	m.payments[paymentID] = payment
+
+	shipment.PaymentStatus = model.PaymentConfirmed
+	shipment.ShipmentStatus = model.ShipmentPaid
+	shipment.Status = "Оплачен"
+	shipment.LastUpdatedAt = now
+	shipment.UpdatedAt = now
+	m.shipments[shipment.ID] = shipment
+
+	return payment, shipment, nil
+}

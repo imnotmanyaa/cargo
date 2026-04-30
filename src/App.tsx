@@ -116,7 +116,9 @@ function AppContent() {
 
   // Standalone scanner terminal — available for scanning roles
   const path = window.location.pathname;
-  if (path === '/qr-login') {
+  const searchParams = new URLSearchParams(window.location.search);
+  
+  if (path === '/qr-login' || searchParams.has('qr-login')) {
     return <QrLogin />;
   }
   if (path === '/courier/login') {
@@ -126,12 +128,24 @@ function AppContent() {
     return <CourierLogin />;
   }
   if (path === '/scanner' && isAuthenticated) {
+    if (user?.role === 'individual' || user?.role === 'corporate' || user?.role === 'courier') {
+      window.location.href = '/';
+      return null;
+    }
     return <ScannerTerminal />;
   }
   if (path === '/daily-sheet' && isAuthenticated) {
+    if (user?.role === 'individual' || user?.role === 'corporate' || user?.role === 'courier') {
+      window.location.href = '/';
+      return null;
+    }
     return <DailySheet />;
   }
   if (path === '/auditor' && isAuthenticated) {
+    if (user?.role === 'individual' || user?.role === 'corporate' || user?.role === 'courier') {
+      window.location.href = '/';
+      return null;
+    }
     return <ZebraTerminal />;
   }
 

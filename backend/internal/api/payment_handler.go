@@ -61,7 +61,8 @@ func (s *Server) handleCreatePayment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetPayment(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.mustAuth(w, r); !ok {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
 		return
 	}
 	payment, err := s.services.Payments.Get(r.Context(), chi.URLParam(r, "id"))
@@ -69,6 +70,19 @@ func (s *Server) handleGetPayment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
+	shipment, err := s.services.Shipments.Get(r.Context(), payment.ShipmentID)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	isOwner := (user.Role == model.RoleIndividual || user.Role == model.RoleCorporate) && shipment.ClientID == user.ID
+	isEmployee := user.Role == model.RoleAccounting || user.Role == model.RoleManager || user.Role == model.RoleAdmin || user.Role == model.RoleDirectionHead || user.Role == model.RoleChiefHead
+
+	if !isOwner && !isEmployee {
+		handleServiceError(w, service.ErrForbidden)
+		return
+	}
+
 	writeJSON(w, http.StatusOK, payment)
 }
 
@@ -115,7 +129,7 @@ func (s *Server) handleTopUp(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleAdmin, model.RoleManager, model.RoleAccounting, model.RoleCorporate, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+	if err := s.requireRole(user, model.RoleAdmin, model.RoleAccounting, model.RoleChiefHead); err != nil {
 		handleServiceError(w, err)
 		return
 	}

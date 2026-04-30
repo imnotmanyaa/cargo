@@ -119,7 +119,8 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
     if (dateFilter) {
       const dateValue = new Date(s.created_at || s.departure_date || '');
       if (Number.isNaN(dateValue.getTime())) return false;
-      const shipmentDate = dateValue.toISOString().split('T')[0];
+      // en-CA produces YYYY-MM-DD in local time
+      const shipmentDate = dateValue.toLocaleDateString('en-CA');
       if (shipmentDate !== dateFilter) return false;
     }
     return true;

@@ -197,7 +197,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   const qrUrl = useMemo(() => {
     if (!qrToken) return '';
     const origin = window.location.origin;
-    return `${origin}/qr-login?token=${encodeURIComponent(qrToken)}`;
+    return `${origin}/?qr-login=true&token=${encodeURIComponent(qrToken)}`;
   }, [qrToken]);
 
   const downloadQrSvg = () => {

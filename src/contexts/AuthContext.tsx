@@ -38,7 +38,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        console.error('Failed to parse user from localStorage', e);
+        localStorage.removeItem('user');
+      }
+    }
+    return null;
   });
 
   const login = async (email: string, password: string, loginType: 'default' | 'courier' = 'default') => {

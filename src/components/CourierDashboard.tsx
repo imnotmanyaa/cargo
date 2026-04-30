@@ -84,7 +84,7 @@ export function CourierDashboard() {
         deliveryCompleted: 'Доставка завершена',
         navigationOpened: 'Навигатор открыт',
       },
-      kz: {
+      kk: {
         courierPosition: 'Cargo Trans курьері',
         active: 'Белсенді',
         tasksToday: 'Бүгінгі тапсырмалар',
@@ -190,7 +190,7 @@ export function CourierDashboard() {
         'PAYMENT_PENDING': 'Ожидает оплаты',
         'PAID': 'Оплачена',
       },
-      kz: {
+      kk: {
         'CREATED_DOOR': 'Курьерді күтуде',
         'PICKUP_ASSIGNED': 'Курьерге тағайындалды',
         'PICKED_UP': 'Курьер алып кетті',
