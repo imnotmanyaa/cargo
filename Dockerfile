@@ -6,20 +6,20 @@ RUN npm ci
 
 COPY . .
 
-# Railway can pass this as build arg.
-ARG VITE_API_URL
-ENV VITE_API_URL=${VITE_API_URL}
-
 RUN npm run build
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
-RUN npm i -g http-server
+# Copy package.json and install only production deps (express, http-proxy-middleware)
+COPY package*.json ./
+RUN npm ci --omit=dev
 
+# Copy built static files and the express proxy server
 COPY --from=build /app/dist ./dist
+COPY server.js ./
 
 ENV PORT=3000
 EXPOSE 3000
 
-CMD ["sh", "-c", "http-server dist -p ${PORT:-3000}"]
+CMD ["node", "server.js"]
