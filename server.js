@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5173;
 // Proxy API and WebSocket — mount at root to keep full path (no Express path stripping)
 app.use(
   createProxyMiddleware({
-    pathFilter: ['/api', '/socket.io'],
+    pathFilter: ['/api/**', '/socket.io/**'],
     target: 'https://cargo-trans-mvp-production.up.railway.app',
     changeOrigin: true,
     ws: true,
