@@ -380,12 +380,12 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 >
                   <option value="admin">{t('roleAdmin')}</option>
                   <option value="manager">{t('roleManager')}</option>
-                  <option value="direction_head">Руководитель по направлению</option>
-                  <option value="chief_head">Главный руководитель</option>
+                  <option value="direction_head">{t('roleDirectionHead')}</option>
+                  <option value="chief_head">{t('roleChiefHead')}</option>
                   <option value="receiver">{t('receiver')}</option>
-                  <option value="train_receiver">Приемосдатчик в поезде</option>
+                  <option value="train_receiver">{t('roleTrainReceiver')}</option>
                   <option value="mobile_group">{t('roleMobileGroup')}</option>
-                  <option value="courier">Курьер</option>
+                  <option value="courier">{t('roleCourier')}</option>
                 </select>
               </div>
 
@@ -489,12 +489,12 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                         'bg-green-100 text-green-800'
                       }`}>
                       {employee.role === 'receiver' ? t('receiver') :
-                        employee.role === 'train_receiver' ? 'Приемосдатчик в поезде' :
+                        employee.role === 'train_receiver' ? t('roleTrainReceiver') :
                         employee.role === 'admin' ? t('roleAdmin') :
-                        employee.role === 'direction_head' ? 'Руководитель по направлению' :
-                        employee.role === 'chief_head' ? 'Главный руководитель' :
+                        employee.role === 'direction_head' ? t('roleDirectionHead') :
+                        employee.role === 'chief_head' ? t('roleChiefHead') :
                         employee.role === 'mobile_group' ? t('roleMobileGroup') :
-                        employee.role === 'courier' ? 'Курьер' :
+                        employee.role === 'courier' ? t('roleCourier') :
                         t('roleManager')}
                     </span>
                   </td>
@@ -586,12 +586,12 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 >
                   <option value="admin">{t('roleAdmin')}</option>
                   <option value="manager">{t('roleManager')}</option>
-                  <option value="direction_head">Руководитель по направлению</option>
-                  <option value="chief_head">Главный руководитель</option>
+                  <option value="direction_head">{t('roleDirectionHead')}</option>
+                  <option value="chief_head">{t('roleChiefHead')}</option>
                   <option value="receiver">{t('receiver')}</option>
-                  <option value="train_receiver">Приемосдатчик в поезде</option>
+                  <option value="train_receiver">{t('roleTrainReceiver')}</option>
                   <option value="mobile_group">{t('roleMobileGroup')}</option>
-                  <option value="courier">Курьер</option>
+                  <option value="courier">{t('roleCourier')}</option>
                 </select>
               </div>
               <div>

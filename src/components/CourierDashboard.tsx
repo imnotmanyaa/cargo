@@ -56,12 +56,12 @@ export function CourierDashboard() {
 
   const getStatusTranslation = (status: string) => {
     const dict: Record<string, string> = {
-      'CREATED_DOOR': 'Ожидает забора',
-      'PICKUP_ASSIGNED': 'Вы едете к клиенту',
-      'PICKED_UP': 'У вас (сдать на станцию)',
-      'READY_FOR_ISSUE': 'Ожидает доставки',
-      'ISSUED': 'Доставлено',
-      'READY_FOR_LOADING': 'Сдано на станцию'
+      'CREATED_DOOR': t('courierStatusWaitingPickup'),
+      'PICKUP_ASSIGNED': t('courierStatusAssigned'),
+      'PICKED_UP': t('courierStatusPickedUp'),
+      'READY_FOR_ISSUE': t('courierStatusWaitingDelivery'),
+      'ISSUED': t('courierStatusDelivered'),
+      'READY_FOR_LOADING': t('courierStatusLoaded')
     };
     return dict[status] || status;
   };
@@ -120,7 +120,7 @@ export function CourierDashboard() {
           numberOfPieces: sh.quantity_places || 1,
           contents: sh.description || '',
           destination: `${sh.from_station || ''} -> ${sh.to_station || ''}`,
-          scheduledTime: 'По готовности',
+          scheduledTime: t('readyStatus'),
           declaredValue: sh.cost || 0,
           rawStatus: sh.shipment_status
         };
@@ -289,7 +289,7 @@ export function CourierDashboard() {
             <div className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-1">
                 <MapPin className="w-3 h-3 shrink-0" />
-                <span className="truncate">{task.address || 'Адрес не указан'}</span>
+                <span className="truncate">{task.address || t('addressNotSpecified')}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Weight className="w-3 h-3 shrink-0" />
@@ -327,7 +327,7 @@ export function CourierDashboard() {
             </div>
             <div className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
               <MapPin className="w-4 h-4 shrink-0" />
-              <span className="truncate">{user?.station || 'Нет станции'}</span>
+              <span className="truncate">{user?.station || t('noStation')}</span>
             </div>
           </CardHeader>
         </Card>
@@ -342,10 +342,10 @@ export function CourierDashboard() {
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
               <TabsList className="w-full grid grid-cols-2 bg-gray-100 dark:bg-gray-700">
                 <TabsTrigger value="pending" className="text-sm">
-                  Доступные задачи ({pendingTasks.length})
+                  {t('availableTasks')} ({pendingTasks.length})
                 </TabsTrigger>
                 <TabsTrigger value="my_tasks" className="text-sm">
-                  Мои задачи ({myTasks.length})
+                  {t('myTasks')} ({myTasks.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -385,20 +385,20 @@ export function CourierDashboard() {
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-lg">
                   <div className="flex items-center gap-2 font-medium mb-2"><MapPin className="w-4 h-4"/> Адрес</div>
-                  <div className="text-sm">{selectedTask.fullAddress || 'Адрес не указан'}</div>
+                  <div className="text-sm">{selectedTask.fullAddress || t('addressNotSpecified')}</div>
                   <Button className="mt-2 w-full bg-blue-600 hover:bg-blue-700" onClick={() => window.open(`https://2gis.kz/search/${encodeURIComponent(selectedTask.fullAddress)}`, '_blank')}>
                     <Navigation className="w-4 h-4 mr-2" /> Открыть в 2ГИС
                   </Button>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-lg text-sm space-y-2">
                   <div className="flex items-center gap-2 font-medium mb-2"><Package className="w-4 h-4"/> Посылка</div>
-                  <div>Вес: {selectedTask.weight} кг</div>
-                  <div>Мест: {selectedTask.numberOfPieces} шт</div>
-                  <div>Описание: {selectedTask.contents || 'Нет'}</div>
+                  <div>{t('weightColumn')}: {selectedTask.weight} кг</div>
+                  <div>{t('quantityPlaces')}: {selectedTask.numberOfPieces} шт</div>
+                  <div>{t('cargoDescription')}: {selectedTask.contents || 'Нет'}</div>
                 </div>
               </div>
               <div className="p-4 border-t dark:border-gray-700 flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setShowDetailsDialog(false)}>Закрыть</Button>
+                <Button variant="outline" className="flex-1" onClick={() => setShowDetailsDialog(false)}>{t('close')}</Button>
                 
                 {selectedTask.status === 'pending' && (
                   <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleStartTask}>
