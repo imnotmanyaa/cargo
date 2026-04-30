@@ -16,6 +16,7 @@ func (s *Server) mountLifecycleRoutes(r chi.Router) {
 	r.Post("/shipments/{id}/issue", s.handleIssueShipment)
 	r.Post("/shipments/{id}/close", s.handleCloseShipment)
 	r.Patch("/shipments/{id}/status", s.handleLegacyStatusPatch)
+	r.Post("/shipments/{id}/smart-scan", s.handleSmartScan)
 }
 
 func (s *Server) handleReadyForLoading(w http.ResponseWriter, r *http.Request) {
@@ -210,4 +211,80 @@ func (s *Server) handleLegacyStatusPatch(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	writeJSON(w, http.StatusOK, shipment)
+}
+
+// handleSmartScan — universal scan action for receivers.
+// Logic: new_status = f(current_shipment_status, scanner_station)
+//   - READY_FOR_LOADING + scanner.station == from_station → LOADED
+//   - IN_TRANSIT        + scanner.station == to_station   → ARRIVED
+func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	shipmentID := chi.URLParam(r, "id")
+	current, err := s.services.Shipments.Get(r.Context(), shipmentID)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	station := user.Station
+
+	switch current.ShipmentStatus {
+	case model.ShipmentReadyForLoading:
+		// Receiver at departure station marks the cargo as loaded
+		if station != current.FromStation {
+			writeError(w, http.StatusForbidden,
+				"Груз отправляется из "+current.FromStation+". Ваша станция: "+station)
+			return
+		}
+		shipment, err := s.services.Shipments.Load(r.Context(), shipmentID, &user.ID, &user.Name, &station, nil)
+		if err != nil {
+			handleServiceError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"shipment": shipment,
+			"action":   "LOADED",
+			"message":  "Груз " + shipment.ShipmentNumber + " погружен ✓",
+		})
+
+	case model.ShipmentInTransit:
+		// Receiver at destination station marks the cargo as arrived
+		if station != current.ToStation {
+			writeError(w, http.StatusForbidden,
+				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
+			return
+		}
+		shipment, notification, err := s.services.Shipments.Arrive(r.Context(), shipmentID, station, &user.ID, &user.Name)
+		if err != nil {
+			handleServiceError(w, err)
+			return
+		}
+		if notification != nil {
+			s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
+		}
+		s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"shipment": shipment,
+			"action":   "ARRIVED",
+			"message":  "Груз " + shipment.ShipmentNumber + " принят ✓",
+		})
+
+	case model.ShipmentLoaded:
+		writeError(w, http.StatusConflict, "Груз уже погружен и ожидает отправки")
+	case model.ShipmentArrived, model.ShipmentReadyForIssue:
+		writeError(w, http.StatusConflict, "Груз уже прибыл на станцию назначения")
+	case model.ShipmentIssued:
+		writeError(w, http.StatusConflict, "Груз уже выдан получателю")
+	default:
+		writeError(w, http.StatusUnprocessableEntity,
+			"Груз в статусе «"+string(current.ShipmentStatus)+"» — сканирование невозможно")
+	}
 }
