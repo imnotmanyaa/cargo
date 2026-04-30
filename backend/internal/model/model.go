@@ -26,19 +26,20 @@ func ClientSegmentForRole(r Role) ClientSegment {
 }
 
 const (
-	RoleAdmin         Role = "admin"
-	RoleManager       Role = "manager"
-	RoleDirectionHead Role = "direction_head"
-	RoleChiefHead     Role = "chief_head"
-	RoleReceiver      Role = "receiver"
-	RoleCourier       Role = "courier"
-	RoleMobileGroup   Role = "mobile_group" // Мобильная инспекционная группа: выездная проверка груза
-	RoleLoading       Role = "loading_operator"
-	RoleTransit       Role = "transit_operator"
-	RoleIssue         Role = "issue_operator"
-	RoleAccounting    Role = "accounting"
-	RoleIndividual    Role = "individual"
-	RoleCorporate     Role = "corporate"
+	RoleAdmin          Role = "admin"
+	RoleManager        Role = "manager"
+	RoleDirectionHead  Role = "direction_head"
+	RoleChiefHead      Role = "chief_head"
+	RoleReceiver       Role = "receiver"
+	RoleTrainReceiver  Role = "train_receiver" // Приемосдатчик в поезде (погрузка в вагон)
+	RoleCourier        Role = "courier"
+	RoleMobileGroup    Role = "mobile_group" // Мобильная инспекционная группа: выездная проверка груза
+	RoleLoading        Role = "loading_operator"
+	RoleTransit        Role = "transit_operator"
+	RoleIssue          Role = "issue_operator"
+	RoleAccounting     Role = "accounting"
+	RoleIndividual     Role = "individual"
+	RoleCorporate      Role = "corporate"
 )
 
 type ShipmentLifecycle string
@@ -146,6 +147,9 @@ type Shipment struct {
 	PickupAddress   *string           `json:"pickup_address,omitempty"`
 	DeliveryAddress *string           `json:"delivery_address,omitempty"`
 	DoorToDoorPhone *string           `json:"door_to_door_phone,omitempty"`
+	// Флаг перевеса: выдача заблокирована до доплаты
+	PaymentRequired bool    `json:"payment_required" db:"payment_required"`
+	ExtraCharge     float64 `json:"extra_charge" db:"extra_charge"`
 	LastUpdatedAt   time.Time         `json:"last_updated_at"`
 	CreatedBy       *string           `json:"created_by,omitempty"`
 	CreatedAt       time.Time         `json:"created_at"`

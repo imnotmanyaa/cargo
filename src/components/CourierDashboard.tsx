@@ -5,31 +5,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { 
-  Package, 
-  MapPin, 
-  Phone, 
-  User, 
-  Weight, 
-  Navigation, 
-  CheckCircle2, 
-  Clock, 
-  Home,
-  Building2,
-  ArrowRight,
-  XCircle,
-  Sun,
-  Moon
-} from 'lucide-react';
+import { Package, MapPin, Phone, User, Weight, Navigation, CheckCircle2, Clock, Home, Building2, ArrowRight, Sun, Moon } from 'lucide-react';
 import { toast } from 'sonner';
-
 
 interface DeliveryTask {
   id: string;
   type: 'pickup' | 'delivery';
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled';
   parcelCode: string;
   clientName: string;
   clientPhone: string;
@@ -42,126 +26,17 @@ interface DeliveryTask {
   scheduledTime: string;
   notes?: string;
   declaredValue?: number;
+  rawStatus: string;
+  operatorId?: string;
 }
 
 export function CourierDashboard() {
-
-  const lang = localStorage.getItem('language') || 'ru';
-  const getDict = (key: string) => {
-    const dict: Record<string, Record<string, string>> = {
-      ru: {
-        courierPosition: 'Cargo Trans',
-        active: 'Активен',
-        tasksToday: 'Задач сегодня',
-        completed: 'Завершено',
-        pending: 'Ожидают',
-        inProgress: 'В работе',
-        deliveryTasks: 'Задачи',
-        noActiveTasks: 'Нет активных задач',
-        noCompletedTasks: 'Нет завершенных задач',
-        pickup: 'Забор',
-        delivery: 'Доставка',
-        clientInfo: 'Информация о клиенте',
-        fullName: 'ФИО',
-        phone: 'Телефон',
-        call: 'Позвонить',
-        address: 'Адрес',
-        openNavigation: 'Открыть 2ГИС',
-        scheduledTime: 'Время',
-        parcelInfo: 'Информация о грузе',
-        weight: 'Вес',
-        numberOfPieces: 'Кол-во мест',
-        pieces: 'шт',
-        contents: 'Содержимое',
-        declaredValue: 'Объявленная ценность',
-        route: 'Маршрут',
-        importantNotes: 'Важные примечания',
-        startTask: 'Начать задание',
-        completeTask: 'Завершить задание',
-        close: 'Закрыть',
-        taskStarted: 'Задание начато',
-        pickupCompleted: 'Забор груза завершен',
-        deliveryCompleted: 'Доставка завершена',
-        navigationOpened: 'Навигатор открыт',
-      },
-      kk: {
-        courierPosition: 'Cargo Trans курьері',
-        active: 'Белсенді',
-        tasksToday: 'Бүгінгі тапсырмалар',
-        completed: 'Аяқталды',
-        pending: 'Күтілуде',
-        inProgress: 'Орындалуда',
-        deliveryTasks: 'Тапсырмалар',
-        noActiveTasks: 'Белсенді тапсырмалар жоқ',
-        noCompletedTasks: 'Аяқталған тапсырмалар жоқ',
-        pickup: 'Алып кету',
-        delivery: 'Жеткізу',
-        clientInfo: 'Клиент туралы ақпарат',
-        fullName: 'Аты-жөні',
-        phone: 'Телефон',
-        call: 'Қоңырау шалу',
-        address: 'Мекенжай',
-        openNavigation: '2ГИС ашу',
-        scheduledTime: 'Уақыты',
-        parcelInfo: 'Жүк туралы ақпарат',
-        weight: 'Салмағы',
-        numberOfPieces: 'Орын саны',
-        pieces: 'дана',
-        contents: 'Ішіндегісі',
-        declaredValue: 'Жарияланған құны',
-        route: 'Бағыт',
-        importantNotes: 'Маңызды ескертпелер',
-        startTask: 'Тапсырманы бастау',
-        completeTask: 'Тапсырманы аяқтау',
-        close: 'Жабу',
-        taskStarted: 'Тапсырма басталды',
-        pickupCompleted: 'Жүкті алып кету аяқталды',
-        deliveryCompleted: 'Жеткізу аяқталды',
-        navigationOpened: 'Навигатор ашылды',
-      },
-      en: {
-        courierPosition: 'Cargo Trans Courier',
-        active: 'Active',
-        tasksToday: 'Tasks Today',
-        completed: 'Completed',
-        pending: 'Pending',
-        inProgress: 'In Progress',
-        deliveryTasks: 'Tasks',
-        noActiveTasks: 'No active tasks',
-        noCompletedTasks: 'No completed tasks',
-        pickup: 'Pickup',
-        delivery: 'Delivery',
-        clientInfo: 'Client Information',
-        fullName: 'Full Name',
-        phone: 'Phone',
-        call: 'Call',
-        address: 'Address',
-        openNavigation: 'Open 2GIS',
-        scheduledTime: 'Time',
-        parcelInfo: 'Parcel Information',
-        weight: 'Weight',
-        numberOfPieces: 'Pieces',
-        pieces: 'pcs',
-        contents: 'Contents',
-        declaredValue: 'Declared Value',
-        route: 'Route',
-        importantNotes: 'Important Notes',
-        startTask: 'Start Task',
-        completeTask: 'Complete Task',
-        close: 'Close',
-        taskStarted: 'Task started',
-        pickupCompleted: 'Pickup completed',
-        deliveryCompleted: 'Delivery completed',
-        navigationOpened: 'Navigation opened',
-      }
-    };
-    return dict[lang]?.[key] || key;
-  };
-
+  const { t } = useLanguage();
   const { user } = useAuth();
+  
   const [selectedTask, setSelectedTask] = useState<DeliveryTask | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'my_tasks'>('pending');
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
@@ -176,79 +51,71 @@ export function CourierDashboard() {
     }
   }, [theme]);
 
-  
   const [tasks, setTasks] = useState<DeliveryTask[]>([]);
   const [loading, setLoading] = useState(false);
 
   const getStatusTranslation = (status: string) => {
-    const lang = localStorage.getItem('language') || 'ru';
-    const dict: Record<string, any> = {
-      ru: {
-        'CREATED_DOOR': 'Ожидает курьера',
-        'PICKUP_ASSIGNED': 'Назначена курьеру',
-        'PICKED_UP': 'Забрана курьером',
-        'PAYMENT_PENDING': 'Ожидает оплаты',
-        'PAID': 'Оплачена',
-      },
-      kk: {
-        'CREATED_DOOR': 'Курьерді күтуде',
-        'PICKUP_ASSIGNED': 'Курьерге тағайындалды',
-        'PICKED_UP': 'Курьер алып кетті',
-        'PAYMENT_PENDING': 'Төлемді күтуде',
-        'PAID': 'Төленді',
-      },
-      en: {
-        'CREATED_DOOR': 'Waiting for Courier',
-        'PICKUP_ASSIGNED': 'Assigned to Courier',
-        'PICKED_UP': 'Picked Up by Courier',
-        'PAYMENT_PENDING': 'Payment Pending',
-        'PAID': 'Paid',
-      }
+    const dict: Record<string, string> = {
+      'CREATED_DOOR': 'Ожидает забора',
+      'PICKUP_ASSIGNED': 'Вы едете к клиенту',
+      'PICKED_UP': 'У вас (сдать на станцию)',
+      'READY_FOR_ISSUE': 'Ожидает доставки',
+      'ISSUED': 'Доставлено',
+      'READY_FOR_LOADING': 'Сдано на станцию'
     };
-    return dict[lang]?.[status] || status;
+    return dict[status] || status;
   };
 
   const loadTasks = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        console.warn('No token found, skipping task load');
-        setLoading(false);
-        return;
-      }
+      if (!token) return;
+      
       const resp = await fetch(withApiBase('/api/courier/tasks'), {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        console.error('Load tasks error:', resp.status, errData);
-        // Don't clear existing tasks on error
-        setLoading(false);
-        return;
-      }
+      if (!resp.ok) return;
       const data = await resp.json();
       
       const mapped = (data || []).map((sh: any) => {
         let type: 'pickup' | 'delivery' = 'pickup';
         let status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled' = 'pending';
         
-        if (sh.shipment_status === 'PICKUP_ASSIGNED') status = 'in_progress';
-        if (sh.shipment_status === 'PICKED_UP') status = 'picked_up';
-        if (sh.shipment_status === 'READY_FOR_LOADING') status = 'completed';
-        if (sh.shipment_status === 'PAYMENT_PENDING' || sh.shipment_status === 'PAID') {
-            status = 'pending';
+        // Determine type based on station matching
+        if (sh.to_station === user?.station) {
+          type = 'delivery';
+        } else {
+          type = 'pickup';
+        }
+        
+        // Determine logical status
+        if (!sh.operator_id) {
+          status = 'pending';
+        } else if (sh.operator_id === user?.id) {
+          if (type === 'pickup') {
+            if (sh.shipment_status === 'PICKUP_ASSIGNED') status = 'in_progress';
+            if (sh.shipment_status === 'PICKED_UP') status = 'picked_up';
+            if (sh.shipment_status === 'READY_FOR_LOADING') status = 'completed';
+          } else {
+            if (sh.shipment_status === 'READY_FOR_ISSUE') status = 'in_progress';
+            if (sh.shipment_status === 'ISSUED') status = 'completed';
+          }
+        } else {
+          // Assigned to someone else - we will filter it out
+          status = 'cancelled';
         }
 
         return {
           id: sh.id,
           type,
           status,
+          operatorId: sh.operator_id,
           parcelCode: sh.shipment_number,
-          clientName: sh.client_name || 'Неизвестно',
+          clientName: type === 'pickup' ? sh.client_name : (sh.receiver_name || sh.client_name),
           clientPhone: sh.door_to_door_phone || sh.receiver_phone || '',
-          address: sh.pickup_address || '',
-          fullAddress: sh.pickup_address || '',
+          address: type === 'pickup' ? sh.pickup_address : sh.delivery_address,
+          fullAddress: type === 'pickup' ? sh.pickup_address : sh.delivery_address,
           weight: parseFloat(sh.weight) || 0,
           numberOfPieces: sh.quantity_places || 1,
           contents: sh.description || '',
@@ -258,10 +125,10 @@ export function CourierDashboard() {
           rawStatus: sh.shipment_status
         };
       });
-      setTasks(mapped);
+      // Filter out tasks assigned to OTHER couriers
+      setTasks(mapped.filter((t: DeliveryTask) => !t.operatorId || t.operatorId === user?.id));
     } catch (e) {
-      console.error('Load tasks exception:', e);
-      // Don't clear existing tasks on network error
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -269,17 +136,51 @@ export function CourierDashboard() {
 
   useEffect(() => {
     loadTasks();
-  }, []);
+    const interval = setInterval(loadTasks, 10000);
+    return () => clearInterval(interval);
+  }, [user?.station, user?.id]);
 
+  useEffect(() => {
+    const wsBase = import.meta.env.VITE_WS_BASE;
+    const socketUrl = wsBase ? `${wsBase}/ws` : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+    const socket = new WebSocket(socketUrl);
 
-  const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'picked_up');
-  const completedTasks = tasks.filter(t => t.status === 'completed');
+    socket.onopen = () => {
+      console.log('WebSocket connected for courier updates');
+      if (user?.id) {
+        socket.send(JSON.stringify({ action: 'join-user', room: user.id.toString() }));
+      }
+      if (user?.station) {
+        socket.send(JSON.stringify({ action: 'join-station', room: user.station }));
+      }
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.event === 'shipment-updated' || payload.event === 'courier:new-task') {
+          loadTasks();
+        }
+      } catch (e) {
+        console.error('Invalid WebSocket message received', e);
+      }
+    };
+
+    return () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      }
+    };
+  }, [user?.id, user?.station]);
+
+  const pendingTasks = tasks.filter(t => t.status === 'pending');
+  const myTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'picked_up');
 
   const stats = {
-    todayTasks: tasks.filter(t => t.status !== 'cancelled').length,
-    completed: completedTasks.length,
+    todayTasks: myTasks.length,
+    completed: tasks.filter(t => t.status === 'completed').length,
     pending: pendingTasks.length,
-    inProgress: tasks.filter(t => t.status === 'in_progress' || t.status === 'picked_up').length
+    inProgress: myTasks.length
   };
 
   const handleTaskClick = (task: DeliveryTask) => {
@@ -290,538 +191,246 @@ export function CourierDashboard() {
   const handleStartTask = async () => {
     if (!selectedTask) return;
     try {
-      const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/pickup-start`), {
+      const endpoint = selectedTask.type === 'pickup' 
+        ? `/api/shipments/${selectedTask.id}/pickup-start`
+        : `/api/shipments/${selectedTask.id}/courier-take`;
+        
+      const resp = await fetch(withApiBase(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (resp.ok) {
         await loadTasks();
-        setSelectedTask({ ...selectedTask, status: 'in_progress' });
-        toast.success(getDict('taskStarted') || 'Задача начата');
-      }
-    } catch (e) {}
-  };
-
-  const handleCompleteTask = async () => {
-    if (!selectedTask) return;
-    try {
-      const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/pickup-confirm`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-        body: JSON.stringify({ confirmed_at: new Date().toISOString() })
-      });
-      if (resp.ok) {
-        await loadTasks();
-        toast.success(
-          selectedTask.type === 'pickup' 
-            ? (getDict('pickupCompleted') || 'Забор завершен')
-            : (getDict('deliveryCompleted') || 'Доставка завершена')
-        );
+        toast.success('Задание успешно взято');
         setShowDetailsDialog(false);
-        setSelectedTask(null);
-      }
-    } catch (e) {}
-  };
-
-  const handleHandoverTask = async () => {
-    if (!selectedTask) return;
-    try {
-      const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/courier-handover`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
-      });
-      if (resp.ok) {
-        await loadTasks();
-        toast.success('Посылка передана на склад');
-        setShowDetailsDialog(false);
-        setSelectedTask(null);
+        setActiveTab('my_tasks');
       } else {
-        const err = await resp.json().catch(() => ({}));
-        toast.error(err.error || 'Ошибка при передаче на склад');
+        const err = await resp.json();
+        toast.error(err.error || 'Ошибка при взятии задания');
       }
     } catch (e) {
       toast.error('Сетевая ошибка');
     }
   };
 
-  const handleOpenNavigation = () => {
+  const handleCompleteTask = async () => {
     if (!selectedTask) return;
-    // В реальном приложении здесь будет открытие навигации
-    const address = encodeURIComponent(selectedTask.fullAddress);
-    window.open(`https://2gis.kz/search/${address}`, '_blank');
-    toast.success(getDict('navigationOpened'));
+    try {
+      if (selectedTask.type === 'pickup') {
+        const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/pickup-confirm`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+          body: JSON.stringify({ confirmed_at: new Date().toISOString() })
+        });
+        if (resp.ok) {
+          await loadTasks();
+          toast.success('Забор груза завершен');
+          setShowDetailsDialog(false);
+        } else {
+          toast.error('Ошибка завершения');
+        }
+      } else {
+        const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/delivery-confirm`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
+        });
+        if (resp.ok) {
+          await loadTasks();
+          toast.success('Доставка завершена');
+          setShowDetailsDialog(false);
+        } else {
+          const err = await resp.json();
+          toast.error(err.error || 'Ошибка завершения доставки');
+        }
+      }
+    } catch (e) {
+      toast.error('Сетевая ошибка');
+    }
   };
 
-  const handleCallClient = () => {
-    if (!selectedTask) return;
-    // В реальном приложении здесь будет инициация звонка
-    window.location.href = `tel:${selectedTask.clientPhone}`;
+  const renderTaskList = (taskList: DeliveryTask[]) => {
+    if (taskList.length === 0) {
+      return (
+        <div className="p-8 text-center text-gray-500">
+          <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+          <p>Нет задач</p>
+        </div>
+      );
+    }
+    return taskList.map((task) => (
+      <div
+        key={task.id}
+        onClick={() => handleTaskClick(task)}
+        className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 border-b last:border-b-0 dark:border-gray-700"
+      >
+        <div className="flex items-start gap-3">
+          <div className={`p-2 rounded-lg shrink-0 ${task.type === 'pickup' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
+            {task.type === 'pickup' ? (
+              <Home className={`w-5 h-5 text-blue-600`} />
+            ) : (
+              <Building2 className="w-5 h-5 text-green-600" />
+            )}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge className={`text-xs ${task.type === 'pickup' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                {task.type === 'pickup' ? 'Забор' : 'Доставка'}
+              </Badge>
+              <Badge className="bg-gray-100 text-gray-800 text-xs">
+                {getStatusTranslation(task.rawStatus)}
+              </Badge>
+            </div>
+            
+            <div className="font-medium text-sm mb-1 text-gray-900 dark:text-white">
+              {task.clientName}
+            </div>
+            
+            <div className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="truncate">{task.address || 'Адрес не указан'}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Weight className="w-3 h-3 shrink-0" />
+                <span>{task.weight} кг • {task.numberOfPieces} мест</span>
+              </div>
+            </div>
+          </div>
+
+          <ArrowRight className="w-5 h-5 shrink-0 text-gray-400" />
+        </div>
+      </div>
+    ));
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-4 px-4 pb-20">
       <div className="max-w-2xl mx-auto space-y-4 pb-6">
-      {/* Header with courier info */}
-      <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg sm:text-xl  text-gray-900 dark:text-white">
-                {user?.name}
-              </CardTitle>
-              <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
-                Cargo Trans
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => {
-                const next = lang === 'ru' ? 'kz' : lang === 'kz' ? 'en' : 'ru';
-                localStorage.setItem('language', next);
-                window.location.reload();
-              }} className="font-medium text-gray-600 dark:text-gray-300">
-                {lang.toUpperCase()}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-                {theme === 'light' ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-yellow-400" />}
-              </Button>
-              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 shrink-0">
-                {getDict('active')}
-              </Badge>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 mt-2 text-sm  text-gray-600 dark:text-gray-400">
-            <MapPin className="w-4 h-4 shrink-0" />
-            <span className="truncate">{user?.station || 'Нет станции'}</span>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-2 gap-3">
         <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
-          <CardContent className="pt-4 pb-3 px-4">
-            <div className="flex flex-col items-center text-center">
-              <Package className="w-6 h-6 mb-2  text-blue-600 dark:text-blue-400" />
-              <div className="text-2xl font-bold  text-gray-900 dark:text-white">
-                {stats.todayTasks}
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">
+                  {user?.name}
+                </CardTitle>
+                <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
+                  Cargo Trans Курьер
+                </CardDescription>
               </div>
-              <div className="text-xs  text-gray-600 dark:text-gray-400">
-                {getDict('tasksToday')}
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+                  {theme === 'light' ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-yellow-400" />}
+                </Button>
+                <Badge className="bg-green-100 text-green-800 shrink-0">Активен</Badge>
               </div>
             </div>
-          </CardContent>
+            <div className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
+              <MapPin className="w-4 h-4 shrink-0" />
+              <span className="truncate">{user?.station || 'Нет станции'}</span>
+            </div>
+          </CardHeader>
         </Card>
 
         <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
-          <CardContent className="pt-4 pb-3 px-4">
-            <div className="flex flex-col items-center text-center">
-              <CheckCircle2 className="w-6 h-6 mb-2 text-green-600" />
-              <div className="text-2xl font-bold  text-gray-900 dark:text-white">
-                {stats.completed}
-              </div>
-              <div className="text-xs  text-gray-600 dark:text-gray-400">
-                {getDict('completed')}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg text-gray-900 dark:text-white">
+              Задачи
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList className="w-full grid grid-cols-2 bg-gray-100 dark:bg-gray-700">
+                <TabsTrigger value="pending" className="text-sm">
+                  Доступные задачи ({pendingTasks.length})
+                </TabsTrigger>
+                <TabsTrigger value="my_tasks" className="text-sm">
+                  Мои задачи ({myTasks.length})
+                </TabsTrigger>
+              </TabsList>
 
-        <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
-          <CardContent className="pt-4 pb-3 px-4">
-            <div className="flex flex-col items-center text-center">
-              <Clock className="w-6 h-6 mb-2  text-yellow-600 dark:text-yellow-400" />
-              <div className="text-2xl font-bold  text-gray-900 dark:text-white">
-                {stats.pending}
-              </div>
-              <div className="text-xs  text-gray-600 dark:text-gray-400">
-                {getDict('pending')}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
-          <CardContent className="pt-4 pb-3 px-4">
-            <div className="flex flex-col items-center text-center">
-              <Navigation className="w-6 h-6 mb-2  text-orange-600 dark:text-orange-400" />
-              <div className="text-2xl font-bold  text-gray-900 dark:text-white">
-                {stats.inProgress}
-              </div>
-              <div className="text-xs  text-gray-600 dark:text-gray-400">
-                {getDict('inProgress')}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tasks List */}
-      <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg  text-gray-900 dark:text-white">
-            {getDict('deliveryTasks')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'completed')}>
-            <TabsList className="w-full grid grid-cols-2  bg-gray-100 dark:bg-gray-700">
-              <TabsTrigger value="pending" className="text-sm">
-                {getDict('active')} ({pendingTasks.length})
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="text-sm">
-                {getDict('completed')} ({completedTasks.length})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="pending" className="mt-0">
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {pendingTasks.length === 0 ? (
-                  <div className="p-8 text-center  text-gray-600 dark:text-gray-400">
-                    <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>{getDict('noActiveTasks')}</p>
-                  </div>
-                ) : (
-                  pendingTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      onClick={() => handleTaskClick(task)}
-                      className={`p-4 cursor-pointer ${
-                        'hover:bg-gray-50 dark:hover:bg-gray-750'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-lg shrink-0 ${
-                          task.type === 'pickup'
-                            ? 'bg-blue-100 dark:bg-blue-900/30'
-                            : 'bg-green-100 dark:bg-green-900/30'
-                        }`}>
-                          {task.type === 'pickup' ? (
-                            <Home className={`w-5 h-5 ${task.type === 'pickup' ? 'text-blue-600' : 'text-green-600'}`} />
-                          ) : (
-                            <Building2 className="w-5 h-5 text-green-600" />
-                          )}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className={`text-xs ${
-                              task.type === 'pickup'
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
-                                : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-                            }`}>
-                              {task.type === 'pickup' ? (getDict('pickup') || 'Забор') : (getDict('delivery') || 'Доставка')} - {getStatusTranslation(task.rawStatus)}
-                            </Badge>
-                            {task.status === 'in_progress' && (
-                              <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100 text-xs">
-                                {getDict('inProgress')}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          <div className="font-medium text-sm mb-1  text-gray-900 dark:text-white">
-                            {task.clientName}
-                          </div>
-                          
-                          <div className="text-xs space-y-1  text-gray-600 dark:text-gray-400">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{task.address}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 shrink-0" />
-                              <span>{task.scheduledTime}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Weight className="w-3 h-3 shrink-0" />
-                              <span>{task.weight} кг</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <ArrowRight className="w-5 h-5 shrink-0  text-gray-400 dark:text-gray-600" />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="completed" className="mt-0">
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {completedTasks.length === 0 ? (
-                  <div className="p-8 text-center  text-gray-600 dark:text-gray-400">
-                    <CheckCircle2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>{getDict('noCompletedTasks')}</p>
-                  </div>
-                ) : (
-                  completedTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      onClick={() => handleTaskClick(task)}
-                      className={`p-4 cursor-pointer ${
-                        'hover:bg-gray-50 dark:hover:bg-gray-750'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-lg shrink-0 ${
-                          'bg-gray-100 dark:bg-gray-700'
-                        }`}>
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 text-xs">
-                              {task.type === 'pickup' ? (getDict('pickup') || 'Забор') : (getDict('delivery') || 'Доставка')} - {getStatusTranslation(task.rawStatus)}
-                            </Badge>
-                          </div>
-                          
-                          <div className="font-medium text-sm mb-1  text-gray-900 dark:text-white">
-                            {task.clientName}
-                          </div>
-                          
-                          <div className="text-xs space-y-1  text-gray-600 dark:text-gray-400">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{task.address}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Weight className="w-3 h-3 shrink-0" />
-                              <span>{task.weight} кг</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <ArrowRight className="w-5 h-5 shrink-0  text-gray-400 dark:text-gray-600" />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Task Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto  bg-white dark:bg-gray-800 dark:border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2  text-gray-900 dark:text-white">
-              {selectedTask?.type === 'pickup' ? (
-                <Home className="w-5 h-5 text-blue-600" />
-              ) : (
-                <Building2 className="w-5 h-5 text-green-600" />
-              )}
-              {selectedTask?.type === 'pickup' ? getDict('pickup') : getDict('delivery')}
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              {selectedTask?.parcelCode}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedTask && (
-            <div className="space-y-4">
-              {/* Status Badge */}
-              {selectedTask.status === 'in_progress' && (
-                <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100 w-full justify-center py-2">
-                  {getDict('inProgress')}
-                </Badge>
-              )}
-              
-              {selectedTask.status === 'completed' && (
-                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 w-full justify-center py-2">
-                  {getDict('completed')}
-                </Badge>
-              )}
-
-              {/* Client Information */}
-              <div className="p-4 rounded-lg space-y-3  bg-gray-50 dark:bg-gray-750">
-                <div className="font-medium flex items-center gap-2  text-gray-900 dark:text-white">
-                  <User className="w-4 h-4" />
-                  {getDict('clientInfo')}
+              <TabsContent value="pending" className="mt-0">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {renderTaskList(pendingTasks)}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="my_tasks" className="mt-0">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {renderTaskList(myTasks)}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {showDetailsDialog && selectedTask && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 className="font-bold flex items-center gap-2">
+                  {selectedTask.type === 'pickup' ? <Home className="w-5 h-5 text-blue-600" /> : <Building2 className="w-5 h-5 text-green-600" />}
+                  {selectedTask.type === 'pickup' ? 'Забор' : 'Доставка'}
+                </h3>
+                <span className="text-sm text-gray-500">{selectedTask.parcelCode}</span>
+              </div>
+              <div className="p-4 overflow-y-auto space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 font-medium mb-2"><User className="w-4 h-4"/> Клиент</div>
+                  <div className="text-sm font-semibold">{selectedTask.clientName}</div>
+                  <div className="text-sm text-gray-600 mt-1">{selectedTask.clientPhone}</div>
+                  <Button className="mt-2 w-full" variant="outline" onClick={() => window.location.href = `tel:${selectedTask.clientPhone}`}>
+                    <Phone className="w-4 h-4 mr-2" /> Позвонить
+                  </Button>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 font-medium mb-2"><MapPin className="w-4 h-4"/> Адрес</div>
+                  <div className="text-sm">{selectedTask.fullAddress || 'Адрес не указан'}</div>
+                  <Button className="mt-2 w-full bg-blue-600 hover:bg-blue-700" onClick={() => window.open(`https://2gis.kz/search/${encodeURIComponent(selectedTask.fullAddress)}`, '_blank')}>
+                    <Navigation className="w-4 h-4 mr-2" /> Открыть в 2ГИС
+                  </Button>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-lg text-sm space-y-2">
+                  <div className="flex items-center gap-2 font-medium mb-2"><Package className="w-4 h-4"/> Посылка</div>
+                  <div>Вес: {selectedTask.weight} кг</div>
+                  <div>Мест: {selectedTask.numberOfPieces} шт</div>
+                  <div>Описание: {selectedTask.contents || 'Нет'}</div>
+                </div>
+              </div>
+              <div className="p-4 border-t dark:border-gray-700 flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowDetailsDialog(false)}>Закрыть</Button>
                 
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {getDict('fullName')}
-                    </div>
-                    <div className="font-medium  text-gray-900 dark:text-white">
-                      {selectedTask.clientName}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {getDict('phone')}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium  text-gray-900 dark:text-white">
-                        {selectedTask.clientPhone}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleCallClient}
-                        className="h-8   dark:border-gray-600"
-                      >
-                        <Phone className="w-3 h-3 mr-1" />
-                        {getDict('call')}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                {selectedTask.status === 'pending' && (
+                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleStartTask}>
+                    Взять задание
+                  </Button>
+                )}
 
-              {/* Address */}
-              <div className="p-4 rounded-lg space-y-3  bg-gray-50 dark:bg-gray-750">
-                <div className="font-medium flex items-center gap-2  text-gray-900 dark:text-white">
-                  <MapPin className="w-4 h-4" />
-                  {getDict('address')}
-                </div>
+                {selectedTask.status === 'in_progress' && selectedTask.type === 'pickup' && (
+                  <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleCompleteTask}>
+                    Забрал у клиента
+                  </Button>
+                )}
                 
-                <div className="text-sm  text-gray-700 dark:text-gray-300">
-                  {selectedTask.fullAddress}
-                </div>
+                {selectedTask.status === 'picked_up' && selectedTask.type === 'pickup' && (
+                  <Button className="flex-1 bg-gray-500 hover:bg-gray-600 text-white" disabled>
+                    Сдайте на станцию
+                  </Button>
+                )}
 
-                {selectedTask.status !== 'completed' && (
-                  <Button
-                    onClick={handleOpenNavigation}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                {selectedTask.status === 'in_progress' && selectedTask.type === 'delivery' && (
+                  <Button 
+                    className="flex-1 bg-green-600 hover:bg-green-700" 
+                    onClick={handleCompleteTask}
+                    disabled={selectedTask.rawStatus !== 'READY_FOR_ISSUE'}
                   >
-                    <Navigation className="w-4 h-4 mr-2" />
-                    {getDict('openNavigation')}
+                    Доставил получателю
                   </Button>
                 )}
               </div>
-
-              {/* Schedule */}
-              <div className="p-4 rounded-lg  bg-gray-50 dark:bg-gray-750">
-                <div className="font-medium flex items-center gap-2 mb-2  text-gray-900 dark:text-white">
-                  <Clock className="w-4 h-4" />
-                  {getDict('scheduledTime')}
-                </div>
-                <div className="text-sm  text-gray-700 dark:text-gray-300">
-                  {selectedTask.scheduledTime}
-                </div>
-              </div>
-
-              {/* Parcel Information */}
-              <div className="p-4 rounded-lg space-y-3  bg-gray-50 dark:bg-gray-750">
-                <div className="font-medium flex items-center gap-2  text-gray-900 dark:text-white">
-                  <Package className="w-4 h-4" />
-                  {getDict('parcelInfo')}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {getDict('weight')}
-                    </div>
-                    <div className="font-medium  text-gray-900 dark:text-white">
-                      {selectedTask.weight} кг
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {getDict('numberOfPieces')}
-                    </div>
-                    <div className="font-medium  text-gray-900 dark:text-white">
-                      {selectedTask.numberOfPieces} {getDict('pieces')}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                    {getDict('contents')}
-                  </div>
-                  <div className="text-sm  text-gray-900 dark:text-white">
-                    {selectedTask.contents}
-                  </div>
-                </div>
-
-                {selectedTask.declaredValue && (
-                  <div>
-                    <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {getDict('declaredValue')}
-                    </div>
-                    <div className="text-sm font-medium  text-gray-900 dark:text-white">
-                      {selectedTask.declaredValue.toLocaleString()} ₸
-                    </div>
-                  </div>
-                )}
-
-                {selectedTask.destination && (
-                  <div>
-                    <div className="text-xs mb-1  text-gray-600 dark:text-gray-400">
-                      {getDict('route')}
-                    </div>
-                    <div className="text-sm  text-gray-900 dark:text-white">
-                      {selectedTask.destination}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Notes */}
-              {selectedTask.notes && (
-                <div className="p-4 rounded-lg  bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border dark:border-yellow-800">
-                  <div className="text-xs mb-1 font-medium  text-yellow-800 dark:text-yellow-400">
-                    {getDict('importantNotes')}
-                  </div>
-                  <div className="text-sm  text-yellow-900 dark:text-yellow-300">
-                    {selectedTask.notes}
-                  </div>
-                </div>
-              )}
             </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            {selectedTask?.status === 'pending' && (
-              <Button
-                onClick={handleStartTask}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-              >
-                <Navigation className="w-4 h-4 mr-2" />
-                {getDict('startTask')}
-              </Button>
-            )}
-            
-            {selectedTask?.status === 'in_progress' && (
-              <Button
-                onClick={handleCompleteTask}
-                className="flex-1 bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                {getDict('completeTask')}
-              </Button>
-            )}
-
-            {selectedTask?.status === 'picked_up' && (
-              <Button
-                onClick={handleHandoverTask}
-                className="flex-1 bg-purple-600 hover:bg-purple-700"
-              >
-                <Building2 className="w-4 h-4 mr-2" />
-                Сдать на склад
-              </Button>
-            )}
-
-            {selectedTask?.status === 'completed' && (
-              <Button
-                onClick={() => setShowDetailsDialog(false)}
-                className="flex-1"
-              >
-                {getDict('close')}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        )}
       </div>
     </div>
   );

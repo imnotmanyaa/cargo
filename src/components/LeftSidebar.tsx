@@ -19,11 +19,8 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
   const isManager = userRole === 'manager';
   const menuItems = isManager
     ? [
+        { id: 'dashboard', label: 'Дашборд', icon: List },
         { id: 'new-shipment', label: t('newShipment'), icon: Package },
-        { id: 'active-shipments', label: t('activeShipments'), icon: List },
-        { id: 'transit', label: t('transit'), icon: Truck },
-        { id: 'arrival', label: t('arrival'), icon: MapPin },
-        { id: 'door-to-door', label: 'До двери', icon: Home },
       ]
     : [
         ...(userRole === 'admin' ? [{ id: 'dashboard', label: 'Дашборд', icon: Package }] : []),

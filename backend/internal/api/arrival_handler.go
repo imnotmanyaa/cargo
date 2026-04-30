@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"cargo/backend/internal/model"
 
@@ -56,6 +57,17 @@ func (s *Server) handleArriveShipment(w http.ResponseWriter, r *http.Request) {
 	s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
 	if notification != nil {
 		s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
+	}
+	if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentReadyForIssue {
+		s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "courier:new-task", shipment)
+		
+		// Опциональное эфемерное уведомление для курьеров (frontend может поймать)
+		courierNotif := model.Notification{
+			Message:   "Новая задача доставки: посылка " + shipment.ShipmentNumber + " прибыла в " + shipment.ToStation,
+			Type:      "courier_new_task",
+			CreatedAt: time.Now().UTC(),
+		}
+		s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "notification:new", courierNotif)
 	}
 	writeJSON(w, http.StatusOK, shipment)
 }

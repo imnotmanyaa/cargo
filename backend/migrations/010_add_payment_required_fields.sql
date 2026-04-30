@@ -1,0 +1,2 @@
+ALTER TABLE shipments ADD COLUMN payment_required BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE shipments ADD COLUMN extra_charge NUMERIC(10,2) NOT NULL DEFAULT 0;

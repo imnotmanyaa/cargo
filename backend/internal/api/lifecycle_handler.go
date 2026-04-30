@@ -1,7 +1,10 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	"cargo/backend/internal/model"
 	"cargo/backend/internal/service"
@@ -17,6 +20,8 @@ func (s *Server) mountLifecycleRoutes(r chi.Router) {
 	r.Post("/shipments/{id}/close", s.handleCloseShipment)
 	r.Patch("/shipments/{id}/status", s.handleLegacyStatusPatch)
 	r.Post("/shipments/{id}/smart-scan", s.handleSmartScan)
+	r.Post("/shipments/{id}/confirm-intake", s.handleConfirmIntake)
+	r.Post("/shipments/{id}/clear-payment", s.handleClearPayment)
 }
 
 func (s *Server) handleReadyForLoading(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +116,7 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager); err != nil {
+	if err := s.requireRole(user, model.RoleIssue, model.RoleAdmin, model.RoleManager, model.RoleCourier); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -136,6 +141,14 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 		ReceiverPhone: req.ReceiverPhone,
 	})
 	if err != nil {
+		if errors.Is(err, service.ErrPaymentRequired) {
+			writeError(w, http.StatusPaymentRequired, fmt.Sprintf("Выдача заблокирована: требуется доплата %.0f тг", current.ExtraCharge))
+			return
+		}
+		if errors.Is(err, service.ErrForbidden) {
+			writeError(w, http.StatusForbidden, "Данные получателя не совпадают. Укажите правильное имя и телефон.")
+			return
+		}
 		handleServiceError(w, err)
 		return
 	}
@@ -213,16 +226,24 @@ func (s *Server) handleLegacyStatusPatch(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, shipment)
 }
 
-// handleSmartScan — universal scan action for receivers.
-// Logic: new_status = f(current_shipment_status, scanner_station)
-//   - READY_FOR_LOADING + scanner.station == from_station → LOADED
-//   - IN_TRANSIT        + scanner.station == to_station   → ARRIVED
+// handleSmartScan — универсальное сканирование по роли.
+//
+// Роль "receiver" (приемосдатчик на станции):
+//   - CREATED + from_station          → READY_FOR_LOADING
+//   - CREATED_DOOR (юрлицо, !door)    → READY_FOR_LOADING
+//   - PICKED_UP + door-to-door        → {"requires_weight": true} (Фаза 2)
+//   - IN_TRANSIT/LOADED + to_station  → ARRIVED
+//
+// Роль "train_receiver" (приемосдатчик в поезде):
+//   - READY_FOR_LOADING + from_station → LOADED
+//
+// Повторное сканирование → 409 оранжевый. Неверная станция → 403 красный.
 func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 	user, ok := s.mustAuth(w, r)
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleReceiver, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleTrainReceiver, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -233,30 +254,111 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
+	if current.PaymentRequired {
+		writeError(w, http.StatusPaymentRequired, fmt.Sprintf("Выдача заблокирована: требуется доплата %.0f тг", current.ExtraCharge))
+		return
+	}
 
 	station := user.Station
+	role := user.Role
 
+	// ── Приемосдатчик в поезде (train_receiver) ─────────────────────────────
+	if role == model.RoleTrainReceiver {
+		switch current.ShipmentStatus {
+		case model.ShipmentReadyForLoading:
+			if station != current.FromStation {
+				writeError(w, http.StatusForbidden,
+					"Груз отправляется из "+current.FromStation+". Ваша станция: "+station)
+				return
+			}
+			shipment, err := s.services.Shipments.Load(r.Context(), shipmentID, &user.ID, &user.Name, &station, nil)
+			if err != nil {
+				handleServiceError(w, err)
+				return
+			}
+			s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "shipment-updated", shipment)
+			writeJSON(w, http.StatusOK, map[string]any{
+				"shipment": shipment,
+				"action":   "LOADED",
+				"message":  "Груз " + shipment.ShipmentNumber + " погружен в поезд ✓",
+			})
+		case model.ShipmentLoaded:
+			writeError(w, http.StatusConflict, "Груз уже погружен")
+		default:
+			writeError(w, http.StatusUnprocessableEntity,
+				"Груз в статусе «"+string(current.ShipmentStatus)+"» — погрузка невозможна")
+		}
+		return
+	}
+
+	// ── Приемосдатчик на станции / в городе назначения (receiver) ────────────
 	switch current.ShipmentStatus {
-	case model.ShipmentReadyForLoading:
-		// Receiver at departure station marks the cargo as loaded
+
+	// Обычная посылка от клиента (менеджер оформил в отделении)
+	case model.ShipmentCreated:
 		if station != current.FromStation {
 			writeError(w, http.StatusForbidden,
-				"Груз отправляется из "+current.FromStation+". Ваша станция: "+station)
+				"Груз оформлен на станции "+current.FromStation+". Ваша станция: "+station)
 			return
 		}
-		shipment, err := s.services.Shipments.Load(r.Context(), shipmentID, &user.ID, &user.Name, &station, nil)
+		shipment, err := s.services.Shipments.ReadyForLoading(r.Context(), shipmentID, &user.ID, &user.Name)
 		if err != nil {
 			handleServiceError(w, err)
 			return
 		}
+		s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", shipment)
 		writeJSON(w, http.StatusOK, map[string]any{
 			"shipment": shipment,
-			"action":   "LOADED",
-			"message":  "Груз " + shipment.ShipmentNumber + " погружен ✓",
+			"action":   "READY_FOR_LOADING",
+			"message":  "Груз " + shipment.ShipmentNumber + " принят на склад ✓",
 		})
 
+	// Посылка юрлица (привёз сам) — is_door_to_door=false
+	case model.ShipmentCreatedDoor:
+		if current.IsDoorToDoor {
+			writeError(w, http.StatusUnprocessableEntity,
+				"Посылка door-to-door. Дождитесь доставки курьером и принимайте по номеру заказа")
+			return
+		}
+		if station != current.FromStation {
+			writeError(w, http.StatusForbidden,
+				"Груз оформлен на станции "+current.FromStation+". Ваша станция: "+station)
+			return
+		}
+		shipment, err := s.services.Shipments.ReadyForLoading(r.Context(), shipmentID, &user.ID, &user.Name)
+		if err != nil {
+			handleServiceError(w, err)
+			return
+		}
+		s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", shipment)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"shipment": shipment,
+			"action":   "READY_FOR_LOADING",
+			"message":  "Груз " + shipment.ShipmentNumber + " принят на склад ✓",
+		})
+
+	// Посылка door-to-door привезена курьером — нужно взвешивание (Фаза 2)
+	case model.ShipmentPickedUp:
+		if !current.IsDoorToDoor {
+			writeError(w, http.StatusUnprocessableEntity, "Неожиданный статус для сканирования")
+			return
+		}
+		if station != current.FromStation {
+			writeError(w, http.StatusForbidden,
+				"Груз оформлен на станции "+current.FromStation+". Ваша станция: "+station)
+			return
+		}
+		// Возвращаем сигнал: требуется взвешивание. Реальный переход — в /confirm-intake (Фаза 2)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"requires_weight":  true,
+			"shipment_id":      current.ID,
+			"shipment_number":  current.ShipmentNumber,
+			"declared_weight":  current.Weight,
+			"message":          "Посылка door-to-door. Взвесьте и введите фактический вес",
+		})
+
+	// Прибытие в город назначения — IN_TRANSIT (обычный путь)
 	case model.ShipmentInTransit:
-		// Receiver at destination station marks the cargo as arrived
 		if station != current.ToStation {
 			writeError(w, http.StatusForbidden,
 				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
@@ -271,20 +373,148 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
 		}
 		s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+		
+		if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentReadyForIssue {
+			s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "courier:new-task", shipment)
+			courierNotif := model.Notification{
+				Message:   "Новая задача доставки: посылка " + shipment.ShipmentNumber + " прибыла в " + shipment.ToStation,
+				Type:      "courier_new_task",
+				CreatedAt: time.Now().UTC(),
+			}
+			s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "notification:new", courierNotif)
+		}
+
 		writeJSON(w, http.StatusOK, map[string]any{
 			"shipment": shipment,
 			"action":   "ARRIVED",
-			"message":  "Груз " + shipment.ShipmentNumber + " принят ✓",
+			"message":  "Груз " + shipment.ShipmentNumber + " принят на станцию назначения ✓",
 		})
 
+	// Прямой переход LOADED→ARRIVED (без IN_TRANSIT, разрешён для receiver назначения)
 	case model.ShipmentLoaded:
-		writeError(w, http.StatusConflict, "Груз уже погружен и ожидает отправки")
+		if station != current.ToStation {
+			writeError(w, http.StatusForbidden,
+				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
+			return
+		}
+		shipment, notification, err := s.services.Shipments.Arrive(r.Context(), shipmentID, station, &user.ID, &user.Name)
+		if err != nil {
+			handleServiceError(w, err)
+			return
+		}
+		if notification != nil {
+			s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
+		}
+		s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+		
+		if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentReadyForIssue {
+			s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "courier:new-task", shipment)
+			courierNotif := model.Notification{
+				Message:   "Новая задача доставки: посылка " + shipment.ShipmentNumber + " прибыла в " + shipment.ToStation,
+				Type:      "courier_new_task",
+				CreatedAt: time.Now().UTC(),
+			}
+			s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "notification:new", courierNotif)
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"shipment": shipment,
+			"action":   "ARRIVED",
+			"message":  "Груз " + shipment.ShipmentNumber + " принят на станцию назначения ✓",
+		})
+
+	// Повторные сканирования (оранжевый экран)
+	case model.ShipmentReadyForLoading:
+		writeError(w, http.StatusConflict, "Груз уже на складе — ожидает погрузки")
 	case model.ShipmentArrived, model.ShipmentReadyForIssue:
 		writeError(w, http.StatusConflict, "Груз уже прибыл на станцию назначения")
 	case model.ShipmentIssued:
 		writeError(w, http.StatusConflict, "Груз уже выдан получателю")
+
 	default:
 		writeError(w, http.StatusUnprocessableEntity,
 			"Груз в статусе «"+string(current.ShipmentStatus)+"» — сканирование невозможно")
 	}
+}
+
+// handleConfirmIntake — приёмка door-to-door посылки с взвешиванием.
+// POST /api/shipments/{id}/confirm-intake
+// Body: { "actual_weight": "15 кг", "station": "Алматы" }
+func (s *Server) handleConfirmIntake(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	shipmentID := chi.URLParam(r, "id")
+
+	var req struct {
+		ActualWeight string `json:"actual_weight"`
+		Station      string `json:"station"`
+	}
+	if ok := decodeJSON(w, r, &req); !ok {
+		return
+	}
+
+	// Если station не передана в body — берём из профиля пользователя
+	station := req.Station
+	if station == "" {
+		station = user.Station
+	}
+
+	result, notification, err := s.services.Shipments.ConfirmIntake(
+		r.Context(), shipmentID, req.ActualWeight, station, &user.ID, &user.Name,
+	)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	if notification != nil {
+		s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
+	}
+	s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", result.Shipment)
+
+	msg := "Груз " + result.Shipment.ShipmentNumber + " принят на склад ✓"
+	if result.RequiresPayment {
+		msg = fmt.Sprintf("Груз %s принят. Клиенту отправлено уведомление о доплате %.0f тг", result.Shipment.ShipmentNumber, result.ExtraCharge)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"shipment":         result.Shipment,
+		"requires_payment": result.RequiresPayment,
+		"extra_charge":     result.ExtraCharge,
+		"message":          msg,
+	})
+}
+
+// handleClearPayment — сбрасывает флаг payment_required
+// POST /api/shipments/{id}/clear-payment
+func (s *Server) handleClearPayment(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	shipmentID := chi.URLParam(r, "id")
+	shipment, err := s.services.Shipments.ClearPayment(r.Context(), shipmentID)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"shipment": shipment,
+		"message":  "Доплата подтверждена, выдача разблокирована",
+	})
 }

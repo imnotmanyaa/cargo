@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"cargo/backend/internal/model"
 )
@@ -33,6 +34,7 @@ type Repository interface {
 	GetShipmentByTrackingCode(ctx context.Context, code string) (model.Shipment, error)
 	ListShipments(ctx context.Context, filter model.ShipmentFilter) ([]model.Shipment, error)
 	ListShipmentsByOriginStation(ctx context.Context, station string) ([]model.Shipment, error)
+	ListShipmentsByStatus(ctx context.Context, status model.ShipmentLifecycle, loadedBefore time.Time) ([]model.Shipment, error)
 	UpdateShipment(ctx context.Context, shipment model.Shipment) (model.Shipment, error)
 	AddShipmentHistory(ctx context.Context, history model.ShipmentHistory) error
 	ListShipmentHistory(ctx context.Context, shipmentID string) ([]model.ShipmentHistory, error)

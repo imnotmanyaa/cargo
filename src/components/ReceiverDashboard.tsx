@@ -30,14 +30,19 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   } | null>(null);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [showAudit, setShowAudit] = useState(false);
+  const [scanMode, setScanMode] = useState<'qr' | 'manual'>('qr');
+  const [weightMode, setWeightMode] = useState<{ active: boolean, declared: string, shipmentId: string, shipmentNumber: string } | null>(null);
+  const [actualWeight, setActualWeight] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const weightInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus on mount and after feedback clears
   useEffect(() => {
-    if (!processing) {
+    if (!processing && !weightMode) {
       setTimeout(() => inputRef.current?.focus(), 80);
+    } else if (weightMode) {
+      setTimeout(() => weightInputRef.current?.focus(), 80);
     }
-  }, [processing, feedback]);
+  }, [processing, feedback, weightMode, scanMode]);
 
   // Clear feedback after 2 seconds, then refocus
   useEffect(() => {
@@ -85,10 +90,22 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
       const body = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        const action = body.action as 'LOADED' | 'ARRIVED';
+        if (body.requires_weight) {
+          setWeightMode({
+            active: true,
+            declared: body.declared_weight || '',
+            shipmentId: body.shipment_id || id,
+            shipmentNumber: body.shipment_number || id
+          });
+          return;
+        }
+
+        const action = body.action as 'LOADED' | 'ARRIVED' | 'READY_FOR_LOADING';
         const shipmentNum = body.shipment?.shipment_number || id;
         const msg = body.message || (action === 'LOADED'
           ? `Груз ${shipmentNum} погружен ✓`
+          : action === 'READY_FOR_LOADING'
+          ? `Груз ${shipmentNum} принят на склад ✓`
           : `Груз ${shipmentNum} принят ✓`);
 
         setFeedback({ type: 'success', message: msg });
@@ -117,6 +134,56 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
       setProcessing(false);
     }
   }, [user?.station]);
+
+  const handleConfirmWeight = async () => {
+    if (!weightMode || !actualWeight.trim() || !user?.station) return;
+    setProcessing(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(weightMode.shipmentId)}/confirm-intake`), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          actual_weight: actualWeight.trim(),
+          station: user.station
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        const shipmentNum = weightMode.shipmentNumber;
+        let msg = body.message || `Груз ${shipmentNum} принят на склад ✓`;
+        let type: 'success' | 'warning' | 'error' = 'success';
+        
+        if (body.requires_payment) {
+          msg = `Принято. Клиенту отправлено уведомление о доплате ${body.extra_charge} тг`;
+          // Prompt requests "зелёный экран с предупреждением", we can use success but change text.
+          type = 'success';
+        }
+
+        setFeedback({ type, message: msg });
+        setAuditLog(prev => [{
+          id: Date.now().toString(),
+          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          action: 'ARRIVED',
+          shipmentNumber: shipmentNum,
+          message: msg,
+        }, ...prev]);
+        setWeightMode(null);
+        setActualWeight('');
+      } else {
+        setFeedback({ type: 'error', message: body.error || 'Ошибка подтверждения веса' });
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Ошибка сети. Проверьте подключение.' });
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const bgColor = isDark ? 'bg-gray-900' : 'bg-slate-50';
   const cardBg = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
@@ -221,7 +288,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                 <span className={textSecondary}>
-                  <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>ГОТОВ К ПОГРУЗКЕ</span>
+                  <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>НА СКЛАДЕ</span>
                   {' '}+ ваша станция = отправление
                 </span>
                 <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
@@ -239,48 +306,120 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
             </div>
           </div>
 
-          {/* Scan input */}
-          <div className={`w-full rounded-2xl border p-5 ${cardBg}`}>
-            <div className={`flex items-center gap-2 mb-4 text-sm font-medium ${textSecondary}`}>
-              <Scan className="w-4 h-4" />
-              Сканируйте QR или введите номер груза
+          {/* Scan or Weight Input */}
+          {weightMode ? (
+            <div className={`w-full rounded-2xl border p-5 ${cardBg}`}>
+              <div className={`flex items-center gap-2 mb-4 text-sm font-medium ${textSecondary}`}>
+                <Package className="w-4 h-4" />
+                Взвешивание груза
+              </div>
+              <div className={`mb-4 p-3 rounded-lg ${isDark ? 'bg-blue-900 border border-blue-800 text-blue-200' : 'bg-blue-50 border border-blue-200 text-blue-800'} text-sm`}>
+                Введите фактический вес (заявлено: <strong>{weightMode.declared}</strong>)
+              </div>
+              <input
+                ref={weightInputRef}
+                type="text"
+                autoFocus
+                autoComplete="off"
+                value={actualWeight}
+                disabled={processing}
+                onChange={e => setActualWeight(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleConfirmWeight();
+                  }
+                }}
+                placeholder="Фактический вес (например: 15.5)"
+                className={`w-full px-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                  processing
+                    ? (isDark ? 'bg-gray-700 border-gray-600 text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-400')
+                    : (isDark ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400')
+                }`}
+              />
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    setWeightMode(null);
+                    setActualWeight('');
+                  }}
+                  disabled={processing}
+                  className={`flex-1 py-3.5 rounded-xl border ${isDark ? 'border-gray-600 hover:bg-gray-700 text-gray-300' : 'border-gray-300 hover:bg-gray-50 text-gray-700'} font-medium transition-colors`}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleConfirmWeight}
+                  disabled={!actualWeight.trim() || processing}
+                  className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-base transition-colors"
+                >
+                  {processing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    </span>
+                  ) : 'Подтвердить вес'}
+                </button>
+              </div>
             </div>
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="none"
-              autoFocus
-              autoComplete="off"
-              value={scanInput}
-              disabled={processing}
-              onChange={e => setScanInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const val = e.currentTarget.value.trim();
-                  if (val) handleScan(val);
-                }
-              }}
-              placeholder="SH-000123 или отсканируйте QR..."
-              className={`w-full px-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                processing
-                  ? (isDark ? 'bg-gray-700 border-gray-600 text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-400')
-                  : (isDark ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400')
-              }`}
-            />
-            <button
-              onClick={() => { const v = scanInput.trim(); if (v) handleScan(v); }}
-              disabled={!scanInput.trim() || processing}
-              className="mt-3 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-base transition-colors"
-            >
-              {processing ? (
-                <span className="flex items-center justify-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  Обработка...
-                </span>
-              ) : 'Подтвердить сканирование'}
-            </button>
-          </div>
+          ) : (
+            <div className={`w-full rounded-2xl border p-5 ${cardBg}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className={`flex items-center gap-2 text-sm font-medium ${textSecondary}`}>
+                  <Scan className="w-4 h-4" />
+                  Сканирование
+                </div>
+                <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
+                  <button
+                    onClick={() => setScanMode('qr')}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${scanMode === 'qr' ? 'bg-blue-600 text-white' : (isDark ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-50')}`}
+                  >
+                    QR
+                  </button>
+                  <button
+                    onClick={() => setScanMode('manual')}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${scanMode === 'manual' ? 'bg-blue-600 text-white' : (isDark ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-50')}`}
+                  >
+                    Номер
+                  </button>
+                </div>
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode={scanMode === 'qr' ? 'none' : 'text'}
+                autoFocus
+                autoComplete="off"
+                value={scanInput}
+                disabled={processing}
+                onChange={e => setScanInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = e.currentTarget.value.trim();
+                    if (val) handleScan(val);
+                  }
+                }}
+                placeholder={scanMode === 'qr' ? "Отсканируйте QR..." : "Введите SH-XXXXXX"}
+                className={`w-full px-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                  processing
+                    ? (isDark ? 'bg-gray-700 border-gray-600 text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-400')
+                    : (isDark ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400')
+                }`}
+              />
+              <button
+                onClick={() => { const v = scanInput.trim(); if (v) handleScan(v); }}
+                disabled={!scanInput.trim() || processing}
+                className="mt-3 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-base transition-colors"
+              >
+                {processing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Обработка...
+                  </span>
+                ) : 'Подтвердить'}
+              </button>
+            </div>
+          )}
 
           {/* Station hint */}
           <p className={`mt-4 text-xs text-center ${textSecondary}`}>

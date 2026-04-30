@@ -14,6 +14,8 @@ func (s *Server) mountCourierRoutes(r chi.Router) {
 	r.Post("/shipments/{id}/pickup-start", s.handleCourierPickupStart)
 	r.Post("/shipments/{id}/pickup-confirm", s.handleCourierPickupConfirm)
 	r.Post("/shipments/{id}/courier-handover", s.handleCourierHandover)
+	r.Post("/shipments/{id}/courier-take", s.handleCourierTakeTask)
+	r.Post("/shipments/{id}/delivery-confirm", s.handleCourierDeliveryConfirm)
 }
 
 func (s *Server) handleCourierTasks(w http.ResponseWriter, r *http.Request) {
@@ -121,4 +123,44 @@ func (s *Server) handleCourierHandover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, shipment)
+}
+
+func (s *Server) handleCourierTakeTask(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleCourier); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	// We just transition to the same status but update operator
+	shipment, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	updated, err := s.services.Shipments.CourierTakeTask(r.Context(), shipment.ID, &user.ID, &user.Name)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (s *Server) handleCourierDeliveryConfirm(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleCourier); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	updated, err := s.services.Shipments.CourierDeliveryConfirm(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
 }

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,6 +63,12 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	if err := validateCreateShipment(req); err != nil {
 		return model.Shipment{}, err
 	}
+
+	clientUser, err := s.repo.GetUserByID(ctx, req.ClientID)
+	if err == nil && req.IsDoorToDoor && clientUser.Role == model.RoleIndividual {
+		req.Cost += 10000
+	}
+
 	now := time.Now().UTC()
 	route := calculateRoute(req.FromStation, req.ToStation)
 	var nextStation *string
@@ -188,6 +196,10 @@ func (s *ShipmentService) SendToPayment(ctx context.Context, id string) (model.S
 	return s.transition(ctx, id, model.ShipmentPaymentPending, nil, nil, nil, "Sent to payment", nil)
 }
 
+func (s *ShipmentService) CourierHandover(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	return s.transition(ctx, id, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Courier handover", nil)
+}
+
 func (s *ShipmentService) ReadyForLoading(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
 	return s.transition(ctx, id, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading", nil)
 }
@@ -298,6 +310,14 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 	if err != nil {
 		return shipment, nil, nil
 	}
+
+	if shipment.IsDoorToDoor {
+		shipment, err = s.transition(ctx, id, model.ShipmentReadyForIssue, operatorID, operatorName, &station, "Ready for delivery task", nil)
+		if err != nil {
+			return model.Shipment{}, nil, err
+		}
+	}
+
 	return shipment, &notification, nil
 }
 
@@ -317,6 +337,9 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 	if shipment.ShipmentStatus != model.ShipmentReadyForIssue && shipment.ShipmentStatus != model.ShipmentArrived {
 		return model.Shipment{}, ErrInvalidTransition
 	}
+	if shipment.PaymentRequired {
+		return model.Shipment{}, ErrPaymentRequired
+	}
 	if req.ReceiverName == "" || req.ReceiverPhone == "" {
 		return model.Shipment{}, fmt.Errorf("%w: receiver verification data is required", ErrValidation)
 	}
@@ -326,6 +349,7 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 		// Save the provided receiver information to the shipment
 		shipment.ReceiverName = &req.ReceiverName
 		shipment.ReceiverPhone = &req.ReceiverPhone
+		s.repo.UpdateShipment(ctx, shipment)
 	} else {
 		// Strict verification for shipments that have receiver data
 		if req.ReceiverName != *shipment.ReceiverName || req.ReceiverPhone != *shipment.ReceiverPhone {
@@ -585,11 +609,11 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 	allowed := map[model.ShipmentLifecycle][]model.ShipmentLifecycle{
 		model.ShipmentDraft:           {model.ShipmentCreated},
-		model.ShipmentCreatedDoor:     {model.ShipmentPaymentPending, model.ShipmentPickupAssigned, model.ShipmentCancelled},
+		model.ShipmentCreatedDoor:     {model.ShipmentPaymentPending, model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentCancelled},
 		model.ShipmentPickupAssigned:  {model.ShipmentPickedUp, model.ShipmentCancelled},
 		model.ShipmentPickedUp:        {model.ShipmentAtStationIntake, model.ShipmentReadyForLoading, model.ShipmentCancelled},
 		model.ShipmentAtStationIntake: {model.ShipmentReadyForLoading, model.ShipmentPaymentPending, model.ShipmentCancelled},
-		model.ShipmentCreated:         {model.ShipmentPaymentPending, model.ShipmentCancelled},
+		model.ShipmentCreated:         {model.ShipmentPaymentPending, model.ShipmentReadyForLoading, model.ShipmentCancelled},
 		model.ShipmentPaymentPending:  {model.ShipmentPaid, model.ShipmentCancelled},
 		model.ShipmentPaid:            {model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentOnHold},
 		model.ShipmentReadyForLoading: {model.ShipmentLoaded, model.ShipmentOnHold},
@@ -610,19 +634,38 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 	return false
 }
 
+func (s *ShipmentService) ListLoadedForTransit(ctx context.Context, delay time.Duration) ([]model.Shipment, error) {
+	threshold := time.Now().UTC().Add(-delay)
+	return s.repo.ListShipmentsByStatus(ctx, model.ShipmentLoaded, threshold)
+}
+
 func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) ([]model.Shipment, error) {
 	items, err := s.repo.ListShipmentsByOriginStation(ctx, station)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]model.Shipment, 0, len(items))
+	out := make([]model.Shipment, 0)
 	for _, sh := range items {
 		if !sh.IsDoorToDoor {
 			continue
 		}
-		switch sh.ShipmentStatus {
-		case model.ShipmentCreatedDoor, model.ShipmentPaymentPending, model.ShipmentPaid, model.ShipmentPickupAssigned, model.ShipmentPickedUp, model.ShipmentReadyForLoading:
-			out = append(out, sh)
+		
+		// "Забрать": from_station = station + statuses
+		if sh.FromStation == station {
+			switch sh.ShipmentStatus {
+			case model.ShipmentCreatedDoor, model.ShipmentPaymentPending, model.ShipmentPaid, model.ShipmentPickupAssigned, model.ShipmentPickedUp, model.ShipmentReadyForLoading:
+				out = append(out, sh)
+				continue
+			}
+		}
+
+		// "Доставить": to_station = station + statuses (READY_FOR_ISSUE, ISSUED, etc)
+		// Or if courier is assigned, they might need to see it.
+		if sh.ToStation == station {
+			switch sh.ShipmentStatus {
+			case model.ShipmentReadyForIssue, model.ShipmentIssued: // ISSUED might be needed if they want to see completed
+				out = append(out, sh)
+			}
 		}
 	}
 	return out, nil
@@ -637,6 +680,26 @@ func (s *ShipmentService) CourierPickupStart(ctx context.Context, id string, ope
 		return model.Shipment{}, fmt.Errorf("%w: pickup is available only for door-to-door shipments", ErrValidation)
 	}
 	return s.transition(ctx, id, model.ShipmentPickupAssigned, operatorID, operatorName, nil, "Courier pickup assigned", nil)
+}
+
+func (s *ShipmentService) CourierTakeTask(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	// We do not change status, just assign operator
+	return s.transition(ctx, id, shipment.ShipmentStatus, operatorID, operatorName, nil, "Courier took task", nil)
+}
+
+func (s *ShipmentService) CourierDeliveryConfirm(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if !shipment.IsDoorToDoor {
+		return model.Shipment{}, fmt.Errorf("%w: delivery confirmation is available only for door-to-door shipments", ErrValidation)
+	}
+	return s.transition(ctx, id, model.ShipmentIssued, operatorID, operatorName, nil, "Courier delivery confirmed", nil)
 }
 
 func (s *ShipmentService) CourierPickupConfirm(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
@@ -729,6 +792,129 @@ func (s *ShipmentService) ConfirmFinalWeightAtStation(ctx context.Context, id, f
 	return s.transition(ctx, updated.ID, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading after station weight confirm", nil, reasonPtr)
 }
 
+// ConfirmIntakeResult содержит результат приёмки door-to-door посылки на складе.
+type ConfirmIntakeResult struct {
+	Shipment        model.Shipment
+	RequiresPayment bool
+	ExtraCharge     float64
+}
+
+// parseWeightKg извлекает числовое значение веса из строки типа "15 кг", "10.5kg", "7".
+var weightDigits = regexp.MustCompile(`[\d]+\.?[\d]*`)
+
+func parseWeightKg(s string) float64 {
+	m := weightDigits.FindString(strings.TrimSpace(s))
+	if m == "" {
+		return 0
+	}
+	v, _ := strconv.ParseFloat(m, 64)
+	return v
+}
+
+// ConfirmIntake — приёмка door-to-door посылки приемосдатчиком на станции отправления.
+// Взвешивает посылку, рассчитывает доплату при перевесе, переводит в READY_FOR_LOADING.
+func (s *ShipmentService) ConfirmIntake(ctx context.Context, id, actualWeight, station string, operatorID, operatorName *string) (ConfirmIntakeResult, *model.Notification, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return ConfirmIntakeResult{}, nil, err
+	}
+
+	// Валидация
+	if !shipment.IsDoorToDoor {
+		return ConfirmIntakeResult{}, nil, fmt.Errorf("%w: подтверждение веса доступно только для посылок door-to-door", ErrValidation)
+	}
+	if shipment.ShipmentStatus != model.ShipmentPickedUp {
+		return ConfirmIntakeResult{}, nil, fmt.Errorf("%w: посылка должна быть в статусе «Курьер забрал»", ErrInvalidState)
+	}
+	if shipment.FromStation != station {
+		return ConfirmIntakeResult{}, nil, fmt.Errorf("%w: посылка отправляется со станции %s, ваша станция: %s", ErrForbidden, shipment.FromStation, station)
+	}
+	if strings.TrimSpace(actualWeight) == "" {
+		return ConfirmIntakeResult{}, nil, fmt.Errorf("%w: фактический вес обязателен", ErrValidation)
+	}
+
+	// Парсим веса
+	oldKg := parseWeightKg(shipment.Weight)
+	newKg := parseWeightKg(actualWeight)
+
+	// Рассчитываем доплату при перевесе
+	var extraCharge float64
+	requiresPayment := false
+	if newKg > oldKg && oldKg > 0 {
+		diff := newKg - oldKg
+		var ratePerKg float64
+		if oldKg > 0 {
+			ratePerKg = shipment.Cost / oldKg
+		} else {
+			ratePerKg = 500 // fallback: 500 тг/кг
+		}
+		extraCharge = diff * ratePerKg
+		requiresPayment = true
+	}
+
+	// Обновляем вес посылки
+	oldWeightStr := shipment.Weight
+	shipment.Weight = strings.TrimSpace(actualWeight)
+	shipment.UpdatedAt = time.Now().UTC()
+	shipment.LastUpdatedAt = shipment.UpdatedAt
+	if requiresPayment {
+		shipment.ExtraCharge = extraCharge
+		shipment.PaymentRequired = true
+	}
+	updated, err := s.repo.UpdateShipment(ctx, shipment)
+	if err != nil {
+		return ConfirmIntakeResult{}, nil, err
+	}
+
+	// История изменений
+	details := fmt.Sprintf("Приёмка на складе: вес изменён с %s на %s", oldWeightStr, actualWeight)
+	if requiresPayment {
+		details = fmt.Sprintf("%s | Доплата: %.0f тг", details, extraCharge)
+	}
+	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{
+		ShipmentID:   updated.ID,
+		Action:       "Приёмка door-to-door на складе",
+		OperatorID:   operatorID,
+		OperatorName: operatorName,
+		Details:      details,
+		OldStatus:    ptr(string(model.ShipmentPickedUp)),
+		NewStatus:    ptr(string(model.ShipmentPickedUp)),
+		CreatedAt:    time.Now().UTC(),
+	})
+
+	// Уведомление клиенту о доплате
+	var notification *model.Notification
+	if requiresPayment {
+		msg := fmt.Sprintf("Фактический вес вашей посылки %s изменён: %s → %s. Доплата: %.0f тг",
+			updated.ShipmentNumber, oldWeightStr, actualWeight, extraCharge)
+		n, err := s.repo.CreateNotification(ctx, model.Notification{
+			UserID:    updated.ClientID,
+			Message:   msg,
+			Type:      "weight_changed",
+			RelatedID: ptr(updated.ID),
+			CreatedAt: time.Now().UTC(),
+		})
+		if err == nil {
+			notification = &n
+		}
+	}
+
+	// Переводим в READY_FOR_LOADING
+	final, err := s.transition(ctx, updated.ID, model.ShipmentReadyForLoading, operatorID, operatorName, &station, "Приёмка на складе завершена", nil)
+	if err != nil {
+		return ConfirmIntakeResult{}, nil, err
+	}
+	final.PaymentRequired = requiresPayment
+	final.ExtraCharge = extraCharge
+
+	return ConfirmIntakeResult{
+		Shipment:        final,
+		RequiresPayment: requiresPayment,
+		ExtraCharge:     extraCharge,
+	}, notification, nil
+}
+
+
 func validateCreateShipment(req CreateShipmentRequest) error {
 	from := strings.TrimSpace(req.FromStation)
 	to := strings.TrimSpace(req.ToStation)
@@ -775,4 +961,14 @@ func validateEditableShipment(shipment model.Shipment) error {
 		return fmt.Errorf("%w: quantity_places must be greater than zero", ErrValidation)
 	}
 	return nil
+}
+
+func (s *ShipmentService) ClearPayment(ctx context.Context, id string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	shipment.PaymentRequired = false
+	shipment.ExtraCharge = 0
+	return s.repo.UpdateShipment(ctx, shipment)
 }

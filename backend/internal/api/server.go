@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +17,7 @@ import (
 	"cargo/backend/internal/config"
 	"cargo/backend/internal/model"
 	"cargo/backend/internal/service"
+	"cargo/backend/internal/worker"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -45,6 +48,14 @@ func NewServer(cfg config.Config, services service.Services) (*Server, error) {
 	}
 	s.setupSocket()
 	s.router = s.routes()
+
+	delayMins, err := strconv.Atoi(os.Getenv("AUTO_TRANSIT_DELAY_MINUTES"))
+	if err != nil || delayMins <= 0 {
+		delayMins = 60
+	}
+	delay := time.Duration(delayMins) * time.Minute
+	go worker.StartTransitWorker(context.Background(), s.services.Shipments, delay)
+
 	return s, nil
 }
 

@@ -21,6 +21,7 @@ var (
 	ErrInvalidTransition  = errors.New("invalid status transition")
 	ErrInvalidState       = errors.New("invalid state")
 	ErrInsufficientFunds  = errors.New("недостаточно средств на депозите")
+	ErrPaymentRequired    = errors.New("требуется доплата за перевес")
 	ErrValidation         = errors.New("validation error")
 )
 

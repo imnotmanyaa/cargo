@@ -19,5 +19,6 @@ COPY --from=build /bin/cargotrans-server /usr/local/bin/cargotrans-server
 USER appuser
 
 EXPOSE 8080
+ENV AUTO_TRANSIT_DELAY_MINUTES=60
 
 CMD ["cargotrans-server"]
