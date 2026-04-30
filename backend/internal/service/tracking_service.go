@@ -31,7 +31,7 @@ func (s *TrackingService) GenerateQRCode(ctx context.Context, shipmentID string)
 	}
 	shipment.QRCodeID = &code.ID
 	shipment.TrackingCode = &code.QRValue
-	if shipment.ShipmentStatus == model.ShipmentPaid {
+	if shipment.ShipmentStatus == model.ShipmentPaid && !shipment.IsDoorToDoor {
 		shipment.ShipmentStatus = model.ShipmentReadyForLoading
 		shipment.Status = legacyStatusForLifecycle(shipment.ShipmentStatus)
 	}

@@ -1,0 +1,14 @@
+{
+    "client_segment": "staff",
+    "company": null,
+    "contract_number": null,
+    "deposit_balance": 0,
+    "email": "admin@admin.com",
+    "id": "admin-001",
+    "is_active": true,
+    "name": "Admin",
+    "phone": null,
+    "role": "admin",
+    "station": null,
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImV4cCI6MTc3NzU5MzcwNSwibmFtZSI6IkFkbWluIiwicm9sZSI6ImFkbWluIiwic3ViIjoiYWRtaW4tMDAxIn0.boOlhism6h_ICN0qwgQXAryKcN4Z37S_k84BjJjF2N8"
+}
