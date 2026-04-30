@@ -37,6 +37,7 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<'in_progress' | 'at_warehouse'>('in_progress');
   const pageSize = 10;
 
   const formatDate = (value?: string) => {
@@ -72,10 +73,20 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
     return () => clearInterval(interval);
   }, [user?.role, user?.station]);
 
-  const filteredShipments = shipments.filter(s =>
-    (s.shipment_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.client_name || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const isInProgress = (status: string) => {
+    const s = (status || '').toUpperCase();
+    return ['CREATED', 'CREATED_DOOR', 'PAYMENT_PENDING', 'PAID', 'PICKUP_ASSIGNED', 'PICKED_UP'].includes(s);
+  };
+
+  const filteredShipments = shipments.filter(s => {
+    const matchesSearch = (s.shipment_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (s.client_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTab = activeTab === 'in_progress' 
+      ? isInProgress(s.shipment_status || s.status)
+      : !isInProgress(s.shipment_status || s.status);
+    return matchesSearch && matchesTab;
+  });
+
   const visibleShipments = filteredShipments.filter((s) => {
     if (statusFilter === 'all') return true;
     return (s.shipment_status || s.status) === statusFilter;
@@ -108,12 +119,55 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
 
     let stateLabel = '';
     let stateColor = '';
-    if (s.shipment_status === 'CREATED' || s.status === 'Оформлен') {
-      stateLabel = t('statusWaiting');
-      stateColor = 'bg-yellow-100 text-yellow-800';
-    } else {
-      stateLabel = t('statusInWork');
-      stateColor = 'bg-blue-100 text-blue-800';
+    const status = s.shipment_status || s.status;
+    switch (status) {
+      case 'CREATED':
+        stateLabel = 'Оформлен';
+        stateColor = 'bg-yellow-100 text-yellow-800';
+        break;
+      case 'CREATED_DOOR':
+        stateLabel = 'Ожидает курьера';
+        stateColor = 'bg-orange-100 text-orange-800';
+        break;
+      case 'PAYMENT_PENDING':
+        stateLabel = 'Ожидает оплаты';
+        stateColor = 'bg-red-100 text-red-800';
+        break;
+      case 'PAID':
+        stateLabel = 'Оплачен';
+        stateColor = 'bg-green-100 text-green-800';
+        break;
+      case 'PICKUP_ASSIGNED':
+        stateLabel = 'Курьер назначен';
+        stateColor = 'bg-blue-100 text-blue-800';
+        break;
+      case 'PICKED_UP':
+        stateLabel = 'Забрано курьером';
+        stateColor = 'bg-indigo-100 text-indigo-800';
+        break;
+      case 'READY_FOR_LOADING':
+        stateLabel = 'На складе';
+        stateColor = 'bg-purple-100 text-purple-800';
+        break;
+      case 'LOADED':
+        stateLabel = 'Погружен';
+        stateColor = 'bg-teal-100 text-teal-800';
+        break;
+      case 'IN_TRANSIT':
+        stateLabel = 'В пути';
+        stateColor = 'bg-cyan-100 text-cyan-800';
+        break;
+      case 'ARRIVED':
+        stateLabel = 'Прибыл';
+        stateColor = 'bg-green-100 text-green-800';
+        break;
+      case 'DELIVERED':
+        stateLabel = 'Доставлен';
+        stateColor = 'bg-gray-100 text-gray-800';
+        break;
+      default:
+        stateLabel = status || 'В работе';
+        stateColor = 'bg-blue-100 text-blue-800';
     }
 
     return { typeLabel, typeColor, stateLabel, stateColor };
@@ -160,6 +214,30 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
         </button>
       </div>
 
+      {/* Tabs */}
+      <div className={`flex space-x-4 mb-6 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+        <button
+          onClick={() => { setActiveTab('in_progress'); setStatusFilter('all'); setCurrentPage(1); }}
+          className={`pb-2 px-1 text-sm font-medium ${
+            activeTab === 'in_progress'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          В работе
+        </button>
+        <button
+          onClick={() => { setActiveTab('at_warehouse'); setStatusFilter('all'); setCurrentPage(1); }}
+          className={`pb-2 px-1 text-sm font-medium ${
+            activeTab === 'at_warehouse'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          На складе
+        </button>
+      </div>
+
       {/* Search + filter bar */}
       <div className={`rounded-xl shadow-sm border mb-6 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className={`p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -185,11 +263,24 @@ export default function DoorToDoorShipments({ theme = 'light' }: { theme?: 'ligh
               }`}
             >
               <option value="all">Все статусы</option>
-              <option value="CREATED">CREATED</option>
-              <option value="READY_FOR_LOADING">READY_FOR_LOADING</option>
-              <option value="LOADED">LOADED</option>
-              <option value="IN_TRANSIT">IN_TRANSIT</option>
-              <option value="ARRIVED">ARRIVED</option>
+              {activeTab === 'in_progress' ? (
+                <>
+                  <option value="CREATED">Оформлен</option>
+                  <option value="CREATED_DOOR">Ожидает курьера</option>
+                  <option value="PAYMENT_PENDING">Ожидает оплаты</option>
+                  <option value="PAID">Оплачен</option>
+                  <option value="PICKUP_ASSIGNED">Курьер назначен</option>
+                  <option value="PICKED_UP">Забрано курьером</option>
+                </>
+              ) : (
+                <>
+                  <option value="READY_FOR_LOADING">На складе (Готов к погрузке)</option>
+                  <option value="LOADED">Погружен</option>
+                  <option value="IN_TRANSIT">В пути</option>
+                  <option value="ARRIVED">Прибыл</option>
+                  <option value="DELIVERED">Доставлен</option>
+                </>
+              )}
             </select>
           </div>
         </div>
