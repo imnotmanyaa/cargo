@@ -13,6 +13,7 @@ func (s *Server) mountCourierRoutes(r chi.Router) {
 	r.Get("/courier/tasks", s.handleCourierTasks)
 	r.Post("/shipments/{id}/pickup-start", s.handleCourierPickupStart)
 	r.Post("/shipments/{id}/pickup-confirm", s.handleCourierPickupConfirm)
+	r.Post("/shipments/{id}/courier-handover", s.handleCourierHandover)
 }
 
 func (s *Server) handleCourierTasks(w http.ResponseWriter, r *http.Request) {
@@ -98,6 +99,23 @@ func (s *Server) handleCourierPickupConfirm(w http.ResponseWriter, r *http.Reque
 		req.Latitude,
 		req.Longitude,
 	)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, shipment)
+}
+
+func (s *Server) handleCourierHandover(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleCourier); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	shipment, err := s.services.Shipments.ReadyForLoading(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name)
 	if err != nil {
 		handleServiceError(w, err)
 		return

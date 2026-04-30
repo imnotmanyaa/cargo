@@ -231,10 +231,11 @@ export function CourierDashboard() {
       
       const mapped = (data || []).map((sh: any) => {
         let type: 'pickup' | 'delivery' = 'pickup';
-        let status: 'pending' | 'in_progress' | 'completed' | 'cancelled' = 'pending';
+        let status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled' = 'pending';
         
         if (sh.shipment_status === 'PICKUP_ASSIGNED') status = 'in_progress';
-        if (sh.shipment_status === 'PICKED_UP') status = 'completed';
+        if (sh.shipment_status === 'PICKED_UP') status = 'picked_up';
+        if (sh.shipment_status === 'READY_FOR_LOADING') status = 'completed';
         if (sh.shipment_status === 'PAYMENT_PENDING' || sh.shipment_status === 'PAID') {
             status = 'pending';
         }
@@ -271,14 +272,14 @@ export function CourierDashboard() {
   }, []);
 
 
-  const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
+  const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'picked_up');
   const completedTasks = tasks.filter(t => t.status === 'completed');
 
   const stats = {
     todayTasks: tasks.filter(t => t.status !== 'cancelled').length,
     completed: completedTasks.length,
     pending: pendingTasks.length,
-    inProgress: tasks.filter(t => t.status === 'in_progress').length
+    inProgress: tasks.filter(t => t.status === 'in_progress' || t.status === 'picked_up').length
   };
 
   const handleTaskClick = (task: DeliveryTask) => {
@@ -320,6 +321,27 @@ export function CourierDashboard() {
         setSelectedTask(null);
       }
     } catch (e) {}
+  };
+
+  const handleHandoverTask = async () => {
+    if (!selectedTask) return;
+    try {
+      const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/courier-handover`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
+      });
+      if (resp.ok) {
+        await loadTasks();
+        toast.success('Посылка передана на склад');
+        setShowDetailsDialog(false);
+        setSelectedTask(null);
+      } else {
+        const err = await resp.json().catch(() => ({}));
+        toast.error(err.error || 'Ошибка при передаче на склад');
+      }
+    } catch (e) {
+      toast.error('Сетевая ошибка');
+    }
   };
 
   const handleOpenNavigation = () => {
@@ -776,6 +798,16 @@ export function CourierDashboard() {
               >
                 <CheckCircle2 className="w-4 h-4 mr-2" />
                 {getDict('completeTask')}
+              </Button>
+            )}
+
+            {selectedTask?.status === 'picked_up' && (
+              <Button
+                onClick={handleHandoverTask}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+              >
+                <Building2 className="w-4 h-4 mr-2" />
+                Сдать на склад
               </Button>
             )}
 

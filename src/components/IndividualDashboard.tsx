@@ -46,7 +46,10 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
     const fetchShipments = async () => {
       if (!user?.id) return;
       try {
-        const res = await fetch(withApiBase(`/api/shipments?client_id=${user.id}`));
+        const token = localStorage.getItem('token');
+        const res = await fetch(withApiBase(`/api/shipments?client_id=${user.id}`), {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
         if (res.ok) {
           const data = await res.json();
           setShipments(Array.isArray(data) ? data : []);

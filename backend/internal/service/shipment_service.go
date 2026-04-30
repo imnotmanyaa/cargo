@@ -621,7 +621,7 @@ func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) 
 			continue
 		}
 		switch sh.ShipmentStatus {
-		case model.ShipmentCreatedDoor, model.ShipmentPaymentPending, model.ShipmentPaid, model.ShipmentPickupAssigned, model.ShipmentPickedUp:
+		case model.ShipmentCreatedDoor, model.ShipmentPaymentPending, model.ShipmentPaid, model.ShipmentPickupAssigned, model.ShipmentPickedUp, model.ShipmentReadyForLoading:
 			out = append(out, sh)
 		}
 	}
