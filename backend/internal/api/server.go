@@ -214,7 +214,8 @@ func handleServiceError(w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrUnauthorized):
 		writeError(w, http.StatusUnauthorized, "Authentication required")
 	default:
-		writeError(w, http.StatusInternalServerError, "Internal server error")
+		log.Printf("[ERROR] unhandled service error: %v", err)
+		writeError(w, http.StatusInternalServerError, err.Error())
 	}
 }
 

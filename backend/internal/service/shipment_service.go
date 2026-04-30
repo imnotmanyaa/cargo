@@ -924,7 +924,7 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 		return fmt.Errorf("%w: client_id is required", ErrValidation)
 	case req.ClientName == "":
 		return fmt.Errorf("%w: client_name is required", ErrValidation)
-	case req.ClientEmail == "":
+	case req.ClientEmail == "" && req.ClientID == "":
 		return fmt.Errorf("%w: client_email is required", ErrValidation)
 	case from == "":
 		return fmt.Errorf("%w: from_station is required", ErrValidation)
