@@ -7,16 +7,23 @@ export function QrLogin() {
 
   useEffect(() => {
     const resolveApiUrl = (path: string) => {
-      const candidates = [withApiBase(path), path];
-      for (const candidate of candidates) {
-        try {
-          const url = new URL(candidate, window.location.href);
-          return url.toString();
-        } catch {
-          continue;
+      const apiPath = withApiBase(path);
+      try {
+        if (typeof URL !== 'undefined') {
+          return new URL(apiPath, window.location.href).toString();
         }
+      } catch {
+        // Ignore URL constructor errors
       }
-      return path;
+      
+      // Fallback for older Android 4.4 without URL polyfill
+      if (/^https?:\/\//i.test(apiPath)) {
+        return apiPath;
+      }
+      
+      // Simple relative to absolute conversion
+      const origin = window.location.origin || (window.location.protocol + "//" + window.location.host);
+      return origin + (apiPath.startsWith('/') ? '' : '/') + apiPath;
     };
 
     const extractToken = () => {
