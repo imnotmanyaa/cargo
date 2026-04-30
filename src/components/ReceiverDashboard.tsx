@@ -25,7 +25,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const [scanInput, setScanInput] = useState('');
   const [processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState<{
-    type: 'success-load' | 'success-arrive' | 'warning' | 'error';
+    type: 'success' | 'warning' | 'error';
     message: string;
   } | null>(null);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
@@ -91,10 +91,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
           ? `Груз ${shipmentNum} погружен ✓`
           : `Груз ${shipmentNum} принят ✓`);
 
-        setFeedback({
-          type: action === 'LOADED' ? 'success-load' : 'success-arrive',
-          message: msg,
-        });
+        setFeedback({ type: 'success', message: msg });
         setAuditLog(prev => [{
           id: Date.now().toString(),
           time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -133,14 +130,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
       {feedback && (
         <div
           className={`fixed inset-0 z-50 flex flex-col items-center justify-center transition-all duration-200 ${
-            feedback.type === 'success-load'   ? 'bg-blue-600' :
-            feedback.type === 'success-arrive' ? 'bg-green-600' :
-            feedback.type === 'warning'        ? 'bg-amber-500' :
-                                                  'bg-red-600'
+            feedback.type === 'success' ? 'bg-green-600' :
+            feedback.type === 'warning' ? 'bg-orange-500' :
+                                          'bg-red-600'
           }`}
         >
           <div className="text-center p-8">
-            {feedback.type === 'success-load' || feedback.type === 'success-arrive' ? (
+            {feedback.type === 'success' ? (
               <CheckCircle className="w-28 h-28 text-white mx-auto mb-6 animate-bounce" />
             ) : feedback.type === 'warning' ? (
               <AlertTriangle className="w-28 h-28 text-white mx-auto mb-6" />
@@ -148,10 +144,9 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
               <XCircle className="w-28 h-28 text-white mx-auto mb-6 animate-pulse" />
             )}
             <p className="text-4xl md:text-6xl font-black text-white mb-4 uppercase tracking-wide">
-              {feedback.type === 'success-load'   ? 'ПОГРУЖЕН' :
-               feedback.type === 'success-arrive' ? 'ПРИНЯТ'   :
-               feedback.type === 'warning'        ? 'УЖЕ ОБРАБОТАН' :
-                                                    'ОШИБКА'}
+              {feedback.type === 'success' ? 'УСПЕХ'          :
+               feedback.type === 'warning' ? 'УЖЕ ОБРАБОТАН' :
+                                             'ОШИБКА'}
             </p>
             <p className="text-xl md:text-2xl text-white/90 font-medium">{feedback.message}</p>
           </div>
