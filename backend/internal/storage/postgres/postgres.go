@@ -607,9 +607,13 @@ func (r *Repository) AddAuditLog(ctx context.Context, log model.AuditLog) error 
 
 func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT a.id, a.user_id, a.entity_type, a.entity_id, a.action, a.old_value, a.new_value, a.station_id, a.reason, a.created_at, s.shipment_number
+		SELECT a.id, a.user_id, a.entity_type, a.entity_id, a.action, a.old_value, a.new_value, a.station_id, a.reason, a.created_at, s.shipment_number,
+		COALESCE(u.name, c.name, 'Система') as user_name,
+		COALESCE(u.role, c.client_type, 'system') as user_role
 		FROM audit_log a
 		LEFT JOIN shipments s ON a.entity_id = s.id AND a.entity_type = 'shipment'
+		LEFT JOIN users u ON a.user_id = u.id
+		LEFT JOIN clients c ON a.user_id = c.id
 		ORDER BY a.created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -618,7 +622,7 @@ func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error
 	items := []model.AuditLog{}
 	for rows.Next() {
 		var item model.AuditLog
-		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt, &item.ShipmentNumber); err != nil {
+		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt, &item.ShipmentNumber, &item.UserName, &item.UserRole); err != nil {
 			return nil, err
 		}
 		items = append(items, item)

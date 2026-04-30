@@ -232,6 +232,8 @@ type Notification struct {
 type AuditLog struct {
 	ID             string    `json:"id"`
 	UserID         *string   `json:"user_id,omitempty"`
+	UserName       *string   `json:"user_name,omitempty"`
+	UserRole       *string   `json:"user_role,omitempty"`
 	EntityType     string    `json:"entity_type"`
 	EntityID       string    `json:"entity_id"`
 	Action         string    `json:"action"`

@@ -7,6 +7,8 @@ import { Activity, Clock } from 'lucide-react';
 interface AuditLog {
   id: string;
   user_id: string;
+  user_name?: string;
+  user_role?: string;
   entity_type: string;
   entity_id: string;
   action: string;
@@ -47,9 +49,47 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
   };
 
   const translateAction = (action: string) => {
-    // We can map backend actions to readable UI strings here, or just show raw string if simple.
-    // For now returning raw action formatted slightly.
     return action.replace(/_/g, ' ');
+  };
+
+  const getReadableLog = (log: AuditLog) => {
+    const actorName = log.user_name && log.user_name !== 'Система' ? log.user_name : 'Система';
+    let roleText = '';
+    if (log.user_role === 'individual' || log.user_role === 'corporate') roleText = 'Клиент';
+    else if (log.user_role === 'courier') roleText = 'Курьер';
+    else if (log.user_role === 'receiver') roleText = 'Приемосдатчик';
+    else if (log.user_role === 'manager') roleText = 'Менеджер';
+
+    const actor = roleText ? `${roleText} ${actorName}` : actorName;
+    const num = log.shipment_number ? `посылку ${log.shipment_number}` : `сущность`;
+    
+    const act = (log.action || '').toUpperCase();
+    if (act.includes('CREATED_DOOR') || act === 'CREATED' || act.includes('CREATE')) {
+      return `${actor} оформил ${num}`;
+    }
+    if (act.includes('PICKUP_ASSIGNED') || act.includes('COURIER PICKUP ASSIGNED')) {
+      return `${actor} взял в работу ${num} (поехал к клиенту)`;
+    }
+    if (act.includes('PICKUP CONFIRM') || act === 'PICKED_UP') {
+      return `${actor} забрал ${num} у клиента`;
+    }
+    if (act.includes('READY FOR LOADING') || act === 'READY_FOR_LOADING') {
+      return `${actor} сдал ${num} на склад`;
+    }
+    if (act.includes('PAYMENT_PENDING') || act.includes('PAID') || act.includes('PAYMENT')) {
+      return `${actor} провел оплату за ${num}`;
+    }
+    if (act.includes('LOADED') || act === 'LOAD' || act.includes('SHIPMENT LOADED')) {
+      return `${actor} погрузил ${num}`;
+    }
+    if (act.includes('ARRIVED') || act === 'ARRIVAL' || act.includes('SHIPMENT ARRIVED')) {
+      return `${actor} принял ${num} на станции`;
+    }
+    if (act.includes('GENERATE_QR')) {
+      return `${actor} сгенерировал QR-код для ${num}`;
+    }
+    
+    return `${actor} выполнил: ${translateAction(log.action)}`;
   };
 
   const filteredLogs = logs.filter(log => {
@@ -58,7 +98,8 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
       log.shipment_number?.toLowerCase().includes(q) ||
       log.entity_id?.toLowerCase().includes(q) ||
       log.action?.toLowerCase().includes(q) ||
-      log.user_id?.toLowerCase().includes(q)
+      log.user_id?.toLowerCase().includes(q) ||
+      log.user_name?.toLowerCase().includes(q)
     );
   });
 
@@ -95,8 +136,8 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
               <thead>
                 <tr className={`text-left border-b ${isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
                   <th className="px-6 py-4 font-medium">{t('date')}</th>
-                  <th className="px-6 py-4 font-medium">{t('action')}</th>
-                  <th className="px-6 py-4 font-medium">{t('entity')}</th>
+                  <th className="px-6 py-4 font-medium">Событие</th>
+                  <th className="px-6 py-4 font-medium">Источник (Платформа)</th>
                   <th className="px-6 py-4 font-medium">{t('details')}</th>
                 </tr>
               </thead>
@@ -114,19 +155,18 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                         isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-700'
                       }`}>
                         <Activity className="w-3.5 h-3.5" />
-                        {translateAction(log.action)}
+                        {getReadableLog(log)}
                       </span>
                     </td>
                     <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                      {log.entity_type} {log.shipment_number && (
-                        <span className={`ml-2 px-2 py-0.5 rounded text-xs ${isDark ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-                          {log.shipment_number}
-                        </span>
-                      )}
+                      {log.user_role === 'courier' ? 'Приложение Курьера' : 
+                       log.user_role === 'receiver' ? 'Терминал Приемосдатчика' : 
+                       log.user_role === 'individual' || log.user_role === 'corporate' ? 'Личный кабинет клиента' : 
+                       'Панель управления'}
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {log.new_value ? (
-                        <span>{t('newValue')}{log.new_value}</span>
+                        <span>Изменен статус на: {log.new_value}</span>
                       ) : (
                         <span>{log.reason || '-'}</span>
                       )}
