@@ -46,11 +46,21 @@ function AppContent() {
   }
 
   const [currentPage, setCurrentPage] = useState(() => {
+    const allowedByRole: Record<string, string[]> = {
+      manager: ['dashboard', 'new-shipment', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients'],
+      direction_head: ['dashboard'],
+      chief_head: ['dashboard'],
+    };
+    const role = user?.role || '';
+    const allowed = allowedByRole[role] || null;
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('currentPage');
-      if (saved) return saved;
+      // Only restore if the saved page is allowed for this role (or role has no restrictions)
+      if (saved && (!allowed || allowed.includes(saved))) return saved;
     }
-    return user?.role === 'admin' || user?.role === 'manager' || user?.role === 'direction_head' || user?.role === 'chief_head' ? 'dashboard' : 'new-shipment';
+    // Default: dashboard for managers/admins, new-shipment otherwise
+    return allowed ? allowed[0] : 'new-shipment';
   });
   // На мобильных закрыты по умолчанию, на десктопе открыты (оба на lg - 1024px)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 1024);
