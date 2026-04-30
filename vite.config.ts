@@ -71,13 +71,20 @@ export default defineConfig({
     },
   },
   preview: {
+    allowedHosts: true,
     host: '0.0.0.0',
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8080',
+      '/api': {
+        target: 'https://cargo-trans-mvp-production.up.railway.app',
+        changeOrigin: true,
+        secure: false,
+      },
       '/socket.io': {
-        target: 'ws://localhost:8080',
+        target: 'wss://cargo-trans-mvp-production.up.railway.app',
         ws: true,
+        changeOrigin: true,
+        secure: false,
       },
     },
   }

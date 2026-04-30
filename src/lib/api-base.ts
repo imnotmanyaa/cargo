@@ -3,11 +3,10 @@ const rawApiBase = (import.meta.env.VITE_API_URL || "").trim();
 export const API_BASE = rawApiBase.replace(/\/+$/, "");
 
 export function withApiBase(input: string): string {
+  // Use relative URLs so that vite preview proxy intercepts the requests
   if (!input) return input;
-  if (!API_BASE) return input;
-  if (/^https?:\/\//i.test(input) || /^wss?:\/\//i.test(input)) return input;
-  if (!input.startsWith("/")) return input;
-  return `${API_BASE}${input}`;
+  if (!input.startsWith("/")) return `/${input}`;
+  return input;
 }
 
 export function wsBaseFromApi(): string {
