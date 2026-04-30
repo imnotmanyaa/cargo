@@ -587,7 +587,7 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 		model.ShipmentDraft:           {model.ShipmentCreated},
 		model.ShipmentCreatedDoor:     {model.ShipmentPaymentPending, model.ShipmentPickupAssigned, model.ShipmentCancelled},
 		model.ShipmentPickupAssigned:  {model.ShipmentPickedUp, model.ShipmentCancelled},
-		model.ShipmentPickedUp:        {model.ShipmentAtStationIntake, model.ShipmentCancelled},
+		model.ShipmentPickedUp:        {model.ShipmentAtStationIntake, model.ShipmentReadyForLoading, model.ShipmentCancelled},
 		model.ShipmentAtStationIntake: {model.ShipmentReadyForLoading, model.ShipmentPaymentPending, model.ShipmentCancelled},
 		model.ShipmentCreated:         {model.ShipmentPaymentPending, model.ShipmentCancelled},
 		model.ShipmentPaymentPending:  {model.ShipmentPaid, model.ShipmentCancelled},
