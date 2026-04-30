@@ -66,8 +66,13 @@ export function QrLogin() {
         if (data.token) {
           localStorage.setItem('token', data.token);
         }
-        const meRes = await fetch(resolveApiUrl('/api/auth/me'), { cache: 'no-store' });
+        
+        const meRes = await fetch(resolveApiUrl('/api/auth/me'), { 
+          cache: 'no-store',
+          headers: { 'Authorization': `Bearer ${data.token}` }
+        });
         const meData = meRes.ok ? await meRes.json() : data;
+        
         const user = {
           ...meData,
           depositBalance: meData.deposit_balance,
@@ -81,9 +86,15 @@ export function QrLogin() {
           window.location.replace('/');
         }, 500);
       } catch (e: any) {
+        console.error("QR Login Error:", e);
         const msg = e?.message || 'Ошибка QR-входа';
-        setMessage(msg.includes('aborted') || msg.includes('Failed to fetch')
-          ? 'Ошибка сети. Проверьте подключение к интернету и повторите сканирование.'
+        const isNetworkError = msg.toLowerCase().includes('abort') || 
+                               msg.toLowerCase().includes('failed to fetch') || 
+                               msg.toLowerCase().includes('network error') ||
+                               msg.toLowerCase().includes('load failed');
+        
+        setMessage(isNetworkError 
+          ? `Сетевая ошибка (${msg}). Проверьте интернет или закройте встроенный браузер и откройте в Safari/Chrome.` 
           : msg);
         setIsError(true);
       }
