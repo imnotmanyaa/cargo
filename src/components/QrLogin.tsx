@@ -56,8 +56,9 @@ export function QrLogin() {
     }
 
     (async () => {
+      const apiUrl = resolveApiUrl('/api/auth/qr-login');
       try {
-        const res = await fetch(resolveApiUrl('/api/auth/qr-login'), {
+        const res = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
@@ -101,7 +102,7 @@ export function QrLogin() {
                                msg.toLowerCase().includes('load failed');
         
         setMessage(isNetworkError 
-          ? `Сетевая ошибка (${msg}). Проверьте интернет или закройте встроенный браузер и откройте в Safari/Chrome.` 
+          ? `Сетевая ошибка (${msg}) при запросе к ${apiUrl}. Проверьте интернет или откройте в Chrome.` 
           : msg);
         setIsError(true);
       }
