@@ -250,7 +250,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
           <div className={`${card} flex flex-col items-center justify-center py-8`}>
             <p className={`text-sm font-medium mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('qrForScanner')}</p>
             <div id="qr-code-container" className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-              <QRCodeSVG value={shipment.id} size={140} />
+              <QRCodeSVG value={shipment.shipment_number || shipment.id} size={140} />
             </div>
           </div>
         </div>

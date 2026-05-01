@@ -459,7 +459,7 @@ export function CourierDashboard() {
                   <div className="flex-1 flex flex-col items-center">
                     <p className="text-sm text-gray-500 mb-2">Покажите QR приемосдатчику</p>
                     <div className="p-2 bg-white rounded-lg">
-                      <QRCodeSVG value={selectedTask.id} size={150} level="H" />
+                      <QRCodeSVG value={selectedTask.parcelCode || selectedTask.id} size={150} level="H" />
                     </div>
                   </div>
                 )}
