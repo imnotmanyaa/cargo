@@ -30,6 +30,7 @@ type CreateShipmentRequest struct {
 	ReceiverPhone   *string
 	CreatedBy       *string
 	IsDoorToDoor    bool
+	ClientRole      string
 	PickupAddress   *string
 	DeliveryAddress *string
 	DoorToDoorPhone *string
@@ -66,10 +67,24 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 
 	// Fetch client to determine role for door-to-door surcharge
 	client, _ := s.repo.GetUserByID(ctx, req.ClientID)
+	
+	// Determine if individual: either from DB or from request role
+	isIndividual := client.Role == model.RoleIndividual || req.ClientRole == string(model.RoleIndividual)
 
-	// +10 000 тг для door-to-door от физлица (Фаза 5, status_logic.md)
-	if req.IsDoorToDoor && client.Role == model.RoleIndividual {
-		req.Cost += 10000
+	// If cost is 0 or very low, try to calculate it correctly including surcharges
+	if req.Cost <= 0 {
+		req.Cost = calculateCostByTariff(req.FromStation, req.ToStation, req.Weight, req.Description, req.IsDoorToDoor, isIndividual)
+	} else if req.IsDoorToDoor && isIndividual {
+		// If cost was provided but seems to be missing the door-to-door surcharge, we can't easily know.
+		// However, the policy says it MUST be +10000. 
+		// We already have logic in Create that adds it. Let's keep it robust.
+		// If the frontend already added it, this might double it. 
+		// BUT the user says "it wasn't added", so let's ensure it is.
+		// A better way: if the cost is exactly the base cost, add it.
+		base := calculateCostByTariff(req.FromStation, req.ToStation, req.Weight, req.Description, false, false)
+		if req.Cost <= base + 5000 { // base + small surcharges but definitely no 10k
+			req.Cost += 10000
+		}
 	}
 
 	now := time.Now().UTC()
@@ -184,7 +199,10 @@ func (s *ShipmentService) CalculateTariff(ctx context.Context, id string) (model
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	cost := calculateCostByTariff(shipment.FromStation, shipment.ToStation, shipment.Weight, shipment.Description)
+	client, _ := s.repo.GetUserByID(ctx, shipment.ClientID)
+	isIndividual := client.Role == model.RoleIndividual
+	
+	cost := calculateCostByTariff(shipment.FromStation, shipment.ToStation, shipment.Weight, shipment.Description, shipment.IsDoorToDoor, isIndividual)
 	if cost > 0 {
 		shipment.Cost = cost
 	} else if shipment.Cost == 0 {

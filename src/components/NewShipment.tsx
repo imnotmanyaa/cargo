@@ -126,6 +126,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           receiver_name: shipmentData.receiverName || null,
           receiver_phone: shipmentData.receiverPhone || null,
           is_door_to_door: shipmentData.isDoorToDoor,
+          client_role: shipmentData.clientType === 'legal' ? 'corporate' : 'individual',
           pickup_address: shipmentData.isDoorToDoor ? shipmentData.pickupAddress : null,
           delivery_address: shipmentData.isDoorToDoor ? shipmentData.deliveryAddress : null,
           door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null

@@ -34,7 +34,7 @@ func getBaseRate(from, to string) float64 {
 	return 5000 // Fallback
 }
 
-func calculateCostByTariff(fromStation, toStation string, weightStr string, description string) float64 {
+func calculateCostByTariff(fromStation, toStation string, weightStr string, description string, isDoorToDoor bool, isIndividual bool) float64 {
 	if fromStation == "" || toStation == "" || weightStr == "" {
 		return 0
 	}
@@ -58,8 +58,11 @@ func calculateCostByTariff(fromStation, toStation string, weightStr string, desc
 	if isOversized {
 		cost += 2500
 	}
-	// For ticket discount, we'd need that parameter from the DB (Shipment doesn't currently store 'hasTicket' natively to recalculate identically from nothing without it mapped)
-	// We'll trust Cost for initial, but for calculate-tariff we replicate core logic.
+	
+	// +10 000 тг для door-to-door от физлица (Фаза 5, status_logic.md)
+	if isDoorToDoor && isIndividual {
+		cost += 10000
+	}
 
 	return math.Round(cost)
 }
