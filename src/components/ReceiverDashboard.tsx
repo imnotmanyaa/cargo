@@ -107,33 +107,33 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         const action = body.action as 'LOADED' | 'ARRIVED' | 'READY_FOR_LOADING';
         const shipmentNum = body.shipment?.shipment_number || id;
         const msg = body.message || (action === 'LOADED'
-          ? `Груз ${shipmentNum} погружен ✓`
+          ? t('shipmentLoadedMsg').replace('{num}', shipmentNum)
           : action === 'READY_FOR_LOADING'
-          ? `Груз ${shipmentNum} принят на склад ✓`
-          : `Груз ${shipmentNum} принят ✓`);
+          ? t('shipmentIntakeMsg').replace('{num}', shipmentNum)
+          : t('shipmentArrivedMsg').replace('{num}', shipmentNum));
 
         setFeedback({ type: 'success', message: msg });
         setAuditLog(prev => [{
           id: Date.now().toString(),
-          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           action,
           shipmentNumber: shipmentNum,
           message: msg,
         }, ...prev]);
       } else {
         const isConflict = res.status === 409;
-        const errMsg = body.error || 'Ошибка сканирования';
+        const errMsg = body.error || t('scanError');
         setFeedback({ type: isConflict ? 'warning' : 'error', message: errMsg });
         setAuditLog(prev => [{
           id: Date.now().toString(),
-          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           action: 'ERROR',
           shipmentNumber: id,
           message: errMsg,
         }, ...prev]);
       }
     } catch {
-      setFeedback({ type: 'error', message: 'Ошибка сети. Проверьте подключение.' });
+      setFeedback({ type: 'error', message: t('networkError') });
     } finally {
       setProcessing(false);
     }
@@ -153,7 +153,12 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         },
         body: JSON.stringify({
           actual_weight: actualWeight.trim(),
-                 if (res.ok) {
+          station: station
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+
+      if (res.ok) {
         const shipmentNum = weightMode.shipmentNumber;
         let msg = body.message || t('shipmentIntakeMsg').replace('{num}', shipmentNum);
         let type: 'success' | 'warning' | 'error' = 'success';
