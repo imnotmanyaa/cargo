@@ -25,7 +25,11 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
     hasTicket: false,
   }) || 0;
 
-  const total = calculateShipmentCost(data) || 0;
+  const total = calculateShipmentCost({
+    ...data,
+    isFragile: data.value?.toLowerCase().includes('хрупк') || data.description?.toLowerCase().includes('хрупк'),
+    isOversized: data.value?.toLowerCase().includes('негабарит') || data.description?.toLowerCase().includes('негабарит')
+  }) || 0;
   const isLegal = data.clientType === 'legal';
   const isManagerFlow = user?.role === 'manager' || user?.role === 'admin';
   const paymentMethod = data.paymentMethod || 'cash';

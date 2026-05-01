@@ -59,20 +59,16 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   };
 
   const calculateCost = () => {
-    let cost = calculateShipmentCost({
+    return calculateShipmentCost({
       fromStation: shipmentData.fromStation,
       toStation: shipmentData.toStation,
       weight: shipmentData.weight,
       isFragile: shipmentData.value?.toLowerCase().includes('хрупк') || shipmentData.description?.toLowerCase().includes('хрупк'),
       isOversized: shipmentData.value?.toLowerCase().includes('негабарит') || shipmentData.description?.toLowerCase().includes('негабарит'),
-      hasTicket: false // Currently not asked on single page form, left default
+      hasTicket: false, // Currently not asked on single page form, left default
+      isDoorToDoor: shipmentData.isDoorToDoor,
+      clientType: shipmentData.clientType
     }) || 0;
-    
-    if (shipmentData.isDoorToDoor && shipmentData.clientType === 'individual') {
-      cost += 10000;
-    }
-    
-    return cost;
   };
 
   const normalizeStation = (v: string) => v.trim().toLowerCase();

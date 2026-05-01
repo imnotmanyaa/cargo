@@ -1,4 +1,4 @@
-ALTER TABLE shipments ADD COLUMN IF NOT EXISTS courier_id UUID;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS courier_id TEXT;
 
 UPDATE shipments s
 SET courier_id = (

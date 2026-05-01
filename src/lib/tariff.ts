@@ -43,6 +43,8 @@ export interface TariffParams {
   isFragile?: boolean;
   isOversized?: boolean;
   hasTicket?: boolean;
+  isDoorToDoor?: boolean;
+  clientType?: string;
 }
 
 /**
@@ -59,7 +61,7 @@ export function getBaseRate(from: string, to: string): number {
  * Возвращает null если данных недостаточно.
  */
 export function calculateShipmentCost(params: TariffParams): number | null {
-  const { fromStation, toStation, weight, isFragile, isOversized, hasTicket } = params;
+  const { fromStation, toStation, weight, isFragile, isOversized, hasTicket, isDoorToDoor, clientType } = params;
 
   if (!fromStation || !toStation || !weight) return null;
 
@@ -72,6 +74,9 @@ export function calculateShipmentCost(params: TariffParams): number | null {
   if (isFragile) cost += FRAGILE_SURCHARGE;
   if (isOversized) cost += OVERSIZED_SURCHARGE;
   if (hasTicket) cost *= TICKET_DISCOUNT;
+  if (isDoorToDoor && clientType === 'individual') {
+    cost += 10000;
+  }
 
   return Math.round(cost);
 }

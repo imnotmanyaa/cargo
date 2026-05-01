@@ -18,9 +18,10 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
     fromStation: data.fromStation,
     toStation: data.toStation,
     weight: data.weight,
-    isFragile: data.isFragile,
-    isOversized: data.isOversized,
-    hasTicket: data.hasTicket
+    isFragile: data.value?.toLowerCase().includes('хрупк') || data.description?.toLowerCase().includes('хрупк'),
+    isOversized: data.value?.toLowerCase().includes('негабарит') || data.description?.toLowerCase().includes('негабарит'),
+    isDoorToDoor: data.isDoorToDoor,
+    clientType: data.clientType
   });
 
   const input = `w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${

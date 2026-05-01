@@ -64,10 +64,7 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		return model.Shipment{}, err
 	}
 
-	clientUser, err := s.repo.GetUserByID(ctx, req.ClientID)
-	if err == nil && req.IsDoorToDoor && clientUser.Role == model.RoleIndividual {
-		req.Cost += 10000
-	}
+	_, _ = s.repo.GetUserByID(ctx, req.ClientID)
 
 	now := time.Now().UTC()
 	route := calculateRoute(req.FromStation, req.ToStation)
