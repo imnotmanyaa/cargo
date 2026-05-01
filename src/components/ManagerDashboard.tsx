@@ -119,7 +119,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   // 3. «Активные»
   const activeShipmentsList = applySortAndFilter(s.filter(x => 
     x.from_station === myStation &&
-    ['READY_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
+    ['AT_STATION_INTAKE', 'READY_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
 
@@ -293,7 +293,15 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-bold text-blue-600">{s.shipment_number}</span>
                     <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
-                      {s.shipment_status === 'CREATED_DOOR' ? 'Ожидает курьера' : s.shipment_status === 'PICKUP_ASSIGNED' ? 'Курьер назначен' : 'У курьера'}
+                      {(() => {
+                        const st = s.shipment_status || s.status || '';
+                        if (st === 'CREATED_DOOR') return 'Ожидает курьера';
+                        if (st === 'PICKUP_ASSIGNED') return 'Курьер едет';
+                        if (st === 'PICKED_UP') return 'Груз забран';
+                        if (st === 'PAYMENT_PENDING') return 'Ожидает оплаты';
+                        if (st === 'PAID') return 'Оплачено';
+                        return 'Ожидает курьера';
+                      })()}
                     </span>
                   </div>
                   <div className="text-sm font-medium mb-1">{s.client_name}</div>

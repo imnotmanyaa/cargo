@@ -56,12 +56,20 @@ export function CourierDashboard() {
 
   const getStatusTranslation = (status: string) => {
     const dict: Record<string, string> = {
-      'CREATED_DOOR': t('courierStatusWaitingPickup'),
-      'PICKUP_ASSIGNED': t('courierStatusAssigned'),
-      'PICKED_UP': t('courierStatusPickedUp'),
-      'READY_FOR_ISSUE': t('courierStatusWaitingDelivery'),
-      'ISSUED': t('courierStatusDelivered'),
-      'READY_FOR_LOADING': t('courierStatusLoaded')
+      'CREATED_DOOR': 'Оформлено',
+      'CREATED': 'Оформлено',
+      'PAYMENT_PENDING': 'Ожидает оплаты',
+      'PAID': 'Оплачено',
+      'PICKUP_ASSIGNED': 'Еду к клиенту',
+      'PICKED_UP': 'Груз забран',
+      'AT_STATION_INTAKE': 'Сдано на склад — Завершено',
+      'READY_FOR_LOADING': 'На складе',
+      'READY_FOR_ISSUE': 'Готово к выдаче',
+      'ISSUED': 'Доставлено',
+      'LOADED': 'В вагоне',
+      'IN_TRANSIT': 'В пути',
+      'ARRIVED': 'Прибыло',
+      'CANCELLED': 'Отменено',
     };
     return dict[status] || status;
   };
