@@ -184,11 +184,6 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     } catch {
       setFeedback({ type: 'error', message: t('networkError') });
     } finally {
-error', message: body.error || 'Ошибка подтверждения веса' });
-      }
-    } catch {
-      setFeedback({ type: 'error', message: 'Ошибка сети. Проверьте подключение.' });
-    } finally {
       setProcessing(false);
     }
   };
