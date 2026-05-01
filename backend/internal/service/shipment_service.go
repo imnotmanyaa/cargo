@@ -64,7 +64,13 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		return model.Shipment{}, err
 	}
 
-	_, _ = s.repo.GetUserByID(ctx, req.ClientID)
+	// Fetch client to determine role for door-to-door surcharge
+	client, _ := s.repo.GetUserByID(ctx, req.ClientID)
+
+	// +10 000 тг для door-to-door от физлица (Фаза 5, status_logic.md)
+	if req.IsDoorToDoor && client.Role == model.RoleIndividual {
+		req.Cost += 10000
+	}
 
 	now := time.Now().UTC()
 	route := calculateRoute(req.FromStation, req.ToStation)

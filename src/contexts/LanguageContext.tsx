@@ -392,7 +392,6 @@ const translations = {
     pay: 'Оплатить',
     processing: 'Обработка...',
     topUp: 'Пополнить',
-    myShipments: 'Мои отправки',
     myShipmentsDesc: 'Управление корпоративными перевозками',
 
     pendingPickup: 'Ожидают забора',
@@ -862,7 +861,6 @@ const translations = {
     pay: 'Pay',
     processing: 'Processing...',
     topUp: 'Top Up',
-    myShipments: 'My Shipments',
     myShipmentsDesc: 'Manage corporate shipments',
 
     pendingPickup: 'Pending pickup',
@@ -1332,7 +1330,6 @@ const translations = {
     pay: 'Төлеу',
     processing: 'Өңделуде...',
     topUp: 'Толықтыру',
-    myShipments: 'Менің жөнелтулерім',
     myShipmentsDesc: 'Корпоративтік тасымалдарды басқару',
     activeShipments: 'Белсенді жөнелтулер',
     pendingPickup: 'Алып кетуді күтуде',
