@@ -687,8 +687,13 @@ func (s *ShipmentService) CourierTakeTask(ctx context.Context, id string, operat
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	// We do not change status, just assign operator
-	return s.transition(ctx, id, shipment.ShipmentStatus, operatorID, operatorName, nil, "Courier took task", nil)
+	// Transition to PICKUP_ASSIGNED status when courier takes the task
+	nextStatus := model.ShipmentPickupAssigned
+	if !isAllowedTransition(shipment.ShipmentStatus, nextStatus) {
+		// If already assigned (e.g. PAID), keep as pickup assigned by force through history only
+		return s.transition(ctx, id, shipment.ShipmentStatus, operatorID, operatorName, nil, "Courier took task", nil)
+	}
+	return s.transition(ctx, id, nextStatus, operatorID, operatorName, nil, "Courier took task", nil)
 }
 
 func (s *ShipmentService) CourierDeliveryConfirm(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {

@@ -133,7 +133,7 @@ const translations = {
     inTransit: 'В пути',
     loaded: 'Погружен',
     arrived: 'Прибыл',
-    
+
     // Shipment Details
     mainInfo: 'Основная информация',
     routeInfo: 'Маршрут',
@@ -443,7 +443,7 @@ const translations = {
     paymentLogDesc: 'История оплат',
     totalSum: 'Итоговая сумма',
     confirmDeleteClient: 'Вы уверены, что хотите удалить этого клиента?',
-    
+
     // Receiver Tabs
     loadingPlan: 'План',
     arrivalTab: 'Прибытие',

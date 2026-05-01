@@ -41,6 +41,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const fetchShipments = async () => {
@@ -65,23 +66,38 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
 
   const prettyStatus = (shipment: Shipment) => {
     const s = String((shipment as any).shipment_status || shipment.status || '').toUpperCase();
-    if (s === 'CREATED' || s === 'PAYMENT_PENDING' || s === 'PAID' || s === 'READY_FOR_LOADING') return t('statusRegistered');
-    if (s === 'LOADED') return t('statusLoaded');
-    if (s === 'IN_TRANSIT') return t('statusInTransit');
-    if (s === 'ARRIVED') return t('statusArrived');
-    if (s === 'READY_FOR_ISSUE') return t('statusReadyForIssue');
-    if (s === 'ISSUED') return t('statusIssued');
-    return shipment.status || t('statusRegistered');
+    if (s === 'CREATED_DOOR' || s === 'CREATED') return 'Оформлено';
+    if (s === 'PAYMENT_PENDING') return 'Ожидает оплаты';
+    if (s === 'PAID') return 'Оплачено';
+    if (s === 'PICKUP_ASSIGNED') return 'Курьер назначен';
+    if (s === 'PICKED_UP') return 'Курьер забрал';
+    if (s === 'AT_STATION_INTAKE' || s === 'READY_FOR_LOADING') return 'На складе';
+    if (s === 'LOADED') return 'Загружено в поезд';
+    if (s === 'IN_TRANSIT') return 'В пути';
+    if (s === 'ARRIVED') return 'Прибыло';
+    if (s === 'READY_FOR_ISSUE') return 'Готово к выдаче';
+    if (s === 'ISSUED') return 'Выдано';
+    if (s === 'CANCELLED') return 'Отменено';
+    return shipment.status || 'Оформлено';
   };
 
   const statusTone = (status: string) => {
-    const s = String((status || '')).toUpperCase();
-    if (s.includes('ISSUED') || status === t('statusIssued')) return 'bg-emerald-100 text-emerald-700';
-    if (s.includes('ARRIVED') || s.includes('READY_FOR_ISSUE') || status === t('statusArrived') || status === t('statusReadyForIssue')) return 'bg-green-100 text-green-700';
-    if (s.includes('IN_TRANSIT') || status === t('statusInTransit')) return 'bg-blue-100 text-blue-700';
-    if (s.includes('LOADED') || status === t('statusLoaded')) return 'bg-purple-100 text-purple-700';
+    if (status === 'Выдано') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'Готово к выдаче' || status === 'Прибыло') return 'bg-green-100 text-green-700';
+    if (status === 'В пути') return 'bg-blue-100 text-blue-700';
+    if (status === 'Загружено в поезд') return 'bg-purple-100 text-purple-700';
+    if (status === 'Курьер назначен') return 'bg-orange-100 text-orange-700';
+    if (status === 'Курьер забрал' || status === 'На складе') return 'bg-teal-100 text-teal-700';
+    if (status === 'Отменено') return 'bg-red-100 text-red-700';
     return 'bg-yellow-100 text-yellow-700';
   };
+
+  const filteredShipments = shipments.filter(s =>
+    !search ||
+    s.shipment_number?.toLowerCase().includes(search.toLowerCase()) ||
+    s.from_station?.toLowerCase().includes(search.toLowerCase()) ||
+    s.to_station?.toLowerCase().includes(search.toLowerCase())
+  );
 
   const openDetails = (shipment: Shipment) => {
     setSelectedShipment(shipment);
@@ -151,16 +167,23 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
 
       {/* My Shipments */}
       <div className={`rounded-lg shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        <div className={`p-6 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-          <h2 className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('myShipments')}</h2>
+        <div className={`p-6 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} flex flex-col sm:flex-row sm:items-center gap-3`}>
+          <h2 className={`text-lg font-semibold flex-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('myShipments')}</h2>
+          <input
+            type="text"
+            placeholder="Поиск по номеру или маршруту..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className={`px-3 py-2 text-sm border rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'}`}
+          />
         </div>
         <div className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
           {loading ? (
             <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('processing')}</div>
-          ) : shipments.length === 0 ? (
-            <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('noShipmentsYet')}</div>
+          ) : filteredShipments.length === 0 ? (
+            <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{search ? 'Ничего не найдено' : t('noShipmentsYet')}</div>
           ) : (
-            shipments.map((shipment) => (
+            filteredShipments.map((shipment) => (
               <div
                 key={shipment.id}
                 onClick={() => openDetails(shipment)}

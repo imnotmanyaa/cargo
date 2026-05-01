@@ -33,6 +33,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'door' | 'waiting' | 'active' | 'arrival'>('door');
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
+  const [search, setSearch] = useState('');
 
   // Modal Issue
   const [issueModal, setIssueModal] = useState<{ isOpen: boolean; shipmentId: string | null; error: string | null }>({ isOpen: false, shipmentId: null, error: null });
@@ -71,30 +72,45 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const s = shipments;
   const myStation = user?.station || '';
 
+  const matchSearch = (x: any) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (x.shipment_number || '').toLowerCase().includes(q) ||
+      (x.client_name || '').toLowerCase().includes(q) ||
+      (x.from_station || '').toLowerCase().includes(q) ||
+      (x.to_station || '').toLowerCase().includes(q)
+    );
+  };
+
   // 1. «До двери»
   const doorShipments = s.filter(x => 
     x.is_door_to_door && 
     x.from_station === myStation &&
-    ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR', 'PICKUP_ASSIGNED', 'PICKED_UP'].includes(x.shipment_status || x.status)
+    ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR', 'PICKUP_ASSIGNED', 'PICKED_UP'].includes(x.shipment_status || x.status) &&
+    matchSearch(x)
   );
 
   // 2. «Ожидают привоза»
   const waitingShipments = s.filter(x => 
     !x.is_door_to_door && 
     x.from_station === myStation &&
-    ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status)
+    ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status) &&
+    matchSearch(x)
   );
 
   // 3. «Активные»
   const activeShipmentsList = s.filter(x => 
     x.from_station === myStation &&
-    ['READY_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status)
+    ['READY_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
+    matchSearch(x)
   );
 
   // 4. «Прибытие»
   const arrivalShipments = s.filter(x => 
     x.to_station === myStation &&
-    (x.shipment_status || x.status) === 'ARRIVED'
+    (x.shipment_status || x.status) === 'ARRIVED' &&
+    matchSearch(x)
   );
 
   const formatDate = (d: string) => {
@@ -179,9 +195,18 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Дашборд менеджера</h1>
-        <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Управление посылками на станции {myStation}</p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold mb-2">\u0414\u0430\u0448\u0431\u043e\u0440\u0434 \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u0430</h1>
+          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u0441\u044b\u043b\u043a\u0430\u043c\u0438 \u043d\u0430 \u0441\u0442\u0430\u043d\u0446\u0438\u0438 {myStation}</p>
+        </div>
+        <input
+          type="text"
+          placeholder="\u041f\u043e\u0438\u0441\u043a: \u043d\u043e\u043c\u0435\u0440, \u043a\u043b\u0438\u0435\u043d\u0442, \u043c\u0430\u0440\u0448\u0440\u0443\u0442..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className={`px-3 py-2 text-sm border rounded-lg w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'}`}
+        />
       </div>
 
       <div className={`mb-6 flex overflow-x-auto border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
