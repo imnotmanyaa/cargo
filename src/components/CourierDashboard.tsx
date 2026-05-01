@@ -89,21 +89,39 @@ export function CourierDashboard() {
           type = 'pickup';
         }
         
-        // Determine logical status
-        if (!sh.operator_id) {
-          status = 'pending';
-        } else if (sh.operator_id === user?.id) {
-          if (type === 'pickup') {
-            if (sh.shipment_status === 'PICKUP_ASSIGNED') status = 'in_progress';
-            if (sh.shipment_status === 'PICKED_UP') status = 'picked_up';
-            if (sh.shipment_status === 'READY_FOR_LOADING') status = 'completed';
+        const rawSt: string = sh.shipment_status || '';
+        const myId = user?.id || '';
+        const opId: string = sh.operator_id || '';
+
+        // Determine logical status primarily from shipment_status
+        if (type === 'pickup') {
+          if (rawSt === 'PICKUP_ASSIGNED' || rawSt === 'PAID') {
+            // If assigned to me - in progress; if assigned to someone else - hide
+            if (opId && opId !== myId) {
+              status = 'cancelled'; // another courier took it
+            } else if (opId === myId) {
+              status = 'in_progress';
+            } else {
+              // PAID but no operator - still pending for pickup
+              status = rawSt === 'PAID' ? 'in_progress' : 'pending';
+            }
+          } else if (rawSt === 'PICKED_UP') {
+            status = opId === myId || !opId ? 'picked_up' : 'cancelled';
+          } else if (rawSt === 'READY_FOR_LOADING' || rawSt === 'AT_STATION_INTAKE') {
+            status = 'completed';
           } else {
-            if (sh.shipment_status === 'READY_FOR_ISSUE') status = 'in_progress';
-            if (sh.shipment_status === 'ISSUED') status = 'completed';
+            // CREATED_DOOR, PAYMENT_PENDING, CREATED - available to take
+            status = opId && opId !== myId ? 'cancelled' : 'pending';
           }
         } else {
-          // Assigned to someone else - we will filter it out
-          status = 'cancelled';
+          // delivery type
+          if (rawSt === 'READY_FOR_ISSUE') {
+            status = opId === myId || !opId ? 'in_progress' : 'cancelled';
+          } else if (rawSt === 'ISSUED') {
+            status = 'completed';
+          } else {
+            status = opId && opId !== myId ? 'cancelled' : 'pending';
+          }
         }
 
         return {
@@ -217,19 +235,38 @@ export function CourierDashboard() {
     if (!selectedTask) return;
     try {
       if (selectedTask.type === 'pickup') {
-        const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/pickup-confirm`), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-          body: JSON.stringify({ confirmed_at: new Date().toISOString() })
-        });
-        if (resp.ok) {
-          await loadTasks();
-          toast.success('Забор груза завершен');
-          setShowDetailsDialog(false);
-        } else {
-          toast.error('Ошибка завершения');
+        if (selectedTask.status === 'in_progress') {
+          // PICKUP_ASSIGNED → PICKED_UP: courier picked up from client
+          const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/pickup-confirm`), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+            body: JSON.stringify({ confirmed_at: new Date().toISOString() })
+          });
+          if (resp.ok) {
+            await loadTasks();
+            toast.success('Груз забран у клиента');
+            setShowDetailsDialog(false);
+          } else {
+            const err = await resp.json().catch(() => ({}));
+            toast.error(err.error || 'Ошибка');
+          }
+        } else if (selectedTask.status === 'picked_up') {
+          // PICKED_UP → READY_FOR_LOADING: courier delivered to station
+          const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/station-intake`), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
+          });
+          if (resp.ok) {
+            await loadTasks();
+            toast.success('Посылка сдана на склад');
+            setShowDetailsDialog(false);
+          } else {
+            const err = await resp.json().catch(() => ({}));
+            toast.error(err.error || 'Ошибка при сдаче на склад');
+          }
         }
       } else {
+        // delivery type
         const resp = await fetch(withApiBase(`/api/shipments/${selectedTask.id}/delivery-confirm`), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
@@ -239,7 +276,7 @@ export function CourierDashboard() {
           toast.success('Доставка завершена');
           setShowDetailsDialog(false);
         } else {
-          const err = await resp.json();
+          const err = await resp.json().catch(() => ({}));
           toast.error(err.error || 'Ошибка завершения доставки');
         }
       }
@@ -413,8 +450,8 @@ export function CourierDashboard() {
                 )}
                 
                 {selectedTask.status === 'picked_up' && selectedTask.type === 'pickup' && (
-                  <Button className="flex-1 bg-gray-500 hover:bg-gray-600 text-white" disabled>
-                    Сдайте на станцию
+                  <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={handleCompleteTask}>
+                    Сдать на склад
                   </Button>
                 )}
 

@@ -197,12 +197,12 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold mb-2">\u0414\u0430\u0448\u0431\u043e\u0440\u0434 \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u0430</h1>
-          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u0441\u044b\u043b\u043a\u0430\u043c\u0438 \u043d\u0430 \u0441\u0442\u0430\u043d\u0446\u0438\u0438 {myStation}</p>
+          <h1 className="text-2xl font-bold mb-2">Дашборд менеджера</h1>
+          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Управление посылками на станции {myStation}</p>
         </div>
         <input
           type="text"
-          placeholder="\u041f\u043e\u0438\u0441\u043a: \u043d\u043e\u043c\u0435\u0440, \u043a\u043b\u0438\u0435\u043d\u0442, \u043c\u0430\u0440\u0448\u0440\u0443\u0442..."
+          placeholder="Поиск: номер, клиент, маршрут..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className={`px-3 py-2 text-sm border rounded-lg w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'}`}
