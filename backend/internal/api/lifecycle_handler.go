@@ -254,11 +254,6 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	if current.PaymentRequired {
-		writeError(w, http.StatusPaymentRequired, fmt.Sprintf("Выдача заблокирована: требуется доплата %.0f тг", current.ExtraCharge))
-		return
-	}
-
 	station := user.Station
 	role := user.Role
 
