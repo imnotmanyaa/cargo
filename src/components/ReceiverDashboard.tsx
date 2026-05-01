@@ -70,7 +70,9 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
   const handleScan = useCallback(async (raw: string) => {
     const id = extractId(raw);
-    if (!id || !user?.station) return;
+    if (!id) return;
+    // train_receiver has no fixed station — send empty string, backend uses token role
+    const station = user?.station || '';
 
     setProcessing(true);
     setScanInput('');
@@ -133,10 +135,10 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     } finally {
       setProcessing(false);
     }
-  }, [user?.station]);
-
+  }, [user?.station, user?.role]);
   const handleConfirmWeight = async () => {
-    if (!weightMode || !actualWeight.trim() || !user?.station) return;
+    if (!weightMode || !actualWeight.trim()) return;
+    const station = user?.station || '';
     setProcessing(true);
     
     try {
@@ -149,7 +151,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         },
         body: JSON.stringify({
           actual_weight: actualWeight.trim(),
-          station: user.station
+          station: station
         }),
       });
       const body = await res.json().catch(() => ({}));

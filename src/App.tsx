@@ -89,6 +89,7 @@ function AppContent() {
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
       receiver: ['receiver'],
+      train_receiver: ['receiver'],
       mobile_group: ['auditor'],
       corporate: ['corporate-dashboard'],
       individual: ['dashboard', 'new-shipment'],
@@ -280,7 +281,27 @@ function AppContent() {
     );
   }
 
-  // Leadership view: single page (dashboard + reports), no other navigation.
+  if (user?.role === 'train_receiver') {
+    return (
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <TopBar
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+          onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+          hideSidebarButtons={true}
+        />
+        <div className="flex" style={{ height: 'calc(100vh - 64px)' }}>
+          <main className={`flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <div className="p-4 md:p-8">
+              <ReceiverDashboard theme={theme} />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   if (user?.role === 'direction_head' || user?.role === 'chief_head') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
