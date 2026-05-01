@@ -1,6 +1,6 @@
 import { withApiBase } from "../lib/api-base";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { calculateShipmentCost } from '../lib/tariff';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,14 +25,15 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
 
   const [createdShipmentNumber, setCreatedShipmentNumber] = useState<string | null>(null);
   const [shipmentData, setShipmentData] = useState({
-    clientType: 'individual',
-    clientName: '',
+    clientId: user?.id || '',
+    clientType: user?.role === 'corporate' ? 'legal' : 'individual',
+    clientName: user?.name || '',
     corporateClientId: '',
     clientSource: '',
     clientPhone: '',
     aggregatorClientId: '',
     contractNumber: '',
-    hasDeposit: false,
+    hasDeposit: user?.role === 'corporate',
     fromStation: '',
     toStation: '',
     weight: '',
@@ -46,13 +47,26 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     ticketNumber: '',
     receiverName: '',
     receiverPhone: '',
-    paymentMethod: 'cash' as 'cash' | 'card' | 'deposit',
+    paymentMethod: (user?.role === 'corporate' ? 'deposit' : 'cash') as 'cash' | 'card' | 'deposit',
     clientDepositBalance: 0,
-    isDoorToDoor: false,
+    isDoorToDoor: user?.role === 'individual',
     pickupAddress: '',
     deliveryAddress: '',
     doorToDoorPhone: '',
   });
+
+  // Sync user data when auth loads
+  useEffect(() => {
+    if (user?.id) {
+      setShipmentData(prev => ({
+        ...prev,
+        clientId: user.id,
+        clientName: prev.clientName || user.name || '',
+        isDoorToDoor: user.role === 'individual' ? true : prev.isDoorToDoor,
+        clientType: user.role === 'corporate' ? 'legal' : prev.clientType,
+      }));
+    }
+  }, [user?.id]);
 
   const updateShipmentData = (data: Partial<typeof shipmentData>) => {
     setShipmentData({ ...shipmentData, ...data });
@@ -94,7 +108,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          client_id: shipmentData.clientType === 'legal' && shipmentData.corporateClientId ? shipmentData.corporateClientId : (user?.id || ''),
+          client_id: shipmentData.clientType === 'legal' && shipmentData.corporateClientId ? shipmentData.corporateClientId : (shipmentData.clientId || user?.id || ''),
           client_name: shipmentData.clientName,
           client_email: user?.email || '',
           from_station: shipmentData.fromStation,

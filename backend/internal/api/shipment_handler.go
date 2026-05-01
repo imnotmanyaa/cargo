@@ -68,10 +68,6 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	// Client roles (corporate/individual) have no assigned station — allow any from_station.
 	// Staff roles must work from their assigned station only.
 	isClientRole := user.Role == model.RoleCorporate || user.Role == model.RoleIndividual
-	if user.Role == model.RoleIndividual && !req.IsDoorToDoor {
-		writeError(w, http.StatusBadRequest, "Individual clients can create only door-to-door shipments")
-		return
-	}
 	if !isClientRole {
 		if err := s.requireStation(user, req.FromStation); err != nil {
 			handleServiceError(w, err)

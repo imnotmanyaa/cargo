@@ -75,6 +75,13 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
             </div>
           )}
 
+          {data.isDoorToDoor && data.clientType === 'individual' && (
+            <div className="flex justify-between text-sm">
+              <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Сервис от двери до двери</span>
+              <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ 10 000 ₸</span>
+            </div>
+          )}
+
           <div className={`pt-3 border-t flex justify-between ${isDark ? 'border-gray-600' : 'border-gray-200'}`}>
             <span className={`font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('totalPayment')}</span>
             <span className={`text-2xl font-bold ${isDark ? 'text-blue-400' : 'text-gray-900'}`}>{total.toLocaleString()} ₸</span>
