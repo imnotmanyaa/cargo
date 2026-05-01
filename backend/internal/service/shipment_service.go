@@ -68,8 +68,8 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	// Fetch client to determine role for door-to-door surcharge
 	client, _ := s.repo.GetUserByID(ctx, req.ClientID)
 	
-	// Determine if individual: either from DB or from request role
-	isIndividual := client.Role == model.RoleIndividual || req.ClientRole == string(model.RoleIndividual)
+	// Determine if surcharge applies: anything NOT explicitly corporate/legal (Фаза 5)
+	isIndividual := client.Role != model.RoleCorporate && req.ClientRole != string(model.RoleCorporate)
 
 	// If cost is 0 or very low, try to calculate it correctly including surcharges
 	if req.Cost <= 0 {
@@ -200,7 +200,7 @@ func (s *ShipmentService) CalculateTariff(ctx context.Context, id string) (model
 		return model.Shipment{}, err
 	}
 	client, _ := s.repo.GetUserByID(ctx, shipment.ClientID)
-	isIndividual := client.Role == model.RoleIndividual
+	isIndividual := client.Role != model.RoleCorporate
 	
 	cost := calculateCostByTariff(shipment.FromStation, shipment.ToStation, shipment.Weight, shipment.Description, shipment.IsDoorToDoor, isIndividual)
 	if cost > 0 {

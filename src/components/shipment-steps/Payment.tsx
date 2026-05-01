@@ -75,7 +75,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
             </div>
           )}
 
-          {data.isDoorToDoor && data.clientType === 'individual' && (
+          {data.isDoorToDoor && data.clientType !== 'legal' && (
             <div className="flex justify-between text-sm">
               <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Сервис от двери до двери</span>
               <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ 10 000 ₸</span>

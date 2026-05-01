@@ -74,7 +74,7 @@ export function calculateShipmentCost(params: TariffParams): number | null {
   if (isFragile) cost += FRAGILE_SURCHARGE;
   if (isOversized) cost += OVERSIZED_SURCHARGE;
   if (hasTicket) cost *= TICKET_DISCOUNT;
-  if (isDoorToDoor && clientType === 'individual') {
+  if (isDoorToDoor && clientType !== 'legal') {
     cost += 10000;
   }
 

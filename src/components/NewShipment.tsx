@@ -140,8 +140,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       }
       const shipment = await createRes.json();
       const shipmentId = shipment.id;
-
-      const calculatedCost = calculateCost();
+      const finalCost = shipment.cost; // Use the cost returned by the server!
 
       // Step 3: Send to payment
       const sendRes = await fetch(withApiBase(`/api/shipments/${shipmentId}/send-to-payment`), {
@@ -160,7 +159,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         headers,
         body: JSON.stringify({
           shipment_id: shipmentId,
-          amount: calculatedCost,
+          amount: finalCost,
           payment_method: shipmentData.paymentMethod || 'cash'
         })
       });
