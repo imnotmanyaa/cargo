@@ -40,13 +40,13 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       if (res.status === 401) {
-        throw new Error('Сессия истекла. Войдите заново.');
+        throw new Error(t('sessionExpired') || 'Сессия истекла. Войдите заново.');
       }
-      if (!res.ok) throw new Error('Не удалось загрузить быстрых клиентов');
+      if (!res.ok) throw new Error(t('errorLoadFrequent'));
       const payload = await res.json().catch(() => []);
       setItems(Array.isArray(payload) ? payload : []);
     } catch (e: any) {
-      setError(e?.message || 'Ошибка загрузки');
+      setError(e?.message || t('errorLoading'));
       setItems([]);
     } finally {
       setLoading(false);
@@ -68,11 +68,11 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.client_name.trim()) {
-      alert('Укажите имя клиента');
+      alert(t('provideClientName'));
       return;
     }
     if (form.provider === 'other' && !form.company_name.trim()) {
-      alert('Для "Другая компания" укажите название компании');
+      alert(t('provideCompanyName'));
       return;
     }
     try {
@@ -94,11 +94,11 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
         body: JSON.stringify(payload),
       });
       if (res.status === 401) {
-        throw new Error('Сессия истекла. Войдите заново.');
+        throw new Error(t('sessionExpired') || 'Сессия истекла. Войдите заново.');
       }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Не удалось сохранить клиента');
+        throw new Error(body.error || t('errorSaveFrequent'));
       }
       setForm({
         provider: form.provider,
@@ -110,7 +110,7 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
       });
       await load();
     } catch (e: any) {
-      alert(e?.message || 'Ошибка сохранения');
+      alert(e?.message || t('errorSaving'));
     } finally {
       setSaving(false);
     }
@@ -119,15 +119,15 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
   return (
     <div>
       <div className="mb-6">
-        <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Быстрые клиенты</h1>
+        <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('frequentClients')}</h1>
         <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-          {t('clientInfo')} для Glovo, Choko и других компаний.
+          {t('frequentClientsDesc')}
         </p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className={`xl:col-span-1 rounded-lg border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <h2 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Добавить клиента</h2>
+          <h2 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('addClient')}</h2>
           <form onSubmit={onCreate} className="space-y-3">
             <select
               value={form.provider}
@@ -136,38 +136,38 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
             >
               <option value="glovo">Glovo</option>
               <option value="choko">Choko</option>
-              <option value="other">Другая компания</option>
+              <option value="other">{t('otherCompany')}</option>
             </select>
             {form.provider === 'other' && (
               <input
                 value={form.company_name}
                 onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-                placeholder="Название компании"
+                placeholder={t('companyName')}
                 className={`w-full px-3 py-2 rounded-lg border ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
               />
             )}
             <input
               value={form.client_name}
               onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-              placeholder="ФИО клиента"
+              placeholder={t('clientFullName')}
               className={`w-full px-3 py-2 rounded-lg border ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
             />
             <input
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="Телефон"
+              placeholder={t('contactPhone')}
               className={`w-full px-3 py-2 rounded-lg border ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
             />
             <input
               value={form.contract_number}
               onChange={(e) => setForm({ ...form, contract_number: e.target.value })}
-              placeholder="Номер договора"
+              placeholder={t('contractNumber')}
               className={`w-full px-3 py-2 rounded-lg border ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
             />
             <textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Комментарий"
+              placeholder={t('notes')}
               rows={3}
               className={`w-full px-3 py-2 rounded-lg border ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
             />
@@ -175,15 +175,15 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
               disabled={saving}
               className="w-full px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400"
             >
-              {saving ? 'Сохраняем...' : 'Добавить'}
+              {saving ? t('saving') : t('add')}
             </button>
           </form>
         </div>
 
         <div className={`xl:col-span-2 rounded-lg border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <h2 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Список клиентов</h2>
+          <h2 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('clientList')}</h2>
           {loading ? (
-            <div className="text-sm text-gray-500">Загрузка...</div>
+            <div className="text-sm text-gray-500">{t('loading')}</div>
           ) : error ? (
             <div className="text-sm text-red-600">{error}</div>
           ) : (
@@ -193,10 +193,10 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
                 return (
                   <div key={provider}>
                     <h3 className={`text-sm font-semibold uppercase tracking-wide mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {provider === 'glovo' ? 'Glovo' : provider === 'choko' ? 'Choko' : 'Другие компании'}
+                      {provider === 'glovo' ? 'Glovo' : provider === 'choko' ? 'Choko' : t('otherCompanies')}
                     </h3>
                     {list.length === 0 ? (
-                      <div className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Нет записей</div>
+                      <div className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('noRecords')}</div>
                     ) : (
                       <div className="space-y-2">
                         {list.map((item) => (
@@ -206,7 +206,7 @@ export function FrequentClients({ theme = 'light' }: { theme?: 'light' | 'dark' 
                               {item.company_name ? ` - ${item.company_name}` : ''}
                             </div>
                             <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {[item.phone, item.contract_number].filter(Boolean).join(' | ') || 'Без доп. данных'}
+                              {[item.phone, item.contract_number].filter(Boolean).join(' | ') || t('noExtraData')}
                             </div>
                           </div>
                         ))}

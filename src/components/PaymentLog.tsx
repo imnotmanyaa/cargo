@@ -68,19 +68,19 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
 
       <div className={`rounded-lg shadow-sm border overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {isLoading ? (
-          <div className="p-8 text-center text-gray-500">Загрузка...</div>
+          <div className="p-8 text-center text-gray-500">{t('loading')}</div>
         ) : payments.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">Нет записей об оплатах.</div>
+          <div className="p-8 text-center text-gray-500">{t('noPaymentRecords')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className={`text-left border-b ${isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
                   <th className="px-6 py-4 font-medium">{t('date')}</th>
-                  <th className="px-6 py-4 font-medium">Сумма</th>
-                  <th className="px-6 py-4 font-medium">Способ оплаты</th>
+                  <th className="px-6 py-4 font-medium">{t('amount')}</th>
+                  <th className="px-6 py-4 font-medium">{t('paymentMethod')}</th>
                   <th className="px-6 py-4 font-medium">{t('status')}</th>
-                  <th className="px-6 py-4 font-medium">Номер отправки</th>
+                  <th className="px-6 py-4 font-medium">{t('shipmentNumberLabel')}</th>
                 </tr>
               </thead>
               <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
@@ -97,10 +97,10 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                       {payment.payment_method === 'deposit'
-                        ? 'Депозит'
+                        ? t('deposit')
                         : payment.payment_method === 'card'
-                          ? 'Карта'
-                          : 'Наличные'}
+                          ? t('card')
+                          : t('cash')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -109,7 +109,7 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
                           : (isDark ? 'bg-yellow-900/50 text-yellow-400' : 'bg-yellow-100 text-yellow-700')
                       }`}>
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        {(payment.status || '').toLowerCase() === 'confirmed' ? 'Подтвержден' : 'Ожидает'}
+                        {(payment.status || '').toLowerCase() === 'confirmed' ? t('confirmed') : t('pending')}
                       </span>
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
