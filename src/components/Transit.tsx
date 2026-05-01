@@ -18,6 +18,19 @@ export function Transit({ theme = 'light' }: TransitProps) {
   const [outgoingShipments, setOutgoingShipments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const translateStatus = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'CREATED': return t('statusRegistered');
+      case 'PAID': return t('statusPaid');
+      case 'LOADED': return t('statusLoaded');
+      case 'IN_TRANSIT': return t('statusInTransit');
+      case 'ARRIVED': return t('statusArrived');
+      case 'READY_FOR_ISSUE': return t('statusReadyForIssue');
+      case 'ISSUED': return t('statusIssued');
+      default: return status;
+    }
+  };
+
   const fetchShipments = async () => {
     if (!user?.station) return;
 
@@ -70,26 +83,25 @@ export function Transit({ theme = 'light' }: TransitProps) {
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? 'bg-green-900' : 'bg-green-100'}`}>
               <ArrowDown className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             </div>
-            <h3 className={`text-base md:text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Входящие грузы</h3>
+            <h3 className={`text-base md:text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('incomingCargo')}</h3>
           </div>
 
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
             {incomingShipments.length === 0 ? (
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Нет входящих грузов</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('noIncomingCargo')}</p>
             ) : (
               incomingShipments.map((shipment) => (
                 <div key={shipment.id} className={`p-3 border rounded-lg ${isDark ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <span className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{shipment.shipment_number}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'
-                      }`}>
-                      {shipment.status}
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
+                      {translateStatus(shipment.status || shipment.shipment_status)}
                     </span>
                   </div>
                   <div className={`text-xs space-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    <div>Откуда: {shipment.from_station}</div>
-                    <div>Куда: {shipment.to_station}</div>
-                    <div className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>Дата: {new Date(shipment.departure_date).toLocaleDateString()}</div>
+                    <div>{t('from')}: {shipment.from_station}</div>
+                    <div>{t('to')}: {shipment.to_station}</div>
+                    <div className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('date')}: {new Date(shipment.departure_date).toLocaleDateString()}</div>
                   </div>
                 </div>
               ))
@@ -103,28 +115,25 @@ export function Transit({ theme = 'light' }: TransitProps) {
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? 'bg-orange-900' : 'bg-orange-100'}`}>
               <ArrowUp className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
             </div>
-            <h3 className={`text-base md:text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Исходящие грузы</h3>
+            <h3 className={`text-base md:text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('outgoingCargo')}</h3>
           </div>
 
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
             {outgoingShipments.length === 0 ? (
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Нет исходящих грузов</p>
+              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('noOutgoingCargo')}</p>
             ) : (
               outgoingShipments.map((shipment) => (
                 <div key={shipment.id} className={`p-3 border rounded-lg ${isDark ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <span className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{shipment.shipment_number}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${shipment.status === 'Прибыл'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                      {shipment.status}
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-orange-900 text-orange-300' : 'bg-orange-100 text-orange-700'}`}>
+                      {translateStatus(shipment.status || shipment.shipment_status)}
                     </span>
                   </div>
                   <div className={`text-xs space-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    <div>Куда: {shipment.to_station}</div>
-                    <div>След. станция: {shipment.next_station || 'Конечная'}</div>
-                    <div className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>Отправление: {new Date(shipment.departure_date).toLocaleDateString()}</div>
+                    <div>{t('to')}: {shipment.to_station}</div>
+                    <div>{t('nextStationLabel')} {shipment.next_station || t('finalStation')}</div>
+                    <div className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('departure') || 'Отправление'}: {new Date(shipment.departure_date).toLocaleDateString()}</div>
                   </div>
                 </div>
               ))

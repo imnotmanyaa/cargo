@@ -317,6 +317,13 @@ const translations = {
     arrivalScan: 'Прибытие',
     issuance: 'Выдача',
     action: 'Действие',
+    departure: 'Отправление',
+    incomingCargo: 'Входящие грузы',
+    outgoingCargo: 'Исходящие грузы',
+    noIncomingCargo: 'Нет входящих грузов',
+    noOutgoingCargo: 'Нет исходящих грузов',
+    nextStationLabel: 'След. станция:',
+    finalStation: 'Конечная',
 
     // Arrival
     arrivalTitle: 'Прибытие',
@@ -958,6 +965,13 @@ const translations = {
     arrivalScan: 'Arrival',
     issuance: 'Issuance',
     action: 'Action',
+    departure: 'Departure',
+    incomingCargo: 'Incoming Cargo',
+    outgoingCargo: 'Outgoing Cargo',
+    noIncomingCargo: 'No incoming cargo',
+    noOutgoingCargo: 'No outgoing cargo',
+    nextStationLabel: 'Next station:',
+    finalStation: 'Final',
 
     // Arrival
     arrivalTitle: 'Arrival',
@@ -1599,6 +1613,13 @@ const translations = {
     arrivalScan: 'Келу',
     issuance: 'Беру',
     action: 'Әрекет',
+    departure: 'Жөнелту',
+    incomingCargo: 'Кіріс жүктер',
+    outgoingCargo: 'Шығыс жүктер',
+    noIncomingCargo: 'Кіріс жүктер жоқ',
+    noOutgoingCargo: 'Шығыс жүктер жоқ',
+    nextStationLabel: 'Келесі станция:',
+    finalStation: 'Соңғы',
 
     // Arrival
     arrivalTitle: 'Келу',
