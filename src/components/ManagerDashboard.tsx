@@ -123,10 +123,10 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     matchSearch(x)
   ));
 
-  // 4. «Прибытие»
+  // 4. «Прибытие» (К выдаче)
   const arrivalShipments = applySortAndFilter(s.filter(x => 
     x.to_station === myStation &&
-    (x.shipment_status || x.status) === 'ARRIVED' &&
+    ['ARRIVED', 'READY_FOR_ISSUE'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
 

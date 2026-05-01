@@ -28,11 +28,46 @@ export function CorporateDashboard({ theme = 'light', onCreateShipment }: Corpor
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const shipments: Array<{id: string, shipment_number?: string, from: string, to: string, status: string, progress: number, date: string}> = [
-    { id: 'SH-2024-101', from: 'Алматы', to: 'Астана', status: 'В пути', progress: 65, date: '20.01.2026' },
-    { id: 'SH-2024-102', from: 'Шымкент', to: 'Қарағанды', status: 'Погружен', progress: 20, date: '20.01.2026' },
-    { id: 'SH-2024-103', from: 'Астана', to: 'Алматы', status: 'Прибыл', progress: 100, date: '19.01.2026' },
-  ];
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchShipments = async () => {
+      if (!user?.id) return;
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(withApiBase(`/api/shipments?client_id=${user.id}`), {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setShipments(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch shipments', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchShipments();
+  }, [user?.id]);
+
+  const getStatusLabel = (s: string) => {
+    const status = s.toUpperCase();
+    if (status === 'ARRIVED' || status === 'READY_FOR_ISSUE') return t('arrived');
+    if (status === 'IN_TRANSIT') return t('inTransit');
+    if (status === 'LOADED') return t('loaded');
+    return t('statusRegistered');
+  };
+
+  const getProgress = (s: string) => {
+    const status = s.toUpperCase();
+    if (status === 'ARRIVED' || status === 'READY_FOR_ISSUE' || status === 'ISSUED') return 100;
+    if (status === 'IN_TRANSIT') return 75;
+    if (status === 'LOADED') return 50;
+    if (status === 'READY_FOR_LOADING' || status === 'AT_STATION_INTAKE') return 25;
+    return 10;
+  };
 
   const handleTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,35 +191,49 @@ export function CorporateDashboard({ theme = 'light', onCreateShipment }: Corpor
         </div>
         <div className="p-6">
           <div className="space-y-4">
-            {shipments.map((shipment) => (
-              <div key={shipment.id} className={`border rounded-lg p-4 ${isDark ? 'border-gray-700' : 'border-gray-200'
-                }`}>
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <span className="text-sm font-medium text-blue-600">{shipment.shipment_number}</span>
-                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{shipment.from} → {shipment.to}</p>
-                  </div>
-                  <span className={`text-xs px-3 py-1 rounded-full ${shipment.status === 'Прибыл' ? 'bg-green-100 text-green-700' :
-                    shipment.status === 'В пути' ? 'bg-blue-100 text-blue-700' :
-                      'bg-purple-100 text-purple-700'
-                    }`}>
-                    {shipment.status === 'Прибыл' ? t('arrived') : shipment.status === 'В пути' ? t('inTransit') : t('loaded')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-                  <div className="flex-1">
-                    <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all"
-                        style={{ width: `${shipment.progress}%` }}
-                      />
+            {loading ? (
+              <div className="py-8 text-center text-gray-500">{t('processing')}</div>
+            ) : shipments.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">{t('noShipmentsYet')}</div>
+            ) : (
+              shipments.slice(0, 5).map((shipment) => {
+                const status = shipment.shipment_status || shipment.status || '';
+                const progress = getProgress(status);
+                const label = getStatusLabel(status);
+
+                return (
+                  <div key={shipment.id} className={`border rounded-lg p-4 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <span className="text-sm font-medium text-blue-600">{shipment.shipment_number}</span>
+                        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {shipment.from_station} → {shipment.to_station}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-3 py-1 rounded-full ${
+                        progress === 100 ? 'bg-green-100 text-green-700' :
+                        progress >= 50 ? 'bg-blue-100 text-blue-700' :
+                        'bg-purple-100 text-purple-700'
+                      }`}>
+                        {label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <MapPin className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                      <div className="flex-1">
+                        <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                          <div
+                            className="h-full bg-blue-600 rounded-full transition-all"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{progress}%</span>
                     </div>
                   </div>
-                  <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{shipment.progress}%</span>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
         </div>
       </div>
