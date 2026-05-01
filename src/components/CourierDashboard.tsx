@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { withApiBase } from '../lib/api-base';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -455,9 +456,12 @@ export function CourierDashboard() {
                 )}
                 
                 {selectedTask.status === 'picked_up' && selectedTask.type === 'pickup' && (
-                  <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={handleCompleteTask}>
-                    Сдать на склад
-                  </Button>
+                  <div className="flex-1 flex flex-col items-center">
+                    <p className="text-sm text-gray-500 mb-2">Покажите QR приемосдатчику</p>
+                    <div className="p-2 bg-white rounded-lg">
+                      <QRCodeSVG value={selectedTask.id} size={150} level="H" />
+                    </div>
+                  </div>
                 )}
 
                 {selectedTask.status === 'in_progress' && selectedTask.type === 'delivery' && (
