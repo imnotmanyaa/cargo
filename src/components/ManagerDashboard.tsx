@@ -34,6 +34,8 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const [activeTab, setActiveTab] = useState<'door' | 'waiting' | 'active' | 'arrival'>('door');
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'cost_desc' | 'cost_asc'>('date_desc');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Modal Issue
   const [issueModal, setIssueModal] = useState<{ isOpen: boolean; shipmentId: string | null; error: string | null }>({ isOpen: false, shipmentId: null, error: null });
@@ -83,35 +85,50 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     );
   };
 
+  const applySortAndFilter = (list: any[]) => {
+    let result = list;
+    if (filterStatus !== 'all') {
+      result = result.filter(x => (x.shipment_status || x.status) === filterStatus);
+    }
+    result = [...result].sort((a, b) => {
+      if (sortBy === 'date_desc') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      if (sortBy === 'date_asc') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      if (sortBy === 'cost_desc') return (b.cost || 0) - (a.cost || 0);
+      if (sortBy === 'cost_asc') return (a.cost || 0) - (b.cost || 0);
+      return 0;
+    });
+    return result;
+  };
+
   // 1. «До двери»
-  const doorShipments = s.filter(x => 
+  const doorShipments = applySortAndFilter(s.filter(x => 
     x.is_door_to_door && 
     x.from_station === myStation &&
     ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR', 'PICKUP_ASSIGNED', 'PICKED_UP'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
-  );
+  ));
 
   // 2. «Ожидают привоза»
-  const waitingShipments = s.filter(x => 
+  const waitingShipments = applySortAndFilter(s.filter(x => 
     !x.is_door_to_door && 
     x.from_station === myStation &&
     ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
-  );
+  ));
 
   // 3. «Активные»
-  const activeShipmentsList = s.filter(x => 
+  const activeShipmentsList = applySortAndFilter(s.filter(x => 
     x.from_station === myStation &&
     ['READY_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
-  );
+  ));
 
   // 4. «Прибытие»
-  const arrivalShipments = s.filter(x => 
+  const arrivalShipments = applySortAndFilter(s.filter(x => 
     x.to_station === myStation &&
     (x.shipment_status || x.status) === 'ARRIVED' &&
     matchSearch(x)
-  );
+  ));
 
   const formatDate = (d: string) => {
     const dt = new Date(d);
@@ -207,6 +224,55 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
           onChange={e => setSearch(e.target.value)}
           className={`px-3 py-2 text-sm border rounded-lg w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'}`}
         />
+      </div>
+
+      {/* Filters row */}
+      <div className={`mb-4 flex flex-wrap gap-3 items-center`}>
+        <select
+          value={sortBy}
+          onChange={e => setSortBy(e.target.value as any)}
+          className={`px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 bg-white'}`}
+        >
+          <option value="date_desc">Новые сначала</option>
+          <option value="date_asc">Старые сначала</option>
+          <option value="cost_desc">Дороже сначала</option>
+          <option value="cost_asc">Дешевле сначала</option>
+        </select>
+
+        <select
+          value={filterStatus}
+          onChange={e => { setFilterStatus(e.target.value); }}
+          className={`px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 bg-white'}`}
+        >
+          <option value="all">Все статусы</option>
+          <option value="CREATED_DOOR">Оформлено (до двери)</option>
+          <option value="CREATED">Оформлено</option>
+          <option value="PAYMENT_PENDING">Ожидает оплаты</option>
+          <option value="PAID">Оплачено</option>
+          <option value="PICKUP_ASSIGNED">Курьер назначен</option>
+          <option value="PICKED_UP">Курьер забрал</option>
+          <option value="READY_FOR_LOADING">На складе</option>
+          <option value="LOADED">В вагоне</option>
+          <option value="IN_TRANSIT">В пути</option>
+          <option value="ARRIVED">Прибыло</option>
+          <option value="READY_FOR_ISSUE">Готово к выдаче</option>
+          <option value="ISSUED">Выдано</option>
+        </select>
+
+        {(search || filterStatus !== 'all') && (
+          <button
+            onClick={() => { setSearch(''); setFilterStatus('all'); }}
+            className="px-3 py-2 text-sm text-red-500 hover:text-red-700 border border-red-200 rounded-lg hover:bg-red-50"
+          >
+            Сбросить фильтры
+          </button>
+        )}
+
+        <span className={`ml-auto text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          Всего: {[doorShipments, waitingShipments, activeShipmentsList, arrivalShipments].find((_, i) =>
+            ['door', 'waiting', 'active', 'arrival'][i] === activeTab
+          )?.length ?? 0} посылок
+        </span>
       </div>
 
       <div className={`mb-6 flex overflow-x-auto border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>

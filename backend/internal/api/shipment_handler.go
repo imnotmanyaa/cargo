@@ -114,7 +114,7 @@ func (s *Server) handleStationIntakeFromCourier(w http.ResponseWriter, r *http.R
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleReceiver, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleManager, model.RoleAdmin, model.RoleCourier); err != nil {
 		handleServiceError(w, err)
 		return
 	}
