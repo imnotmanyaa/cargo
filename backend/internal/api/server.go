@@ -205,6 +205,8 @@ func handleServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrInsufficientFunds):
 		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrPaymentRequired):
+		writeError(w, http.StatusPaymentRequired, err.Error())
 	case errors.Is(err, service.ErrValidation):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrStationMismatch):
@@ -218,6 +220,7 @@ func handleServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 	}
 }
+
 
 func (s *Server) mustAuth(w http.ResponseWriter, r *http.Request) (*service.AuthenticatedUser, bool) {
 	authHeader := r.Header.Get("Authorization")

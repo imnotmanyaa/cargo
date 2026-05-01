@@ -103,7 +103,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
                 {shipment.status}
               </span>
               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Создано: {formatDate(shipment.date)}
+                {t('created')}: {formatDate(shipment.date)}
               </span>
             </div>
           </div>
@@ -117,7 +117,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
           }`}
         >
           <Printer className="w-4 h-4" />
-          Печать наклеек
+          {t('printLabels')}
         </button>
       </div>
 
@@ -189,24 +189,24 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
             <div className={card}>
               <h3 className={sectionTitle}>
                 <MapPin className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
-                Адреса «До двери»
+              {t('doorToDoorAddresses')}
               </h3>
               <div className="space-y-4">
                 {shipment.pickup_address && (
                   <div>
-                    <p className={label}>Точный адрес забора</p>
+                    <p className={label}>{t('pickupAddress')}</p>
                     <p className={`${value} break-words`}>{shipment.pickup_address}</p>
                   </div>
                 )}
                 {shipment.delivery_address && (
                   <div>
-                    <p className={label}>Точный адрес доставки</p>
+                    <p className={label}>{t('deliveryAddress')}</p>
                     <p className={`${value} break-words`}>{shipment.delivery_address}</p>
                   </div>
                 )}
                 {shipment.door_to_door_phone && (
                   <div>
-                    <p className={label}>Контактный телефон</p>
+                    <p className={label}>{t('contactPhone')}</p>
                     <p className={value}>{shipment.door_to_door_phone}</p>
                   </div>
                 )}
@@ -229,7 +229,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                 <span className={label}>{t('quantity')}</span>
-                <span className={value}>{shipment.quantity_places || 1} шт</span>
+                <span className={value}>{shipment.quantity_places || 1} {t('pcs')}</span>
               </div>
               {shipment.value && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
@@ -248,7 +248,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
           </div>
 
           <div className={`${card} flex flex-col items-center justify-center py-8`}>
-            <p className={`text-sm font-medium mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>QR-код для ТСД</p>
+            <p className={`text-sm font-medium mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('qrForScanner')}</p>
             <div id="qr-code-container" className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
               <QRCodeSVG value={shipment.id} size={140} />
             </div>

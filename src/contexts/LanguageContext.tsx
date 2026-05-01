@@ -334,6 +334,26 @@ const translations = {
     courierStatusWaitingDelivery: 'Ожидает доставки',
     courierStatusDelivered: 'Доставлено',
     courierStatusLoaded: 'Сдано на станцию',
+
+
+    // ActiveShipmentDetails
+    created: 'Создано',
+    printLabels: 'Печать наклеек',
+    doorToDoorAddresses: 'Адреса «До двери»',
+    qrForScanner: 'QR-код для ТСД',
+    pcs: 'шт',
+    contactPhone: 'Контактный телефон',
+    readyStatus: 'По готовности',
+
+    // Shipment statuses (IndividualDashboard)
+    statusRegistered: 'Оформлен',
+    statusLoaded: 'Погружен',
+    statusInTransit: 'В пути',
+    statusArrived: 'Прибыл',
+    statusReadyForIssue: 'Готов к выдаче',
+    statusIssued: 'Выдан',
+    clickForDetails: 'Нажмите для подробностей',
+    myShipments: 'Мои посылки',
     createButton: 'Создать',
     searchByNameEmail: 'Поиск по имени, email или станции...',
     newEmployee: 'Новый сотрудник',
@@ -762,6 +782,16 @@ const translations = {
     roleCourier: 'Courier',
 
 
+
+    // ActiveShipmentDetails
+    created: 'Created',
+    printLabels: 'Print Labels',
+    doorToDoorAddresses: 'Door-to-Door Addresses',
+    qrForScanner: 'QR Code for Scanner',
+    pcs: 'pcs',
+    contactPhone: 'Contact Phone',
+    readyStatus: 'On Demand',
+
     // Courier Dashboard
     tasksTitle: 'Tasks',
     availableTasks: 'Available Tasks',
@@ -784,6 +814,16 @@ const translations = {
     courierStatusWaitingDelivery: 'Waiting for delivery',
     courierStatusDelivered: 'Delivered',
     courierStatusLoaded: 'Handed over to station',
+
+    // Shipment statuses (IndividualDashboard)
+    statusRegistered: 'Registered',
+    statusLoaded: 'Loaded',
+    statusInTransit: 'In Transit',
+    statusArrived: 'Arrived',
+    statusReadyForIssue: 'Ready for Issue',
+    statusIssued: 'Issued',
+    clickForDetails: 'Click for details',
+    myShipments: 'My Shipments',
     createButton: 'Create',
     searchByNameEmail: 'Search by name, email or station...',
     newEmployee: 'New employee',
@@ -1212,6 +1252,16 @@ const translations = {
     roleCourier: 'Курьер',
 
 
+
+    // ActiveShipmentDetails
+    created: 'Жасалды',
+    printLabels: 'Жапсырмаларды басып шығару',
+    doorToDoorAddresses: '«Есікке дейін» мекенжайлары',
+    qrForScanner: 'Сканер үшін QR-код',
+    pcs: 'дана',
+    contactPhone: 'Байланыс телефоны',
+    readyStatus: 'Дайындыққа қарай',
+
     // Courier Dashboard
     tasksTitle: 'Тапсырмалар',
     availableTasks: 'Қолжетімді тапсырмалар',
@@ -1234,6 +1284,16 @@ const translations = {
     courierStatusWaitingDelivery: 'Жеткізуді күтуде',
     courierStatusDelivered: 'Жеткізілді',
     courierStatusLoaded: 'Станцияға тапсырылды',
+
+    // Shipment statuses (IndividualDashboard)
+    statusRegistered: 'Тіркелген',
+    statusLoaded: 'Жүктелген',
+    statusInTransit: 'Жолда',
+    statusArrived: 'Жетті',
+    statusReadyForIssue: 'Беруге дайын',
+    statusIssued: 'Берілген',
+    clickForDetails: 'Толығырақ басыңыз',
+    myShipments: 'Менің жөнелтулерім',
     createButton: 'Жасау',
     searchByNameEmail: 'Аты, email немесе станция бойынша іздеу...',
     newEmployee: 'Жаңа қызметкер',

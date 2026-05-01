@@ -65,23 +65,21 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
 
   const prettyStatus = (shipment: Shipment) => {
     const s = String((shipment as any).shipment_status || shipment.status || '').toUpperCase();
-    if (s === 'CREATED') return 'Оформлен';
-    if (s === 'PAYMENT_PENDING') return 'Оформлен';
-    if (s === 'PAID') return 'Оформлен';
-    if (s === 'READY_FOR_LOADING') return 'Оформлен';
-    if (s === 'LOADED') return 'Погружен';
-    if (s === 'IN_TRANSIT') return 'В пути';
-    if (s === 'ARRIVED') return 'Прибыл';
-    if (s === 'READY_FOR_ISSUE') return 'Готов к выдаче';
-    if (s === 'ISSUED') return 'Выдан';
-    return shipment.status || 'Оформлен';
+    if (s === 'CREATED' || s === 'PAYMENT_PENDING' || s === 'PAID' || s === 'READY_FOR_LOADING') return t('statusRegistered');
+    if (s === 'LOADED') return t('statusLoaded');
+    if (s === 'IN_TRANSIT') return t('statusInTransit');
+    if (s === 'ARRIVED') return t('statusArrived');
+    if (s === 'READY_FOR_ISSUE') return t('statusReadyForIssue');
+    if (s === 'ISSUED') return t('statusIssued');
+    return shipment.status || t('statusRegistered');
   };
 
-  const statusTone = (label: string) => {
-    if (label === 'Выдан') return 'bg-emerald-100 text-emerald-700';
-    if (label === 'Прибыл' || label === 'Готов к выдаче') return 'bg-green-100 text-green-700';
-    if (label === 'В пути') return 'bg-blue-100 text-blue-700';
-    if (label === 'Погружен') return 'bg-purple-100 text-purple-700';
+  const statusTone = (status: string) => {
+    const s = String((status || '')).toUpperCase();
+    if (s.includes('ISSUED') || status === t('statusIssued')) return 'bg-emerald-100 text-emerald-700';
+    if (s.includes('ARRIVED') || s.includes('READY_FOR_ISSUE') || status === t('statusArrived') || status === t('statusReadyForIssue')) return 'bg-green-100 text-green-700';
+    if (s.includes('IN_TRANSIT') || status === t('statusInTransit')) return 'bg-blue-100 text-blue-700';
+    if (s.includes('LOADED') || status === t('statusLoaded')) return 'bg-purple-100 text-purple-700';
     return 'bg-yellow-100 text-yellow-700';
   };
 
@@ -193,7 +191,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
 
                   <div className="text-right">
                     <p className={`text-lg font-bold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{shipment.cost?.toLocaleString() || 0} ₸</p>
-                    <p className="mt-2 text-sm text-blue-600 font-medium">Нажмите для подробностей</p>
+                    <p className="mt-2 text-sm text-blue-600 font-medium">{t('clickForDetails')}</p>
                   </div>
                 </div>
               </div>
