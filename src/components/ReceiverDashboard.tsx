@@ -293,7 +293,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                 <span className={textSecondary}>
                   <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>{t('onWarehouse')}</span>
-                  {' '}+ ваша станция = отправление
+                  {' '}{t('yourStationDeparture')}
                 </span>
                 <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
                 <span className="font-bold text-blue-600">{t('loaded')}</span>
@@ -302,7 +302,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                 <span className={textSecondary}>
                   <span className={`font-medium ${isDark ? 'text-green-400' : 'text-green-700'}`}>{t('inTransit')}</span>
-                  {' '}+ ваша станция = назначение
+                  {' '}{t('yourStationDestination')}
                 </span>
                 <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
                 <span className="font-bold text-green-600">{t('arrived')}</span>
