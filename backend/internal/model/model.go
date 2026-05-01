@@ -143,6 +143,7 @@ type Shipment struct {
 	TrackingCode    *string           `json:"tracking_code,omitempty"`
 	QRCodeID        *string           `json:"qr_code_id,omitempty"`
 	TransportUnitID *string           `json:"transport_unit_id,omitempty"`
+	CourierID       *string           `json:"operator_id,omitempty"`
 	IsDoorToDoor    bool              `json:"is_door_to_door"`
 	PickupAddress   *string           `json:"pickup_address,omitempty"`
 	DeliveryAddress *string           `json:"delivery_address,omitempty"`

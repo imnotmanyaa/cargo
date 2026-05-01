@@ -571,6 +571,9 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 	if next == model.ShipmentArrived {
 		shipment.NextStation = nil
 	}
+	if strings.HasPrefix(action, "Courier") && operatorID != nil {
+		shipment.CourierID = operatorID
+	}
 	updated, err := s.repo.UpdateShipment(ctx, shipment)
 	if err != nil {
 		return model.Shipment{}, err
