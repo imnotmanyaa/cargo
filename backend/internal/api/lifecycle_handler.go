@@ -418,11 +418,30 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			"message":  "Груз " + shipment.ShipmentNumber + " принят на станцию назначения ✓",
 		})
 
-	// Повторные сканирования (оранжевый экран)
-	case model.ShipmentReadyForLoading:
-		writeError(w, http.StatusConflict, "Груз уже на складе — ожидает погрузки")
+	// Повторное сканирование при прибытии / Готов к выдаче → Скан перед выдачей (ISSUE_SCAN)
 	case model.ShipmentArrived, model.ShipmentReadyForIssue:
-		writeError(w, http.StatusConflict, "Груз уже прибыл на станцию назначения")
+		if station != current.ToStation {
+			writeError(w, http.StatusForbidden, "Вы находитесь на станции "+station+", а груз должен быть выдан в "+current.ToStation)
+			return
+		}
+		// Записываем ISSUE_SCAN
+		_, _ = s.services.Repo.CreateScanEvent(r.Context(), model.ScanEvent{
+			ID:         fmt.Sprintf("scan-%d", time.Now().UnixNano()),
+			ShipmentID: shipmentID,
+			EventType:  "ISSUE_SCAN",
+			StationID:  &station,
+			UserID:     &user.ID,
+			ScannedAt:  time.Now().UTC(),
+		})
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"shipment": current,
+			"action":   "ISSUE_SCAN",
+			"message":  "Груз " + current.ShipmentNumber + " отсканирован перед выдачей ✓. Теперь можно нажать кнопку «Выдать».",
+		})
+
+	// Повторные сканирования
+	case model.ShipmentReadyForLoading:
 	case model.ShipmentIssued:
 		writeError(w, http.StatusConflict, "Груз уже выдан получателю")
 

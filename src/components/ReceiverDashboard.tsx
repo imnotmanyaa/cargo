@@ -104,12 +104,14 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
           return;
         }
 
-        const action = body.action as 'LOADED' | 'ARRIVED' | 'READY_FOR_LOADING';
+        const action = body.action as 'LOADED' | 'ARRIVED' | 'READY_FOR_LOADING' | 'ISSUE_SCAN';
         const shipmentNum = body.shipment?.shipment_number || id;
         const msg = body.message || (action === 'LOADED'
           ? t('shipmentLoadedMsg').replace('{num}', shipmentNum)
           : action === 'READY_FOR_LOADING'
           ? t('shipmentIntakeMsg').replace('{num}', shipmentNum)
+          : action === 'ISSUE_SCAN'
+          ? (t('scanSuccess') || `Груз ${shipmentNum} отсканирован.`) + ' ' + (t('nowYouCanIssue') || 'Теперь можно выдать.')
           : t('shipmentArrivedMsg').replace('{num}', shipmentNum));
 
         setFeedback({ type: 'success', message: msg });
@@ -306,6 +308,15 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 </span>
                 <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
                 <span className="font-bold text-green-600">{t('arrived')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                <span className={textSecondary}>
+                  <span className={`font-medium ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>{t('statusArrived')}</span>
+                  {' '}{t('scanForIssue')}
+                </span>
+                <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
+                <span className="font-bold text-amber-600">{t('issue')}</span>
               </div>
             </div>
           </div>

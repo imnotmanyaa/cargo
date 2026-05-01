@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, Truck, MapPin, Clock, Home, Phone, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Package, Truck, MapPin, Clock, Home, Phone, CheckCircle, AlertTriangle, Scan, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { withApiBase } from '../lib/api-base';
@@ -42,6 +42,52 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const [receiverName, setReceiverName] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [scanInput, setScanInput] = useState('');
+
+  const playBeep = (freq: number) => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } catch { }
+  };
+
+  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const code = scanInput.trim();
+      setScanInput('');
+      if (!code) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(withApiBase('/api/scan'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ shipment_id: code, event_type: 'ISSUE_SCAN', station_id: user?.station })
+        });
+        if (res.ok) {
+          playBeep(880);
+          alert((t('scanSuccess') || `Груз ${code} отсканирован.`) + ' ' + (t('nowYouCanIssue') || 'Теперь можно нажать «Выдать».'));
+          fetchShipments();
+        } else {
+          playBeep(220);
+          const err = await res.json();
+          alert((t('scanError') || 'Ошибка сканирования') + ': ' + (err.error || ''));
+        }
+      } catch (err) {
+        console.error(err);
+        alert(t('errorNetwork'));
+      }
+    }
+  };
 
   const fetchShipments = async () => {
     setLoading(true);
@@ -282,6 +328,27 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
         {renderTabButton('active', t('tabActive'), activeShipmentsList.length)}
         {renderTabButton('arrival', t('tabArrival'), arrivalShipments.length)}
       </div>
+
+      {activeTab === 'arrival' && (
+        <div className={`mb-6 p-4 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="flex items-center gap-3 mb-2">
+            <Scan className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+            <h3 className="text-sm font-semibold">{t('scanForIssue') || 'Сканирование перед выдачей'}</h3>
+          </div>
+          <p className={`text-xs mb-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            {t('scanInstructionIssue') || 'Отсканируйте QR-код или штрих-код груза физическим сканером для подтверждения наличия.'}
+          </p>
+          <input
+            type="text"
+            value={scanInput}
+            onChange={e => setScanInput(e.target.value)}
+            onKeyDown={handleScan}
+            placeholder={t('barcodePlaceholder') || "Считайте код..."}
+            className={`w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+            autoFocus
+          />
+        </div>
+      )}
 
       <div className="space-y-4">
         {loading && shipments.length === 0 ? (
