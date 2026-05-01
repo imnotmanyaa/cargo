@@ -68,7 +68,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       hasTicket: false // Currently not asked on single page form, left default
     }) || 0;
     
-    if (shipmentData.isDoorToDoor && user?.role === 'individual') {
+    if (shipmentData.isDoorToDoor && shipmentData.clientType === 'individual') {
       cost += 10000;
     }
     

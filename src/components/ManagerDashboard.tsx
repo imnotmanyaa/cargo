@@ -75,14 +75,14 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const doorShipments = s.filter(x => 
     x.is_door_to_door && 
     x.from_station === myStation &&
-    ['CREATED_DOOR', 'PICKUP_ASSIGNED', 'PICKED_UP'].includes(x.shipment_status || x.status)
+    ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR', 'PICKUP_ASSIGNED', 'PICKED_UP'].includes(x.shipment_status || x.status)
   );
 
   // 2. «Ожидают привоза»
   const waitingShipments = s.filter(x => 
     !x.is_door_to_door && 
     x.from_station === myStation &&
-    (x.shipment_status || x.status) === 'CREATED_DOOR'
+    ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status)
   );
 
   // 3. «Активные»
