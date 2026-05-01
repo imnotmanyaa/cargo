@@ -418,6 +418,14 @@ export function CourierDashboard() {
                 <span className="text-sm text-gray-500">{selectedTask.parcelCode}</span>
               </div>
               <div className="p-4 overflow-y-auto space-y-4">
+                {selectedTask.status === 'picked_up' && selectedTask.type === 'pickup' && (
+                  <div className="bg-white p-6 rounded-xl flex flex-col items-center border shadow-sm dark:border-gray-600 dark:bg-gray-800">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Покажите этот QR приемосдатчику</p>
+                    <div className="bg-white p-2 rounded-lg">
+                      <QRCodeSVG value={selectedTask.parcelCode || selectedTask.id} size={200} level="H" />
+                    </div>
+                  </div>
+                )}
                 <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-lg">
                   <div className="flex items-center gap-2 font-medium mb-2"><User className="w-4 h-4"/> Клиент</div>
                   <div className="text-sm font-semibold">{selectedTask.clientName}</div>
@@ -453,15 +461,6 @@ export function CourierDashboard() {
                   <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleCompleteTask}>
                     Забрал у клиента
                   </Button>
-                )}
-                
-                {selectedTask.status === 'picked_up' && selectedTask.type === 'pickup' && (
-                  <div className="flex-1 flex flex-col items-center">
-                    <p className="text-sm text-gray-500 mb-2">Покажите QR приемосдатчику</p>
-                    <div className="p-2 bg-white rounded-lg">
-                      <QRCodeSVG value={selectedTask.parcelCode || selectedTask.id} size={150} level="H" />
-                    </div>
-                  </div>
                 )}
 
                 {selectedTask.status === 'in_progress' && selectedTask.type === 'delivery' && (

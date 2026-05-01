@@ -9,7 +9,7 @@ interface Employee {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'transit_operator' | 'mobile_group' | 'courier';
+  role: 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'train_receiver' | 'mobile_group' | 'courier';
   station: string;
   createdAt: string;
   status: 'active' | 'inactive';
@@ -383,7 +383,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <option value="direction_head">{t('roleDirectionHead')}</option>
                   <option value="chief_head">{t('roleChiefHead')}</option>
                   <option value="receiver">{t('receiver')}</option>
-                  <option value="transit_operator">{t('roleTrainReceiver')}</option>
+                  <option value="train_receiver">{t('roleTrainReceiver')}</option>
                   <option value="mobile_group">{t('roleMobileGroup')}</option>
                   <option value="courier">{t('roleCourier')}</option>
                 </select>
@@ -402,7 +402,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   onChange={(e) => setFormData({ ...formData, station: e.target.value })}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'
                     }`}
-                  required={formData.role !== 'chief_head' && formData.role !== 'transit_operator'}
+                  required={formData.role !== 'chief_head' && formData.role !== 'train_receiver'}
                 >
                   <option value="">{t('selectStation')}</option>
                   {stations.map(station => (
@@ -482,14 +482,14 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         employee.role === 'receiver' ? 'bg-orange-100 text-orange-800' :
-                        employee.role === 'transit_operator' ? 'bg-teal-100 text-teal-800' :
+                        employee.role === 'train_receiver' ? 'bg-teal-100 text-teal-800' :
                         employee.role === 'admin' ? 'bg-purple-100 text-purple-800' :
                         employee.role === 'mobile_group' ? 'bg-amber-100 text-amber-800' :
                         employee.role === 'courier' ? 'bg-cyan-100 text-cyan-800' :
                         'bg-green-100 text-green-800'
                       }`}>
                       {employee.role === 'receiver' ? t('receiver') :
-                        employee.role === 'transit_operator' ? t('roleTrainReceiver') :
+                        employee.role === 'train_receiver' ? t('roleTrainReceiver') :
                         employee.role === 'admin' ? t('roleAdmin') :
                         employee.role === 'direction_head' ? t('roleDirectionHead') :
                         employee.role === 'chief_head' ? t('roleChiefHead') :
@@ -517,7 +517,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
-                      {(employee.role === 'receiver' || employee.role === 'transit_operator') && (
+                      {(employee.role === 'receiver' || employee.role === 'train_receiver') && (
                         <button
                           onClick={() => openQrModal(employee)}
                           className={isDark ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-900'}
@@ -589,7 +589,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   <option value="direction_head">{t('roleDirectionHead')}</option>
                   <option value="chief_head">{t('roleChiefHead')}</option>
                   <option value="receiver">{t('receiver')}</option>
-                  <option value="transit_operator">{t('roleTrainReceiver')}</option>
+                  <option value="train_receiver">{t('roleTrainReceiver')}</option>
                   <option value="mobile_group">{t('roleMobileGroup')}</option>
                   <option value="courier">{t('roleCourier')}</option>
                 </select>

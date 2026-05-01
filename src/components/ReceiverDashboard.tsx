@@ -198,11 +198,12 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
       {/* ── FULLSCREEN FEEDBACK OVERLAY ── */}
       {feedback && (
         <div
-          className={`fixed inset-0 z-50 flex flex-col items-center justify-center transition-all duration-200 ${
-            feedback.type === 'success' ? 'bg-green-600' :
-            feedback.type === 'warning' ? 'bg-orange-500' :
-                                          'bg-red-600'
-          }`}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center transition-all duration-200"
+          style={{
+            backgroundColor: feedback.type === 'success' ? '#16a34a' :
+                             feedback.type === 'warning' ? '#f97316' :
+                                                           '#dc2626'
+          }}
         >
           <div className="text-center p-8">
             {feedback.type === 'success' ? (
