@@ -967,8 +967,8 @@ func (r *Repository) ConfirmPaymentTx(ctx context.Context, paymentID, confirmedB
 	defer tx.Rollback(ctx)
 
 	var payment model.Payment
-	err = tx.QueryRow(ctx, "SELECT id, shipment_id, amount, payment_method, pos_terminal_reference, paid_at, confirmed_by, status, created_at, shipment_number FROM payments WHERE id = $1 FOR UPDATE", paymentID).
-		Scan(&payment.ID, &payment.ShipmentID, &payment.Amount, &payment.PaymentMethod, &payment.POSReference, &payment.PaidAt, &payment.ConfirmedBy, &payment.Status, &payment.CreatedAt, &payment.ShipmentNumber)
+	err = tx.QueryRow(ctx, "SELECT id, shipment_id, amount, payment_method, pos_terminal_reference, paid_at, confirmed_by, status, created_at FROM payments WHERE id = $1 FOR UPDATE", paymentID).
+		Scan(&payment.ID, &payment.ShipmentID, &payment.Amount, &payment.PaymentMethod, &payment.POSReference, &payment.PaidAt, &payment.ConfirmedBy, &payment.Status, &payment.CreatedAt)
 	if err != nil {
 		return model.Payment{}, model.Shipment{}, err
 	}

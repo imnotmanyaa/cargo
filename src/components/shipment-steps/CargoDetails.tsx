@@ -83,8 +83,11 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
             <label className={label}>Количество мест</label>
             <input
               type="number"
-              value={data.quantityPlaces || 1}
-              onChange={(e) => onUpdate({ quantityPlaces: Math.max(1, Number(e.target.value) || 1) })}
+              value={data.quantityPlaces || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                onUpdate({ quantityPlaces: val === '' ? '' : Math.max(1, parseInt(val) || 1) });
+              }}
               className={input}
               placeholder="1"
               min="1"
