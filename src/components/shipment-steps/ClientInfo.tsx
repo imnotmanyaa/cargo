@@ -103,6 +103,7 @@ export function ClientInfo({
 
     // Авто-заполнение данных клиента (для физ. лиц и компаний)
     if (user.role === 'individual') {
+      updates.clientId = user.id;
       updates.clientType = 'individual';
       updates.clientName = user.name || '';
       updates.clientPhone = user.phone || '';
@@ -110,6 +111,7 @@ export function ClientInfo({
       updates.isDoorToDoor = true;
       setIsDoorToDoor(true);
     } else if (user.role === 'corporate') {
+      updates.clientId = user.id;
       updates.clientType = 'legal';
       updates.clientName = user.company || user.name;
       updates.contractNumber = user.contractNumber || '';
