@@ -474,8 +474,8 @@ export function ClientInfo({
           )}
         </div>
 
-        {/* До двери — обязательно для физ. лиц, опционально для других (если им разрешено) */}
-        {(user?.role === 'individual' || user?.role === 'admin') && (
+        {/* До двери — обязательно для физ. лиц, опционально для сотрудников */}
+        {(user?.role === 'individual' || !['corporate'].includes(user?.role || '')) && (
           <div>
             <label className="flex items-center mb-4">
               <input
