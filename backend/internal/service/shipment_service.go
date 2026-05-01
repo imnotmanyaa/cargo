@@ -34,6 +34,7 @@ type CreateShipmentRequest struct {
 	PickupAddress   *string
 	DeliveryAddress *string
 	DoorToDoorPhone *string
+	SenderPhone     *string
 }
 
 type CorrectionRequest struct {
@@ -121,6 +122,7 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		PickupAddress:   req.PickupAddress,
 		DeliveryAddress: req.DeliveryAddress,
 		DoorToDoorPhone: req.DoorToDoorPhone,
+		SenderPhone:     req.SenderPhone,
 		TrackingCode:    ptr(number),
 		LastUpdatedAt:   now,
 		CreatedBy:       req.CreatedBy,

@@ -62,6 +62,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		PickupAddress   *string `json:"pickup_address"`
 		DeliveryAddress *string `json:"delivery_address"`
 		DoorToDoorPhone *string `json:"door_to_door_phone"`
+		SenderPhone     *string `json:"sender_phone"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -108,6 +109,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		PickupAddress:   req.PickupAddress,
 		DeliveryAddress: req.DeliveryAddress,
 		DoorToDoorPhone: req.DoorToDoorPhone,
+		SenderPhone:     req.SenderPhone,
 	})
 	if err != nil {
 		handleServiceError(w, err)
@@ -221,6 +223,11 @@ func (s *Server) handleListShipments(w http.ResponseWriter, r *http.Request) {
 		Station:  r.URL.Query().Get("station"),
 		ClientID: r.URL.Query().Get("client_id"),
 		Query:    r.URL.Query().Get("q"),
+	}
+	if user.Role == model.RoleCorporate || user.Role == model.RoleIndividual {
+		if user.Phone != nil {
+			filter.ClientPhone = *user.Phone
+		}
 	}
 	if user.Role == model.RoleDirectionHead {
 		filter.Station = user.Station

@@ -63,6 +63,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         ...prev,
         clientId: user.id,
         clientName: prev.clientName || user.name || '',
+        clientPhone: prev.clientPhone || user.phone || '',
         isDoorToDoor: user.role === 'individual' ? true : prev.isDoorToDoor,
         clientType: user.role === 'corporate' ? 'legal' : prev.clientType,
       }));
@@ -129,7 +130,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           client_role: shipmentData.clientType === 'legal' ? 'corporate' : 'individual',
           pickup_address: shipmentData.isDoorToDoor ? shipmentData.pickupAddress : null,
           delivery_address: shipmentData.isDoorToDoor ? shipmentData.deliveryAddress : null,
-          door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null
+          door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null,
+          sender_phone: shipmentData.clientPhone || null
         })
       });
 
