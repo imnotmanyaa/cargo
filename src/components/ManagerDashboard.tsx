@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, Truck, MapPin, Clock, Home, Phone, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Package, Truck, MapPin, Clock, Home, Phone, CheckCircle, AlertTriangle, Scan, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { withApiBase } from '../lib/api-base';
@@ -42,6 +42,52 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const [receiverName, setReceiverName] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [scanInput, setScanInput] = useState('');
+
+  const playBeep = (freq: number) => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } catch { }
+  };
+
+  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const code = scanInput.trim();
+      setScanInput('');
+      if (!code) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(withApiBase('/api/scan'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ shipment_id: code, event_type: 'ISSUE_SCAN', station_id: user?.station })
+        });
+        if (res.ok) {
+          playBeep(880);
+          alert((t('scanSuccess') || `Груз ${code} отсканирован.`) + ' ' + (t('nowYouCanIssue') || 'Теперь можно нажать «Выдать».'));
+          fetchShipments();
+        } else {
+          playBeep(220);
+          const err = await res.json();
+          alert((t('scanError') || 'Ошибка сканирования') + ': ' + (err.error || ''));
+        }
+      } catch (err) {
+        console.error(err);
+        alert(t('errorNetwork'));
+      }
+    }
+  };
 
   const fetchShipments = async () => {
     setLoading(true);
@@ -123,10 +169,15 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     matchSearch(x)
   ));
 
-  // 4. «Прибытие» (К выдаче)
   const arrivalShipments = applySortAndFilter(s.filter(x => 
     x.to_station === myStation &&
     ['ARRIVED', 'READY_FOR_ISSUE'].includes(x.shipment_status || x.status) &&
+    matchSearch(x)
+  ));
+
+  const transitShipments = applySortAndFilter(s.filter(x =>
+    x.to_station === myStation &&
+    ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
 
@@ -147,6 +198,11 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     weight: shipment.weight + ' ' + (t('kg') || 'кг'),
     status: shipment.shipment_status === 'AT_STATION_INTAKE' ? t('statusAtStation') : shipment.status,
   });
+
+  const handleIssueClick = (shipmentId: string) => {
+    setIssueModal({ isOpen: true, shipmentId, error: null });
+    setReceiverName(''); setReceiverPhone('');
+  };
 
   const handleIssueSubmit = async () => {
     const { shipmentId } = issueModal;
@@ -217,6 +273,15 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
         <div className="flex-1">
           <h1 className="text-2xl font-bold mb-2">{t('managerDashboard')}</h1>
           <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('manageShipmentsAtStation')} {myStation}</p>
+          <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            {t('totalShipmentsCount').replace('{{count}}', String(
+              activeTab === 'door' ? doorShipments.length :
+              activeTab === 'waiting' ? waitingShipments.length :
+              activeTab === 'active' ? activeShipmentsList.length :
+              activeTab === 'arrival' ? arrivalShipments.length :
+              activeTab === 'transit' ? transitShipments.length : 0
+            ))}
+          </span>
         </div>
         <input
           type="text"
@@ -227,7 +292,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
         />
       </div>
 
-      {/* Filters row */}
       <div className={`mb-4 flex flex-wrap gap-3 items-center`}>
         <select
           value={sortBy}
@@ -268,12 +332,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
             {t('resetFilters')}
           </button>
         )}
-
-        <span className={`ml-auto text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          {t('totalShipmentsCount').replace('{{count}}', String([doorShipments, waitingShipments, activeShipmentsList, arrivalShipments].find((_, i) =>
-            ['door', 'waiting', 'active', 'arrival'][i] === activeTab
-          )?.length ?? 0))}
-        </span>
       </div>
 
       <div className={`mb-6 flex overflow-x-auto border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
@@ -281,7 +339,25 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
         {renderTabButton('waiting', t('tabWaitingPickup'), waitingShipments.length)}
         {renderTabButton('active', t('tabActive'), activeShipmentsList.length)}
         {renderTabButton('arrival', t('tabArrival'), arrivalShipments.length)}
+        {renderTabButton('transit', t('tabTransit'), transitShipments.length)}
       </div>
+
+      {activeTab === 'arrival' && (
+        <div className={`mb-6 p-4 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="flex items-center gap-3 mb-2">
+            <Scan className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+            <h3 className="text-sm font-semibold">{t('scanForIssue') || 'Сканирование перед выдачей'}</h3>
+          </div>
+          <input
+            type="text"
+            value={scanInput}
+            onChange={e => setScanInput(e.target.value)}
+            onKeyDown={handleScan}
+            placeholder={t('barcodePlaceholder') || "Считайте код..."}
+            className={`w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+          />
+        </div>
+      )}
 
       <div className="space-y-4">
         {loading && shipments.length === 0 ? (
@@ -296,7 +372,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                     <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
                       {(() => {
                         const st = s.shipment_status || s.status || '';
-                        if (st === 'CREATED_DOOR') return t('statusWaitingCourier');
                         if (st === 'PICKUP_ASSIGNED') return t('statusCourierDriving');
                         if (st === 'PICKED_UP') return t('statusCargoPickedUp');
                         if (st === 'PAYMENT_PENDING') return t('statusPaymentPending');
@@ -346,7 +421,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
             {activeTab === 'arrival' && (
               arrivalShipments.length === 0 ? <p className="text-gray-500 p-4">{t('noArrivals')}</p> : arrivalShipments.map(s => (
-                <div key={s.id} className={`p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
@@ -356,26 +431,49 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                       </div>
                       <span className="text-sm font-medium">{s.client_name}</span>
                     </div>
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-800">{t('statusArrived')}</span>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${s.shipment_status === 'READY_FOR_ISSUE' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                      {s.shipment_status === 'READY_FOR_ISSUE' ? t('statusReadyForIssue') : t('statusArrived')}
+                    </span>
                   </div>
                   <div className="text-xs text-gray-500 mb-3">{s.from_station} → {s.to_station} ({s.quantity_places} {t('pcs')}, {s.weight} {t('kg')})</div>
                   
                   <div className="flex gap-2 mt-4">
-                    <a
-                      href={`tel:${s.door_to_door_phone || s.receiver_phone || ''}`}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${s.door_to_door_phone || s.receiver_phone || ''}`; }}
                       className={`flex items-center justify-center gap-1 flex-1 py-2 rounded-lg text-sm font-medium border ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-750' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                     >
                       <Phone className="w-4 h-4" /> {t('call')}
-                    </a>
+                    </button>
                     <button
-                      onClick={() => {
-                        setIssueModal({ isOpen: true, shipmentId: s.id, error: null });
-                        setReceiverName(''); setReceiverPhone('');
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleIssueClick(s.id); }}
                       className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                     >
                       {t('issue')}
                     </button>
+                  </div>
+                </div>
+              ))
+            )}
+
+            {activeTab === 'transit' && (
+              transitShipments.length === 0 ? <p className="text-gray-500 p-4">{t('nothingFound')}</p> : transitShipments.map(s => (
+                <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-blue-600">{s.shipment_number}</span>
+                        {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Door-to-Door</span>}
+                      </div>
+                      <span className="text-sm font-medium">{s.client_name}</span>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
+                      {s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
+                    </span>
+                  </div>
+                  <div className={`text-sm flex flex-wrap gap-x-4 gap-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {s.from_station} → {s.to_station}</span>
+                    <span className="flex items-center gap-1"><Package className="w-3 h-3" /> {s.weight} {t('kg')}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(s.created_at)}</span>
                   </div>
                 </div>
               ))
