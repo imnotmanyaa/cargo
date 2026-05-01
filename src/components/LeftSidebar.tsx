@@ -21,8 +21,6 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
     ? [
         { id: 'dashboard', label: t('sidebarDashboard') || 'Дашборд', icon: List },
         { id: 'new-shipment', label: t('newShipment'), icon: Package },
-        { id: 'transit', label: t('transit'), icon: Truck },
-        { id: 'arrival', label: t('arrival'), icon: MapPin },
       ]
     : [
         ...(userRole === 'admin' ? [{ id: 'dashboard', label: t('sidebarDashboard') || 'Дашборд', icon: Package }] : []),
