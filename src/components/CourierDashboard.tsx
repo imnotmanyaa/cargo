@@ -103,22 +103,19 @@ export function CourierDashboard() {
 
         // Determine logical status primarily from shipment_status
         if (type === 'pickup') {
-          if (rawSt === 'PICKUP_ASSIGNED' || rawSt === 'PAID') {
-            // If assigned to me - in progress; if assigned to someone else - hide
+          if (rawSt === 'PICKUP_ASSIGNED') {
             if (opId && opId !== myId) {
-              status = 'cancelled'; // another courier took it
-            } else if (opId === myId) {
-              status = 'in_progress';
+              status = 'cancelled'; // taken by another courier
             } else {
-              // PAID but no operator - still pending for pickup
-              status = rawSt === 'PAID' ? 'in_progress' : 'pending';
+              status = 'in_progress'; // I'm assigned — show "Забрал у клиента"
             }
           } else if (rawSt === 'PICKED_UP') {
             status = opId === myId || !opId ? 'picked_up' : 'cancelled';
           } else if (rawSt === 'READY_FOR_LOADING' || rawSt === 'AT_STATION_INTAKE') {
             status = 'completed';
           } else {
-            // CREATED_DOOR, PAYMENT_PENDING, CREATED - available to take
+            // CREATED_DOOR, PAYMENT_PENDING, PAID, CREATED — available to take
+            // Only hide if explicitly taken by ANOTHER courier
             status = opId && opId !== myId ? 'cancelled' : 'pending';
           }
         } else {
