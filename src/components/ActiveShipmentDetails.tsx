@@ -56,11 +56,11 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
             <div class="info" style="text-align:center;border-bottom:2px solid black;padding-bottom:5px;margin-bottom:5px;">
               ${shipment.from} -> ${shipment.to}
             </div>
-            <div class="row info"><span>Вес:</span><span>${shipment.weight}</span></div>
-            <div class="row info"><span>Место:</span><span>${placeNum} из ${totalPlaces}</span></div>
+            <div class="row info"><span>${t('weightLabel') || 'Вес:'}</span><span>${shipment.weight}</span></div>
+            <div class="row info"><span>${t('placeLabel') || 'Место:'}</span><span>${placeNum} ${t('of') || 'из'} ${totalPlaces}</span></div>
           </section>`;
       }).join('');
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Печать ${shipment.shipment_number}</title>
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>${t('printTitle') || 'Печать'} ${shipment.shipment_number}</title>
         <style>
           body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:5px;color:black;background:white;}
           .label{page-break-after:always;margin-bottom:8px;}.label:last-child{page-break-after:auto;}
