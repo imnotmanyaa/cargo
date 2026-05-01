@@ -77,6 +77,7 @@ type AuthenticatedUser struct {
 	Role    model.Role
 	Name    string
 	Station string
+	Phone   *string
 }
 
 func calculateRoute(from, to string) []string {
