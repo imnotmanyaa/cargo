@@ -56,12 +56,12 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
           body: JSON.stringify({ shipment_id: code, event_type: 'ISSUE_SCAN', station_id: user?.station })
         });
         if (res.ok) {
-           playBeep(880);
-           alert(`Груз ${code} успешно просканирован. Теперь вы можете нажать "Выдать".`);
+            playBeep(880);
+            alert(t('scanSuccess') || `Груз ${code} успешно просканирован. Теперь вы можете нажать "Выдать".`);
         } else {
-           playBeep(220);
-           const err = await res.json();
-           alert('Ошибка сканирования: ' + (err.error || ''));
+            playBeep(220);
+            const err = await res.json();
+            alert(t('scanError') + ': ' + (err.error || ''));
         }
       } catch (err) {
         console.error(err);
@@ -96,7 +96,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     if (!shipmentId) return;
 
     if (!receiverName.trim() || !receiverPhone.trim()) {
-      setIssueModal(prev => ({ ...prev, error: "Укажите имя и телефон" }));
+      setIssueModal(prev => ({ ...prev, error: t('errorProvideNamePhone') || "Укажите имя и телефон" }));
       return;
     }
 
@@ -120,9 +120,9 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
       } else {
         const err = await res.json();
         if (res.status === 402) {
-          setIssueModal(prev => ({ ...prev, error: "Сначала необходимо получить доплату " + (err.error?.match(/\d+/)?.[0] || "") + " тг" }));
+          setIssueModal(prev => ({ ...prev, error: t('errorSurchargeNeeded') + " " + (err.error?.match(/\d+/)?.[0] || "") + " тг" }));
         } else if (res.status === 403) {
-          setIssueModal(prev => ({ ...prev, error: "Данные получателя не совпадают. Укажите правильное имя и телефон." }));
+          setIssueModal(prev => ({ ...prev, error: t('errorReceiverMismatch') || "Данные получателя не совпадают. Укажите правильное имя и телефон." }));
         } else {
           setIssueModal(prev => ({ ...prev, error: err.error || 'Failed to mark shipment for issue' }));
         }
@@ -151,11 +151,11 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
       <div className={`rounded-lg shadow-sm border mb-6 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="p-4">
           <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-            Сканирование груза для выдачи
+            {t('scanForIssue') || 'Сканирование груза для выдачи'}
           </label>
           <input
             type="text"
-            placeholder="Считайте штрих-код сканером..."
+            placeholder={t('barcodePlaceholder') || "Считайте штрих-код сканером..."}
             className={`w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'}`}
             onKeyDown={handleScan}
           />
@@ -176,7 +176,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
         <div className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
           {arrivals.length === 0 ? (
             <div className={`p-8 text-center ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
-              Нет грузов, ожидающих выдачи
+              {t('noArrivals') || 'Нет грузов, ожидающих выдачи'}
             </div>
           ) : (
             arrivals.map((arrival) => (
@@ -195,7 +195,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-green-100 text-green-800'
                         }`}>
-                          {arrival.shipment_status === 'READY_FOR_ISSUE' ? 'На складе' : 'Прибыл'}
+                          {arrival.shipment_status === 'READY_FOR_ISSUE' ? t('atStation') : t('arrived')}
                         </span>
                       </div>
                       <h4 className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{arrival.client_name}</h4>
@@ -236,7 +236,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
           <div className={`rounded-xl shadow-lg w-full max-w-md overflow-hidden ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
             <div className={`px-6 py-4 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
               <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                Выдача груза
+                {t('issueBaggage') || 'Выдача груза'}
               </h3>
             </div>
             
@@ -249,27 +249,27 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
               
               <div>
                 <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Имя получателя
+                  {t('recipientName') || 'Имя получателя'}
                 </label>
                 <input
                   type="text"
                   value={receiverName}
                   onChange={e => setReceiverName(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                  placeholder="ФИО по документу"
+                  placeholder={t('fullNameByDoc') || "ФИО по документу"}
                 />
               </div>
 
               <div>
                 <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Телефон получателя
+                  {t('recipientPhone') || 'Телефон получателя'}
                 </label>
                 <input
                   type="text"
                   value={receiverPhone}
                   onChange={e => setReceiverPhone(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                  placeholder="+7 (___) ___-__-__"
+                  placeholder={t('phonePlaceholder') || "+7 (___) ___-__-__"}
                 />
               </div>
             </div>
@@ -285,7 +285,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                 onClick={handleIssueSubmit}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Выдать
+                {t('issue') || 'Выдать'}
               </button>
             </div>
           </div>

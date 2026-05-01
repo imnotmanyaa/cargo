@@ -252,7 +252,7 @@ export function ClientInfo({
             <div className="flex items-center gap-2 mb-3">
               <Users className="w-5 h-5 text-blue-600" />
               <span className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-900'}`}>
-                Выберите клиента из {data.clientSource === 'glovo' ? 'Glovo' : data.clientSource === 'choko' ? 'Choko' : selectedOtherCompany}
+                {t('selectClientFrom') || 'Выберите клиента из'} {data.clientSource === 'glovo' ? 'Glovo' : data.clientSource === 'choko' ? 'Choko' : selectedOtherCompany}
               </span>
             </div>
             <select
@@ -263,7 +263,7 @@ export function ClientInfo({
                 : 'bg-white border-blue-300'
                 }`}
             >
-              <option value="">Выберите клиента...</option>
+              <option value="">{t('selectClient') || 'Выберите клиента...'}</option>
               {currentAggregatorClients.map(client => (
                 <option key={client.id} value={client.id}>
                   {client.client_name}{client.company_name ? ` (${client.company_name})` : ''}{client.phone ? ` - ${client.phone}` : ''}
@@ -294,7 +294,7 @@ export function ClientInfo({
                   ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400'
                   : 'border-gray-300'
                   }`}
-                placeholder="Введите ФИО или название организации..."
+                placeholder={t('enterClientNameHint') || "Введите ФИО или название организации..."}
               />
               {showSuggestions && searchQuery.length > 0 && (
                 <div className={`absolute z-10 w-full mt-1 border rounded-lg shadow-lg max-h-60 overflow-y-auto ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -324,7 +324,7 @@ export function ClientInfo({
                       >
                         <div className="font-medium">{client.company || client.name}</div>
                         <div className="text-xs opacity-70">
-                          БИН/Договор: {client.contract_number || 'Нет'} | Баланс: {client.deposit_balance} ₸
+                          {t('binContract') || 'БИН/Договор:'} {client.contract_number || 'Нет'} | {t('balance') || 'Баланс'}: {client.deposit_balance} ₸
                         </div>
                       </div>
                     ))}
@@ -334,7 +334,7 @@ export function ClientInfo({
                       (c.contract_number || '').toLowerCase().includes(searchQuery.toLowerCase())
                     ).length === 0 && (
                       <div className={`px-4 py-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Клиентов не найдено
+                        {t('noClientsFound') || 'Клиентов не найдено'}
                       </div>
                   )}
                 </div>
@@ -357,9 +357,9 @@ export function ClientInfo({
 
         {/* Телефон клиента */}
         {data.clientType === 'individual' && (
-          <div>
+           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              Телефон
+              {t('phone')}
             </label>
             <input
               type="tel"
@@ -431,17 +431,17 @@ export function ClientInfo({
               }}
               className="w-4 h-4 text-blue-600 rounded"
             />
-            <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-              {t('recipientIsAnotherPerson')} <span className="text-gray-400 font-normal text-xs ml-1">(необязательно)</span>
+             <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+              {t('recipientIsAnotherPerson')} <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>
             </span>
           </label>
 
           {isReceiverDifferent && (
             <div className={`p-4 rounded-lg border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
               <div className="grid gap-4">
-                <div>
+                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {t('receiverName')} <span className="text-gray-400 font-normal text-xs ml-1">(необязательно)</span>
+                    {t('receiverName')} <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>
                   </label>
                   <input
                     type="text"
@@ -454,9 +454,9 @@ export function ClientInfo({
                     placeholder={t('enterReceiverName')}
                   />
                 </div>
-                <div>
+                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {t('receiverPhone')} <span className="text-gray-400 font-normal text-xs ml-1">(необязательно)</span>
+                    {t('receiverPhone')} <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>
                   </label>
                   <input
                     type="tel"
@@ -491,9 +491,9 @@ export function ClientInfo({
               />
               <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
                 <Truck className={`inline w-4 h-4 mr-1 -mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-                {t('doorToDoorDelivery')}{' '}
+                 {t('doorToDoorDelivery')}{' '}
                 {user?.role !== 'individual' && <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>}
-                {user?.role === 'individual' && <span className="text-blue-500 font-normal text-xs ml-1">(Обязательно)</span>}
+                {user?.role === 'individual' && <span className="text-blue-500 font-normal text-xs ml-1">({t('mandatory')})</span>}
               </span>
             </label>
 
@@ -506,9 +506,9 @@ export function ClientInfo({
                     </label>
                     <input
                       type="text"
-                      value={data.pickupAddress || ''}
+                       value={data.pickupAddress || ''}
                       onChange={(e) => onUpdate({ pickupAddress: e.target.value })}
-                      placeholder="Например: ул. Абая 12, кв. 5"
+                      placeholder={t('pickupPlaceholder') || "Например: ул. Абая 12, кв. 5"}
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
                     />
                   </div>
@@ -518,9 +518,9 @@ export function ClientInfo({
                     </label>
                     <input
                       type="text"
-                      value={data.deliveryAddress || ''}
+                       value={data.deliveryAddress || ''}
                       onChange={(e) => onUpdate({ deliveryAddress: e.target.value })}
-                      placeholder="Например: пр. Достык 88, офис 301"
+                      placeholder={t('deliveryPlaceholder') || "Например: пр. Достык 88, офис 301"}
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
                     />
                   </div>
@@ -591,9 +591,9 @@ export function ClientInfo({
             </div>
           </div>
 
-          {sameFromTo && (
+           {sameFromTo && (
             <div className="mb-4 text-sm text-red-600">
-              Пункты отправления и назначения не могут совпадать.
+              {t('errorSameStation')}
             </div>
           )}
 

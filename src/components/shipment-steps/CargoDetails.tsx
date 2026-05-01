@@ -81,7 +81,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
             />
           </div>
           <div>
-            <label className={label}>Количество мест</label>
+            <label className={label}>{t('quantityPlaces')}</label>
             <input
               type="number"
               value={data.quantityPlaces || ''}
@@ -152,7 +152,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
         {/* Объявленная ценность */}
         <div>
           <label className={label}>
-            {t('declaredValue')} <span className={`font-normal text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>(необязательно)</span>
+            {t('declaredValue')} <span className={`font-normal text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({t('optional')})</span>
           </label>
           <input
             type="number"
@@ -167,7 +167,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
         {/* Описание груза */}
         <div>
           <label className={label}>
-            {t('cargoDescription')} <span className={`font-normal text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>(необязательно)</span>
+            {t('cargoDescription')} <span className={`font-normal text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({t('optional')})</span>
           </label>
           <textarea
             value={data.description}

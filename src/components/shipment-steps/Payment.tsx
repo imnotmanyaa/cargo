@@ -77,7 +77,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
 
           {data.isDoorToDoor && data.clientType !== 'legal' && (
             <div className="flex justify-between text-sm">
-              <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Сервис от двери до двери</span>
+              <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('doorToDoorService') || 'Сервис от двери до двери'}</span>
               <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ 10 000 ₸</span>
             </div>
           )}
@@ -116,9 +116,9 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
 
             <select className={input}>
               <option value="">{t('countryRegion')}</option>
-              <option value="KZ">Казахстан</option>
-              <option value="RU">Россия</option>
-              <option value="UZ">Узбекистан</option>
+              <option value="KZ">{t('kazakhstan') || 'Казахстан'}</option>
+              <option value="RU">{t('russia') || 'Россия'}</option>
+              <option value="UZ">{t('uzbekistan') || 'Узбекистан'}</option>
             </select>
 
             <input type="text" className={input} placeholder={t('postalCode')} />
@@ -128,7 +128,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
         {/* Legal entity deposit */}
         {(isLegal || isManagerFlow) && (
           <div className={`rounded-lg border p-4 ${isDark ? 'border-gray-600 bg-gray-700/30' : 'border-gray-200'}`}>
-            <div className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Способ оплаты</div>
+            <div className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('paymentMethod')}</div>
             <div className={`grid grid-cols-1 ${isLegal ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2`}>
               <button
                 type="button"
@@ -138,7 +138,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
                   : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
                 }`}
               >
-                Наличные
+                {t('cash')}
               </button>
               <button
                 type="button"
@@ -148,7 +148,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
                   : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
                 }`}
               >
-                Карта
+                {t('card')}
               </button>
               {isLegal && (
                 <button
@@ -160,15 +160,15 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
                     : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
                   }`}
                 >
-                  Списать с депозита
+                  {t('payFromDeposit') || 'Списать с депозита'}
                 </button>
               )}
             </div>
             {isLegal && (
               <div className={`mt-2 text-xs ${canUseDeposit ? 'text-green-500' : 'text-amber-500'}`}>
                 {canUseDeposit
-                  ? `Депозит доступен: ${depositBalance.toLocaleString()} ₸`
-                  : `Списание с депозита недоступно. Баланс: ${depositBalance.toLocaleString()} ₸`}
+                  ? `${t('depositAvailable') || 'Депозит доступен:'} ${depositBalance.toLocaleString()} ₸`
+                  : `${t('depositUnavailable') || 'Списание с депозита недоступно. Баланс:'} ${depositBalance.toLocaleString()} ₸`}
               </div>
             )}
           </div>
@@ -178,7 +178,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
         <button
           onClick={() => {
             if (isLegal && paymentMethod === 'deposit' && !canUseDeposit) {
-              alert('Недостаточно средств на депозите для списания');
+              alert(t('insufficientDeposit') || 'Недостаточно средств на депозите для списания');
               return;
             }
             onNext();
@@ -187,7 +187,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
           disabled={isLegal && paymentMethod === 'deposit' && !canUseDeposit}
         >
           <CreditCard className="w-5 h-5" />
-          {paymentMethod === 'deposit' ? 'Списать с депозита' : t('payButton')} {total.toLocaleString()} ₸
+          {paymentMethod === 'deposit' ? (t('payFromDeposit') || 'Списать с депозита') : t('payButton')} {total.toLocaleString()} ₸
         </button>
 
         <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>

@@ -66,29 +66,31 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
 
   const prettyStatus = (shipment: Shipment) => {
     const s = String((shipment as any).shipment_status || shipment.status || '').toUpperCase();
-    if (s === 'CREATED_DOOR' || s === 'CREATED') return 'Оформлено';
-    if (s === 'PAYMENT_PENDING') return 'Ожидает оплаты';
-    if (s === 'PAID') return 'Оплачено';
-    if (s === 'PICKUP_ASSIGNED') return 'Курьер назначен';
-    if (s === 'PICKED_UP') return 'Курьер забрал';
-    if (s === 'AT_STATION_INTAKE' || s === 'READY_FOR_LOADING') return 'На складе';
-    if (s === 'LOADED') return 'Загружено в поезд';
-    if (s === 'IN_TRANSIT') return 'В пути';
-    if (s === 'ARRIVED') return 'Прибыло';
-    if (s === 'READY_FOR_ISSUE') return 'Готово к выдаче';
-    if (s === 'ISSUED') return 'Выдано';
-    if (s === 'CANCELLED') return 'Отменено';
-    return shipment.status || 'Оформлено';
+    if (s === 'CREATED_DOOR' || s === 'CREATED') return t('statusRegistered');
+    if (s === 'PAYMENT_PENDING') return t('paymentPending');
+    if (s === 'PAID') return t('statusPaid');
+    if (s === 'PICKUP_ASSIGNED') return t('courierStatusAssigned') || 'Курьер назначен';
+    if (s === 'PICKED_UP') return t('courierStatusPickedUp') || 'Курьер забрал';
+    if (s === 'AT_STATION_INTAKE' || s === 'READY_FOR_LOADING') return t('atStation') || 'На складе';
+    if (s === 'LOADED') return t('statusLoaded');
+    if (s === 'IN_TRANSIT') return t('statusInTransit');
+    if (s === 'ARRIVED') return t('statusArrived');
+    if (s === 'READY_FOR_ISSUE') return t('statusReadyForIssue');
+    if (s === 'ISSUED') return t('statusIssued');
+    if (s === 'CANCELLED') return t('cancel');
+    return shipment.status || t('statusRegistered');
   };
 
   const statusTone = (status: string) => {
-    if (status === 'Выдано') return 'bg-emerald-100 text-emerald-700';
-    if (status === 'Готово к выдаче' || status === 'Прибыло') return 'bg-green-100 text-green-700';
-    if (status === 'В пути') return 'bg-blue-100 text-blue-700';
-    if (status === 'Загружено в поезд') return 'bg-purple-100 text-purple-700';
-    if (status === 'Курьер назначен') return 'bg-orange-100 text-orange-700';
-    if (status === 'Курьер забрал' || status === 'На складе') return 'bg-teal-100 text-teal-700';
-    if (status === 'Отменено') return 'bg-red-100 text-red-700';
+    // Map translated status back to tone or use raw status if needed.
+    // Actually it's better to use the status key for tone logic, but let's keep it simple for now.
+    if (status === t('statusIssued')) return 'bg-emerald-100 text-emerald-700';
+    if (status === t('statusReadyForIssue') || status === t('statusArrived')) return 'bg-green-100 text-green-700';
+    if (status === t('statusInTransit')) return 'bg-blue-100 text-blue-700';
+    if (status === t('statusLoaded')) return 'bg-purple-100 text-purple-700';
+    if (status === t('courierStatusAssigned')) return 'bg-orange-100 text-orange-700';
+    if (status === t('courierStatusPickedUp') || status === t('atStation')) return 'bg-teal-100 text-teal-700';
+    if (status === t('cancel')) return 'bg-red-100 text-red-700';
     return 'bg-yellow-100 text-yellow-700';
   };
 
@@ -171,7 +173,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
           <h2 className={`text-lg font-semibold flex-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('myShipments')}</h2>
           <input
             type="text"
-            placeholder="Поиск по номеру или маршруту..."
+            placeholder={t('searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className={`px-3 py-2 text-sm border rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'}`}
@@ -181,7 +183,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
           {loading ? (
             <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('processing')}</div>
           ) : filteredShipments.length === 0 ? (
-            <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{search ? 'Ничего не найдено' : t('noShipmentsYet')}</div>
+            <div className={`p-8 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{search ? t('nothingFound') : t('noShipmentsYet')}</div>
           ) : (
             filteredShipments.map((shipment) => (
               <div

@@ -96,7 +96,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const handleCreateShipment = async () => {
     if (isSubmitting) return; // prevent double submission
     if (sameFromTo) {
-      alert('Пункты отправления и назначения не могут совпадать.');
+      alert(t('errorSameStation') || 'Пункты отправления и назначения не могут совпадать.');
       return;
     }
     setIsSubmitting(true);
