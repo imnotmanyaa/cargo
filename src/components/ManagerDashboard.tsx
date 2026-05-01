@@ -145,6 +145,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     to: shipment.to_station,
     date: formatDate(shipment.created_at),
     weight: shipment.weight + ' кг',
+    status: shipment.shipment_status === 'AT_STATION_INTAKE' ? 'На складе' : shipment.status,
   });
 
   const handleIssueSubmit = async () => {
@@ -334,7 +335,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                       {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">Door-to-Door</span>}
                     </div>
                     <span className="text-xs font-semibold px-2 py-1 rounded bg-purple-100 text-purple-800">
-                      {s.shipment_status === 'READY_FOR_LOADING' ? 'Готов к погрузке' : s.shipment_status === 'LOADED' ? 'Погружен' : 'В пути'}
+                      {s.shipment_status === 'AT_STATION_INTAKE' ? 'На складе' : s.shipment_status === 'READY_FOR_LOADING' ? 'Готов к погрузке' : s.shipment_status === 'LOADED' ? 'Погружен' : 'В пути'}
                     </span>
                   </div>
                   <div className="text-sm font-medium mb-1">{s.client_name}</div>

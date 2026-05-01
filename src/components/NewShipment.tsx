@@ -24,6 +24,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const [currentStep, setCurrentStep] = useState<Step>('client');
 
   const [createdShipmentNumber, setCreatedShipmentNumber] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [shipmentData, setShipmentData] = useState({
     clientId: user?.id || '',
     clientType: user?.role === 'corporate' ? 'legal' : 'individual',
@@ -92,10 +93,12 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     normalizeStation(shipmentData.fromStation) === normalizeStation(shipmentData.toStation);
 
   const handleCreateShipment = async () => {
+    if (isSubmitting) return; // prevent double submission
     if (sameFromTo) {
       alert('Пункты отправления и назначения не могут совпадать.');
       return;
     }
+    setIsSubmitting(true);
 
     const token = localStorage.getItem('token');
     const headers = {
@@ -189,6 +192,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     } catch (error) {
       console.error('Failed to create shipment:', error);
       alert('Ошибка соединения с сервером');
+      setIsSubmitting(false);
     }
   };
 
