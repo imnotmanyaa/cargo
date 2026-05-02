@@ -160,6 +160,18 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		NewValue:   ptr(string(created.ShipmentStatus)),
 		CreatedAt:  now,
 	})
+	// Notify receiver immediately with their issue PIN code
+	if created.ReceiverPhone != nil && *created.ReceiverPhone != "" && created.IssueCode != nil {
+		go whatsapp.SendMessage(*created.ReceiverPhone,
+			fmt.Sprintf("Для вас создана посылка %s (от %s до %s).\nПри получении назовите PIN-код: *%s*\nНомер для отслеживания: %s",
+				created.ShipmentNumber, created.FromStation, created.ToStation, *created.IssueCode, created.ShipmentNumber))
+	}
+	// For door-to-door: notify sender with their pickup PIN code
+	if created.IsDoorToDoor && created.DoorToDoorPhone != nil && *created.DoorToDoorPhone != "" && created.PickupCode != nil {
+		go whatsapp.SendMessage(*created.DoorToDoorPhone,
+			fmt.Sprintf("Оформлен забор груза %s. Курьер скоро свяжется с вами.\nДля передачи груза курьеру назовите PIN-код: *%s*",
+				created.ShipmentNumber, *created.PickupCode))
+	}
 	return created, nil
 }
 
