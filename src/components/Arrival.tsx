@@ -15,8 +15,6 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     shipmentId: null,
     error: null,
   });
-  const [receiverName, setReceiverName] = useState('');
-  const [receiverPhone, setReceiverPhone] = useState('');
   const [pinCode, setPinCode] = useState('');
 
   const fetchArrivals = async () => {
@@ -44,52 +42,10 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     return () => clearInterval(interval);
   }, [user]);
 
-  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const code = e.currentTarget.value.trim();
-      e.currentTarget.value = '';
-      if (!code) return;
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(withApiBase('/api/scan'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ shipment_id: code, event_type: 'ISSUE_SCAN', station_id: user?.station })
-        });
-        if (res.ok) {
-           playBeep(880);
-           alert(`Груз ${code} успешно просканирован. Теперь вы можете нажать "Выдать".`);
-        } else {
-           playBeep(220);
-           const err = await res.json();
-           alert('Ошибка сканирования: ' + (err.error || ''));
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  };
 
-  const playBeep = (freq: number) => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = 'square';
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.1);
-    } catch {}
-  };
 
   const handleIssueClick = (id: string) => {
     setIssueModal({ isOpen: true, shipmentId: id, error: null });
-    setReceiverName('');
-    setReceiverPhone('');
     setPinCode('');
   };
 
@@ -97,8 +53,8 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     const { shipmentId } = issueModal;
     if (!shipmentId) return;
 
-    if (!receiverName.trim() || !receiverPhone.trim() || !pinCode.trim()) {
-      setIssueModal(prev => ({ ...prev, error: "Укажите имя, телефон и PIN-код" }));
+    if (!pinCode.trim()) {
+      setIssueModal(prev => ({ ...prev, error: "Укажите PIN-код" }));
       return;
     }
 
@@ -111,8 +67,6 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          receiver_name: receiverName.trim(),
-          receiver_phone: receiverPhone.trim(),
           code: pinCode.trim()
         })
       });
@@ -151,19 +105,6 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
         </button>
       </div>
 
-      <div className={`rounded-lg shadow-sm border mb-6 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        <div className="p-4">
-          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-            Сканирование груза для выдачи
-          </label>
-          <input
-            type="text"
-            placeholder="Считайте штрих-код сканером..."
-            className={`w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'}`}
-            onKeyDown={handleScan}
-          />
-        </div>
-      </div>
 
       <div className={`rounded-lg shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className={`p-6 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -249,32 +190,6 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                   {issueModal.error}
                 </div>
               )}
-              
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Имя получателя
-                </label>
-                <input
-                  type="text"
-                  value={receiverName}
-                  onChange={e => setReceiverName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                  placeholder="ФИО по документу"
-                />
-              </div>
-
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Телефон получателя
-                </label>
-                <input
-                  type="text"
-                  value={receiverPhone}
-                  onChange={e => setReceiverPhone(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                  placeholder="+7 (___) ___-__-__"
-                />
-              </div>
 
               <div>
                 <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
