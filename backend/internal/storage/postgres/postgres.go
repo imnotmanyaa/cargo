@@ -353,9 +353,16 @@ func (r *Repository) ListShipments(ctx context.Context, filter model.ShipmentFil
 		conditions = append(conditions, fmt.Sprintf("current_station = $%d AND shipment_status IN ('ARRIVED', 'READY_FOR_ISSUE')", len(args)))
 	}
 
-	if filter.ClientID != "" {
+	if filter.ClientID != "" && filter.ClientPhone != "" {
+		args = append(args, filter.ClientID)
+		args = append(args, filter.ClientPhone)
+		conditions = append(conditions, fmt.Sprintf("(client_id = $%d OR RIGHT(REGEXP_REPLACE(receiver_phone, '\\D', '', 'g'), 10) = RIGHT(REGEXP_REPLACE($%d, '\\D', '', 'g'), 10) OR RIGHT(REGEXP_REPLACE(sender_phone, '\\D', '', 'g'), 10) = RIGHT(REGEXP_REPLACE($%d, '\\D', '', 'g'), 10) OR RIGHT(REGEXP_REPLACE(door_to_door_phone, '\\D', '', 'g'), 10) = RIGHT(REGEXP_REPLACE($%d, '\\D', '', 'g'), 10))", len(args)-1, len(args), len(args), len(args)))
+	} else if filter.ClientID != "" {
 		args = append(args, filter.ClientID)
 		conditions = append(conditions, fmt.Sprintf("client_id = $%d", len(args)))
+	} else if filter.ClientPhone != "" {
+		args = append(args, filter.ClientPhone)
+		conditions = append(conditions, fmt.Sprintf("(RIGHT(REGEXP_REPLACE(receiver_phone, '\\D', '', 'g'), 10) = RIGHT(REGEXP_REPLACE($%d, '\\D', '', 'g'), 10) OR RIGHT(REGEXP_REPLACE(sender_phone, '\\D', '', 'g'), 10) = RIGHT(REGEXP_REPLACE($%d, '\\D', '', 'g'), 10) OR RIGHT(REGEXP_REPLACE(door_to_door_phone, '\\D', '', 'g'), 10) = RIGHT(REGEXP_REPLACE($%d, '\\D', '', 'g'), 10))", len(args), len(args), len(args)))
 	}
 
 	where := ""
