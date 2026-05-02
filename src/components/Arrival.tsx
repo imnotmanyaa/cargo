@@ -192,10 +192,10 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                         <span className="text-sm font-medium text-blue-600 truncate">{arrival.shipment_number}</span>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
                           arrival.shipment_status === 'READY_FOR_ISSUE'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {arrival.shipment_status === 'READY_FOR_ISSUE' ? t('atStation') : t('arrived')}
+                          {arrival.shipment_status === 'READY_FOR_ISSUE' ? t('readyForIssue') : t('arrived')}
                         </span>
                       </div>
                       <h4 className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{arrival.client_name}</h4>
