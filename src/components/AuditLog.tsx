@@ -194,8 +194,8 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
   const input = isDark
     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
     : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500';
-  const tabActive = isDark ? 'bg-blue-600 text-white' : 'bg-blue-600 text-white';
-  const tabInactive = isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+  const tabActive = isDark ? 'border-blue-500 text-blue-400' : 'border-blue-500 text-blue-600';
+  const tabInactive = isDark ? 'border-transparent text-gray-400 hover:text-gray-300' : 'border-transparent text-gray-500 hover:text-gray-700';
 
   return (
     <div className={`min-h-screen ${bg}`}>
@@ -284,12 +284,12 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
           <label className={`text-xs mb-2 block font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Тип действия
           </label>
-          <div className="flex flex-wrap gap-1.5">
+          <div className={`flex flex-wrap gap-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
             {ACTION_GROUPS.map((group, idx) => (
               <button
                 key={idx}
                 onClick={() => setActionGroup(idx)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-1 pb-2 text-sm font-medium border-b-2 transition-colors -mb-[1px] ${
                   actionGroup === idx ? tabActive : tabInactive
                 }`}
               >
@@ -364,7 +364,7 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                     )}
                     {log.station_id && (
                       <div className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        📍 {log.station_id}
+                        {log.station_id}
                       </div>
                     )}
                   </td>
