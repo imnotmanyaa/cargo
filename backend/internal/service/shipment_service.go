@@ -387,36 +387,6 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 	if shipment.PaymentRequired {
 		return model.Shipment{}, ErrPaymentRequired
 	}
-	if req.ReceiverName == "" || req.ReceiverPhone == "" {
-		return model.Shipment{}, fmt.Errorf("%w: receiver verification data is required", ErrValidation)
-	}
-
-	if shipment.ReceiverName == nil || shipment.ReceiverPhone == nil {
-		// Fallback for old shipments created without receiver data:
-		// Save the provided receiver information to the shipment
-		shipment.ReceiverName = &req.ReceiverName
-		shipment.ReceiverPhone = &req.ReceiverPhone
-		s.repo.UpdateShipment(ctx, shipment)
-	} else {
-		// Strict verification for shipments that have receiver data
-		if req.ReceiverName != *shipment.ReceiverName || req.ReceiverPhone != *shipment.ReceiverPhone {
-			return model.Shipment{}, fmt.Errorf("%w: receiver verification failed", ErrForbidden)
-		}
-	}
-	events, err := s.repo.ListScanEvents(ctx, id)
-	if err != nil {
-		return model.Shipment{}, err
-	}
-	var issueScanFound bool
-	for _, event := range events {
-		if event.EventType == "ISSUE_SCAN" {
-			issueScanFound = true
-			break
-		}
-	}
-	if !issueScanFound {
-		return model.Shipment{}, fmt.Errorf("%w: ISSUE_SCAN is required before issue", ErrInvalidState)
-	}
 	return s.transition(ctx, id, model.ShipmentIssued, operatorID, operatorName, nil, "Issued to receiver", nil)
 }
 
