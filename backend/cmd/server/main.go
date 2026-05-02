@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -27,11 +28,15 @@ func main() {
 	}
 
 	repo := postgres.NewRepository(db.Pool())
+	ctx := context.Background()
 	services := service.NewServices(repo, cfg.JWTSecret)
 	server, err := api.NewServer(cfg, services)
 	if err != nil {
 		log.Fatalf("create server: %v", err)
 	}
+
+	// Start background storage penalty worker
+	go service.StoragePenaltyWorker(ctx, repo)
 
 	log.Printf("server listening on %s", cfg.Addr())
 	if err := http.ListenAndServe(cfg.Addr(), server.Router()); err != nil {

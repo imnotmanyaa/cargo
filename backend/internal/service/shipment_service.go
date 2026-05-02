@@ -651,6 +651,44 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 		Reason:     reasonText,
 		CreatedAt:  time.Now().UTC(),
 	})
+	// Send WhatsApp status notification to receiver/client
+	go func(s model.Shipment, newStatus model.ShipmentLifecycle) {
+		phone := ""
+		if s.ReceiverPhone != nil && *s.ReceiverPhone != "" {
+			phone = *s.ReceiverPhone
+		} else if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
+			phone = *s.DoorToDoorPhone
+		}
+		if phone == "" {
+			return
+		}
+		var msg string
+		switch newStatus {
+		case model.ShipmentLoaded:
+			msg = fmt.Sprintf("📦 Груз %s загружен и готов к отправке из %s.", s.ShipmentNumber, s.CurrentStation)
+		case model.ShipmentInTransit:
+			msg = fmt.Sprintf("🚂 Груз %s в пути. Маршрут: %s → %s.", s.ShipmentNumber, s.FromStation, s.ToStation)
+		case model.ShipmentArrived:
+			issueCode := ""
+			if s.IssueCode != nil {
+				issueCode = *s.IssueCode
+			}
+			msg = fmt.Sprintf("✅ Груз %s прибыл на станцию %s и ожидает получения!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
+		case model.ShipmentReadyForIssue:
+			issueCode := ""
+			if s.IssueCode != nil {
+				issueCode = *s.IssueCode
+			}
+			msg = fmt.Sprintf("✅ Груз %s готов к выдаче на станции %s!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
+		case model.ShipmentIssued:
+			msg = fmt.Sprintf("🎉 Груз %s успешно выдан. Спасибо, что воспользовались нашими услугами!", s.ShipmentNumber)
+		case model.ShipmentPickedUp:
+			msg = fmt.Sprintf("📬 Курьер забрал ваш груз %s. Он скоро поступит на склад для отправки.", s.ShipmentNumber)
+		}
+		if msg != "" {
+			_ = whatsapp.SendMessage(phone, msg)
+		}
+	}(updated, next)
 	return updated, nil
 }
 

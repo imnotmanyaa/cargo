@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"cargo/backend/internal/model"
+	"cargo/backend/internal/whatsapp"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -43,6 +44,11 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 		return model.User{}, "", err
 	}
 	token, err := s.issueToken(created)
+	// Welcome WhatsApp notification
+	if created.Phone != nil && *created.Phone != "" {
+		go whatsapp.SendMessage(*created.Phone,
+			fmt.Sprintf("📦 Добро пожаловать, %s! Ваш аккаунт в системе грузоперевозок успешно создан.\nДля отслеживания посылок обращайтесь к менеджерам или в приложение.\nЭто сообщение подтверждает регистрацию вашего номера в системе.", created.Name))
+	}
 	return created, token, err
 }
 
