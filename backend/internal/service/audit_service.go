@@ -13,3 +13,7 @@ func (s *AuditService) List(ctx context.Context) ([]model.AuditLog, error) {
 func (s *AuditService) ListByUser(ctx context.Context, userID string) ([]model.AuditLog, error) {
 	return s.repo.ListAuditLogsByUser(ctx, userID)
 }
+
+func (s *AuditService) ListByShipment(ctx context.Context, shipmentNumber string) ([]model.AuditLog, error) {
+	return s.repo.ListAuditLogsByShipment(ctx, shipmentNumber)
+}

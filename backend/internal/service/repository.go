@@ -63,6 +63,7 @@ type Repository interface {
 	AddAuditLog(ctx context.Context, log model.AuditLog) error
 	ListAuditLogs(ctx context.Context) ([]model.AuditLog, error)
 	ListAuditLogsByUser(ctx context.Context, userID string) ([]model.AuditLog, error)
+	ListAuditLogsByShipment(ctx context.Context, shipmentNumber string) ([]model.AuditLog, error)
 
 	GetDashboardReport(ctx context.Context) (model.DashboardReport, error)
 	GetFinanceReport(ctx context.Context) (model.FinanceReport, error)

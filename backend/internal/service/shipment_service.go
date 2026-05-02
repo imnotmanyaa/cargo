@@ -31,6 +31,7 @@ type CreateShipmentRequest struct {
 	ReceiverName    *string
 	ReceiverPhone   *string
 	CreatedBy       *string
+	CreatedByName   *string // Имя сотрудника, оформившего посылку
 	IsDoorToDoor    bool
 	ClientRole      string
 	PickupAddress   *string
@@ -152,13 +153,14 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		CreatedAt:  now,
 	})
 	_ = s.repo.AddAuditLog(ctx, model.AuditLog{
-		ID:         uuid.NewString(),
-		UserID:     req.CreatedBy,
-		EntityType: "shipment",
-		EntityID:   created.ID,
-		Action:     "CREATE_SHIPMENT",
-		NewValue:   ptr(string(created.ShipmentStatus)),
-		CreatedAt:  now,
+		ID:           uuid.NewString(),
+		UserID:       req.CreatedBy,
+		OperatorName: req.CreatedByName,
+		EntityType:   "shipment",
+		EntityID:     created.ID,
+		Action:       "CREATE_SHIPMENT",
+		NewValue:     ptr(string(created.ShipmentStatus)),
+		CreatedAt:    now,
 	})
 	// Notify receiver immediately with their issue PIN code
 	if created.ReceiverPhone != nil && *created.ReceiverPhone != "" && created.IssueCode != nil {
@@ -640,16 +642,17 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 		CreatedAt:    time.Now().UTC(),
 	})
 	_ = s.repo.AddAuditLog(ctx, model.AuditLog{
-		ID:         uuid.NewString(),
-		UserID:     operatorID,
-		EntityType: "shipment",
-		EntityID:   shipment.ID,
-		Action:     action,
-		OldValue:   ptr(string(old)),
-		NewValue:   ptr(string(next)),
-		StationID:  station,
-		Reason:     reasonText,
-		CreatedAt:  time.Now().UTC(),
+		ID:           uuid.NewString(),
+		UserID:       operatorID,
+		OperatorName: operatorName,
+		EntityType:   "shipment",
+		EntityID:     shipment.ID,
+		Action:       action,
+		OldValue:     ptr(string(old)),
+		NewValue:     ptr(string(next)),
+		StationID:    station,
+		Reason:       reasonText,
+		CreatedAt:    time.Now().UTC(),
 	})
 	// Send WhatsApp status notification to receiver/client
 	go func(s model.Shipment, newStatus model.ShipmentLifecycle) {

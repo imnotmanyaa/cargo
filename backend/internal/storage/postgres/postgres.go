@@ -623,19 +623,38 @@ func (r *Repository) MarkNotificationRead(ctx context.Context, id int64) error {
 }
 
 func (r *Repository) AddAuditLog(ctx context.Context, log model.AuditLog) error {
-	_, err := r.pool.Exec(ctx, `INSERT INTO audit_log (id, user_id, entity_type, entity_id, action, old_value, new_value, station_id, reason, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, log.ID, log.UserID, log.EntityType, log.EntityID, log.Action, log.OldValue, log.NewValue, log.StationID, log.Reason, log.CreatedAt)
+	_, err := r.pool.Exec(ctx, `INSERT INTO audit_log (id, user_id, entity_type, entity_id, action, old_value, new_value, station_id, reason, created_at, operator_name) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, log.ID, log.UserID, log.EntityType, log.EntityID, log.Action, log.OldValue, log.NewValue, log.StationID, log.Reason, log.CreatedAt, log.OperatorName)
 	return err
 }
 
 func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error) {
-	rows, err := r.pool.Query(ctx, `
-		SELECT a.id, a.user_id, a.entity_type, a.entity_id, a.action, a.old_value, a.new_value, a.station_id, a.reason, a.created_at, s.shipment_number,
-		COALESCE(u.name, 'Система') as user_name,
-		COALESCE(u.role, 'system') as user_role
+	return r.listAuditLogsWhere(ctx, "")
+}
+
+func (r *Repository) ListAuditLogsByUser(ctx context.Context, userID string) ([]model.AuditLog, error) {
+	return r.listAuditLogsWhere(ctx, "WHERE a.user_id = $1", userID)
+}
+
+func (r *Repository) ListAuditLogsByShipment(ctx context.Context, shipmentNumber string) ([]model.AuditLog, error) {
+	return r.listAuditLogsWhere(ctx, "WHERE s.shipment_number = $1", shipmentNumber)
+}
+
+func (r *Repository) listAuditLogsWhere(ctx context.Context, where string, args ...interface{}) ([]model.AuditLog, error) {
+	query := `
+		SELECT a.id, a.user_id, a.entity_type, a.entity_id, a.action, a.old_value, a.new_value, a.station_id, a.reason, a.created_at,
+			COALESCE(s.shipment_number, '') as shipment_number,
+			COALESCE(a.operator_name, u.name, '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e') as user_name,
+			COALESCE(u.role, 'system') as user_role
 		FROM audit_log a
 		LEFT JOIN shipments s ON a.entity_id = s.id AND a.entity_type = 'shipment'
 		LEFT JOIN users u ON a.user_id = u.id
-		ORDER BY a.created_at DESC`)
+	`
+	if where != "" {
+		query += " " + where
+	}
+	query += " ORDER BY a.created_at DESC"
+
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -644,28 +663,6 @@ func (r *Repository) ListAuditLogs(ctx context.Context) ([]model.AuditLog, error
 	for rows.Next() {
 		var item model.AuditLog
 		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt, &item.ShipmentNumber, &item.UserName, &item.UserRole); err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
-}
-
-func (r *Repository) ListAuditLogsByUser(ctx context.Context, userID string) ([]model.AuditLog, error) {
-	rows, err := r.pool.Query(ctx, `
-		SELECT a.id, a.user_id, a.entity_type, a.entity_id, a.action, a.old_value, a.new_value, a.station_id, a.reason, a.created_at, s.shipment_number
-		FROM audit_log a
-		LEFT JOIN shipments s ON a.entity_id = s.id AND a.entity_type = 'shipment'
-		WHERE a.user_id = $1 
-		ORDER BY a.created_at DESC`, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []model.AuditLog{}
-	for rows.Next() {
-		var item model.AuditLog
-		if err := rows.Scan(&item.ID, &item.UserID, &item.EntityType, &item.EntityID, &item.Action, &item.OldValue, &item.NewValue, &item.StationID, &item.Reason, &item.CreatedAt, &item.ShipmentNumber); err != nil {
 			return nil, err
 		}
 		items = append(items, item)

@@ -482,6 +482,12 @@ func (m *memoryRepo) ListAuditLogsByUser(ctx context.Context, userID string) ([]
 	return nil, nil
 }
 
+func (m *memoryRepo) ListAuditLogsByShipment(ctx context.Context, shipmentNumber string) ([]model.AuditLog, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return nil, nil
+}
+
 
 
 func (m *memoryRepo) GetDashboardReport(_ context.Context) (model.DashboardReport, error) {

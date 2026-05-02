@@ -242,6 +242,7 @@ type AuditLog struct {
 	UserID         *string   `json:"user_id,omitempty"`
 	UserName       *string   `json:"user_name,omitempty"`
 	UserRole       *string   `json:"user_role,omitempty"`
+	OperatorName   *string   `json:"operator_name,omitempty"`
 	EntityType     string    `json:"entity_type"`
 	EntityID       string    `json:"entity_id"`
 	Action         string    `json:"action"`

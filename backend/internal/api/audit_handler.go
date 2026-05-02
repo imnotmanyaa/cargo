@@ -21,13 +21,21 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	var items []model.AuditLog
-	var err error
-	if user.Role == model.RoleAdmin {
-		items, err = s.services.Audit.List(r.Context())
-	} else {
-		items, err = s.services.Audit.ListByUser(r.Context(), user.ID)
+
+	// Support filter by shipment number
+	shipmentNum := r.URL.Query().Get("shipment")
+	if shipmentNum != "" {
+		items, err := s.services.Audit.ListByShipment(r.Context(), shipmentNum)
+		if err != nil {
+			handleServiceError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, items)
+		return
 	}
+
+	// Admin sees all, manager sees all (filter by action is done on frontend)
+	items, err := s.services.Audit.List(r.Context())
 	if err != nil {
 		handleServiceError(w, err)
 		return

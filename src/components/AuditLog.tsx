@@ -1,40 +1,168 @@
 import { withApiBase } from "../lib/api-base";
-
-import { useState, useEffect } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
-import { Activity, Clock } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Activity, Search, Filter, RefreshCw, Package, X } from 'lucide-react';
 
 interface AuditLog {
   id: string;
-  user_id: string;
+  user_id?: string;
   user_name?: string;
   user_role?: string;
   entity_type: string;
   entity_id: string;
   action: string;
-  old_value: string;
-  new_value: string;
-  reason: string;
+  old_value?: string;
+  new_value?: string;
+  reason?: string;
+  station_id?: string;
   shipment_number?: string;
   created_at: string;
 }
 
+// ─── Словари ──────────────────────────────────────────────────────────────
+const ACTION_LABELS: Record<string, string> = {
+  CREATE_SHIPMENT:           'Оформление посылки',
+  SCAN:                      'Сканирование',
+  SCAN_LOADED:               'Сканирование (погрузка)',
+  SCAN_TRANSIT:              'Сканирование (транзит)',
+  'Shipment created':        'Оформление посылки',
+  'Shipment loaded':         'Погружено в вагон',
+  'Shipment dispatched':     'Отправлено',
+  'Shipment arrived':        'Прибыло',
+  'Ready for loading':       'Готово к погрузке',
+  'Ready for delivery task': 'Готово к доставке',
+  'Courier handover':        'Сдано курьером',
+  'Station intake':          'Принято на склад',
+  'Courier picked up':       'Курьер забрал',
+  ISSUE:                     'Выдача посылки',
+  'ISSUED':                  'Выдача посылки',
+  POST_PAYMENT_CORRECTION:   'Корректировка после оплаты',
+  TRANSIT:                   'Транзит',
+  ARRIVED:                   'Прибытие',
+  PAYMENT_CONFIRMED:         'Оплата подтверждена',
+  CANCEL:                    'Отмена',
+  HOLD:                      'Задержка',
+  DAMAGE:                    'Повреждение',
+  WEIGHT_CONFIRM:            'Взвешивание',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  CREATED:            'Создана',
+  CREATED_DOOR:       'Создана (дверь-дверь)',
+  PAYMENT_PENDING:    'Ожидает оплаты',
+  PAID:               'Оплачена',
+  PICKUP_ASSIGNED:    'Курьер назначен',
+  PICKED_UP:          'Забрана курьером',
+  AT_STATION_INTAKE:  'Принята на склад',
+  READY_FOR_LOADING:  'Готова к погрузке',
+  LOADED:             'В вагоне',
+  IN_TRANSIT:         'В транзите',
+  ARRIVED:            'Прибыла',
+  READY_FOR_ISSUE:    'Готова к выдаче',
+  ISSUED:             'Выдана',
+  CLOSED:             'Закрыта',
+  CANCELLED:          'Отменена',
+  ON_HOLD:            'Задержана',
+  DAMAGED:            'Повреждена',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  manager:        'Менеджер',
+  receiver:       'Приёмосдатчик',
+  train_receiver: 'Приёмосдатчик в поезде',
+  courier:        'Курьер',
+  individual:     'Клиент',
+  corporate:      'Компания',
+  admin:          'Администратор',
+  chief_head:     'Главный руководитель',
+  direction_head: 'Руководитель направления',
+  loading_operator: 'Оператор погрузки',
+  transit_operator: 'Оператор транзита',
+  issue_operator:   'Оператор выдачи',
+  accounting:       'Бухгалтер',
+  mobile_group:     'Мобильная группа',
+  system:           'Система',
+};
+
+// Группы действий для фильтра
+const ACTION_GROUPS: { label: string; actions: string[] }[] = [
+  { label: 'Все действия',    actions: [] },
+  { label: 'Оформление',      actions: ['CREATE_SHIPMENT', 'Shipment created'] },
+  { label: 'Сканирование',    actions: ['SCAN', 'SCAN_LOADED', 'SCAN_TRANSIT'] },
+  { label: 'Погрузка/Транзит', actions: ['Shipment loaded', 'Shipment dispatched', 'Ready for loading', 'TRANSIT'] },
+  { label: 'Прибытие',        actions: ['Shipment arrived', 'ARRIVED', 'Ready for delivery task'] },
+  { label: 'Выдача',          actions: ['ISSUE', 'ISSUED'] },
+  { label: 'Курьер',          actions: ['Courier handover', 'Courier picked up', 'Station intake', 'PICKUP_ASSIGNED'] },
+  { label: 'Оплата',          actions: ['PAYMENT_CONFIRMED', 'POST_PAYMENT_CORRECTION'] },
+  { label: 'Прочее',          actions: ['CANCEL', 'HOLD', 'DAMAGE', 'WEIGHT_CONFIRM'] },
+];
+
+function getReadableAction(action: string): string {
+  return ACTION_LABELS[action] || action;
+}
+
+function getStatusLabel(val?: string): string {
+  if (!val) return '';
+  return STATUS_LABELS[val] || val;
+}
+
+function formatDate(d: string) {
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return d;
+  return dt.toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+}
+
+function getActionIcon(action: string) {
+  if (action.includes('CREATE') || action === 'Shipment created') return '📦';
+  if (action.includes('SCAN'))   return '🔍';
+  if (action.includes('loaded') || action.includes('LOADED')) return '🚂';
+  if (action.includes('dispatched') || action.includes('TRANSIT')) return '🚀';
+  if (action.includes('arrived') || action.includes('ARRIVED')) return '📍';
+  if (action.includes('ISSUE') || action === 'ISSUED') return '✅';
+  if (action.includes('Courier') || action.includes('delivery') || action.includes('pickup')) return '🚴';
+  if (action.includes('PAYMENT') || action.includes('Correction')) return '💳';
+  if (action.includes('CANCEL')) return '❌';
+  if (action.includes('HOLD')) return '⏸️';
+  if (action.includes('DAMAGE')) return '⚠️';
+  return '📋';
+}
+
+function getActionColor(action: string, isDark: boolean) {
+  if (action.includes('CREATE') || action === 'Shipment created')
+    return isDark ? 'text-blue-400' : 'text-blue-600';
+  if (action.includes('ISSUE') || action === 'ISSUED')
+    return isDark ? 'text-green-400' : 'text-green-600';
+  if (action.includes('CANCEL'))
+    return isDark ? 'text-red-400' : 'text-red-600';
+  if (action.includes('PAYMENT'))
+    return isDark ? 'text-yellow-400' : 'text-yellow-600';
+  if (action.includes('DAMAGE'))
+    return isDark ? 'text-orange-400' : 'text-orange-600';
+  return isDark ? 'text-gray-300' : 'text-gray-700';
+}
+
 export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
-  const { t } = useLanguage();
   const isDark = theme === 'dark';
+  const { user } = useAuth();
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
+  // Filters
+  const [searchShipment, setSearchShipment] = useState('');
+  const [searchShipmentInput, setSearchShipmentInput] = useState('');
+  const [searchActor, setSearchActor] = useState('');
+  const [actionGroup, setActionGroup] = useState(0);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async (shipmentNum?: string) => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(withApiBase('/api/audit/logs'), {
+      const params = new URLSearchParams();
+      if (shipmentNum) params.set('shipment', shipmentNum);
+      const res = await fetch(withApiBase(`/api/audit/logs?${params}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -46,176 +174,269 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  const handleShipmentSearch = () => {
+    const v = searchShipmentInput.trim();
+    setSearchShipment(v);
+    fetchLogs(v || undefined);
   };
 
-  const ROLE_LABELS: Record<string, string> = {
-    manager: 'Менеджер',
-    receiver: 'Приемосдатчик',
-    train_receiver: 'Приемосдатчик в поезде',
-    courier: 'Курьер',
-    individual: 'Клиент',
-    corporate: 'Компания',
-    admin: 'Администратор',
-    chief_head: 'Главный руководитель',
-    direction_head: 'Руководитель направления',
+  const clearShipmentSearch = () => {
+    setSearchShipmentInput('');
+    setSearchShipment('');
+    fetchLogs();
   };
 
-  const STATUS_LABELS: Record<string, string> = {
-    CREATED: 'Создана',
-    CREATED_DOOR: 'Оформлена',
-    PICKUP_ASSIGNED: 'Курьер назначен',
-    PICKED_UP: 'Курьер забрал',
-    READY_FOR_LOADING: 'На складе',
-    LOADED: 'Погружена в поезд',
-    IN_TRANSIT: 'В пути',
-    ARRIVED: 'Прибыла',
-    READY_FOR_ISSUE: 'Ждёт выдачи',
-    ISSUED: 'Выдана',
-    PAYMENT_PENDING: 'Ожидает оплаты',
-    PAID: 'Оплачена',
-    CANCELLED: 'Отменена',
-    CONFIRMED: 'Подтверждена',
-  };
-
-  const getReadableLog = (log: AuditLog) => {
-    const name = log.user_name && log.user_name.trim() !== '' ? log.user_name : null;
-    const role = log.user_role ? (ROLE_LABELS[log.user_role] || log.user_role) : null;
-    const actor = name
-      ? (role ? `${role} ${name}` : name)
-      : (role || 'Система');
-
-    const num = log.shipment_number ? `посылку ${log.shipment_number}` : 'запись';
-    const act = (log.action || '').toUpperCase().replace(/ /g, '_');
-
-    if (act.includes('CREATED_DOOR') || (act === 'CREATED') || act.includes('CREATE_SHIPMENT')) {
-      return `${actor} оформил(а) ${num}`;
+  // Client-side filtering
+  const filtered = logs.filter(log => {
+    if (searchActor) {
+      const actor = (log.user_name || '').toLowerCase();
+      if (!actor.includes(searchActor.toLowerCase())) return false;
     }
-    if (act.includes('PICKUP_ASSIGNED') || act.includes('COURIER_PICKUP_ASSIGNED') || act.includes('COURIER_TOOK')) {
-      return `${actor} взял(а) задание — ${num}`;
+    if (actionGroup > 0) {
+      const group = ACTION_GROUPS[actionGroup];
+      if (!group.actions.some(a => log.action.includes(a) || a.includes(log.action))) return false;
     }
-    if (act.includes('COURIER_PICKUP_CONFIRM') || act === 'PICKED_UP' || act.includes('COURIER_PICKED')) {
-      return `${actor} забрал(а) ${num} у отправителя`;
-    }
-    if (act.includes('READY_FOR_LOADING') || act.includes('STATION_INTAKE') || act.includes('ПРИЁМКА')) {
-      return `${actor} принял(а) ${num} на склад`;
-    }
-    if (act.includes('LOADED') || act.includes('SHIPMENT_LOADED') || act.includes('ПОГРУЗ')) {
-      return `${actor} погрузил(а) ${num} в поезд`;
-    }
-    if (act.includes('IN_TRANSIT') || act.includes('TRANSIT')) {
-      return `${actor} отметил(а) ${num} как «В пути»`;
-    }
-    if (act.includes('ARRIVED') || act.includes('SHIPMENT_ARRIVED')) {
-      return `${actor} принял(а) ${num} в пункте назначения`;
-    }
-    if (act.includes('READY_FOR_ISSUE')) {
-      return `${actor} подготовил(а) ${num} к выдаче`;
-    }
-    if (act.includes('ISSUED') || act.includes('SHIPMENT_ISSUED') || act.includes('DELIVER')) {
-      return `${actor} выдал(а) ${num} получателю`;
-    }
-    if (act.includes('PAYMENT') || act.includes('PAID') || act.includes('CONFIRMED')) {
-      return `${actor} подтвердил(а) оплату за ${num}`;
-    }
-    if (act.includes('GENERATE_QR') || act.includes('QR')) {
-      return `${actor} распечатал(а) QR-наклейку для ${num}`;
-    }
-    if (act.includes('WEIGHT') || act.includes('ВЕС')) {
-      return `${actor} скорректировал(а) вес ${num}`;
-    }
-    if (act.includes('CANCEL')) {
-      return `${actor} отменил(а) ${num}`;
-    }
-    // Fallback — show action readably
-    return `${actor}: ${log.action.replace(/_/g, ' ').toLowerCase()}`;
-  };
-
-  const filteredLogs = logs.filter(log => {
-    const q = searchQuery.toLowerCase();
-    return (
-      log.shipment_number?.toLowerCase().includes(q) ||
-      log.entity_id?.toLowerCase().includes(q) ||
-      log.action?.toLowerCase().includes(q) ||
-      log.user_id?.toLowerCase().includes(q) ||
-      log.user_name?.toLowerCase().includes(q)
-    );
+    return true;
   });
 
+  // ─── Styles ──────────────────────────────────────────────────────────────
+  const bg = isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900';
+  const card = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
+  const input = isDark
+    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
+    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500';
+  const tabActive = isDark ? 'bg-blue-600 text-white' : 'bg-blue-600 text-white';
+  const tabInactive = isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+
   return (
-    <div>
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className={`text-2xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('auditLog')}</h1>
-          <p className="text-gray-600">{t('userActions')}</p>
+    <div className={`min-h-screen ${bg}`}>
+      {/* Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <Activity className={`w-6 h-6 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+            <h1 className="text-2xl font-bold">Журнал аудита</h1>
+          </div>
+          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+            {filtered.length} записей{searchShipment ? ` по посылке ${searchShipment}` : ''}
+          </p>
         </div>
-        <div className="w-full md:w-72">
-          <input
-            type="text"
-            placeholder={t('searchLogs')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full px-4 py-2 rounded-lg border ${
-              isDark 
-                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500' 
-                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
-            } outline-none transition-colors`}
-          />
+        <button
+          onClick={() => fetchLogs(searchShipment || undefined)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+            isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <RefreshCw className="w-4 h-4" />
+          Обновить
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className={`rounded-xl border p-4 mb-6 ${card}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+          <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Фильтры</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          {/* Поиск по грузу */}
+          <div>
+            <label className={`text-xs mb-1 block font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <Package className="w-3 h-3 inline mr-1" />
+              Поиск по номеру груза
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+                <input
+                  type="text"
+                  placeholder="SH-123456"
+                  value={searchShipmentInput}
+                  onChange={e => setSearchShipmentInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleShipmentSearch()}
+                  className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${input}`}
+                />
+              </div>
+              <button
+                onClick={handleShipmentSearch}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Найти
+              </button>
+              {searchShipment && (
+                <button onClick={clearShipmentSearch} className="px-2 py-2 text-red-500 hover:bg-red-50 rounded-lg">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Поиск по сотруднику */}
+          <div>
+            <label className={`text-xs mb-1 block font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Поиск по имени сотрудника
+            </label>
+            <div className="relative">
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+              <input
+                type="text"
+                placeholder="Имя Фамилия..."
+                value={searchActor}
+                onChange={e => setSearchActor(e.target.value)}
+                className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${input}`}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Action type tabs */}
+        <div>
+          <label className={`text-xs mb-2 block font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Тип действия
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {ACTION_GROUPS.map((group, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActionGroup(idx)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  actionGroup === idx ? tabActive : tabInactive
+                }`}
+              >
+                {group.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className={`rounded-lg shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-500">{t('loading')}</div>
-        ) : filteredLogs.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">{t('noLogs')}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className={`text-left border-b ${isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-                  <th className="px-6 py-4 font-medium">{t('date')}</th>
-                  <th className="px-6 py-4 font-medium">{t('event')}</th>
-                  <th className="px-6 py-4 font-medium">{t('source')}</th>
-                  <th className="px-6 py-4 font-medium">{t('details')}</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                {filteredLogs.map(log => (
-                  <tr key={log.id} className={`transition-colors ${isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        {new Date(log.created_at).toLocaleString()}
+      {/* Logs */}
+      {isLoading ? (
+        <div className="py-16 text-center">
+          <RefreshCw className={`w-8 h-8 animate-spin mx-auto mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+          <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Загрузка...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className={`rounded-xl border p-12 text-center ${card}`}>
+          <Activity className="w-16 h-16 mx-auto mb-4 opacity-30" />
+          <p className={`text-lg font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Записей не найдено</p>
+        </div>
+      ) : (
+        <div className={`rounded-xl border overflow-hidden ${card}`}>
+          {/* Desktop table */}
+          <table className="hidden md:table w-full">
+            <thead className={`border-b text-left text-xs font-medium uppercase tracking-wider ${
+              isDark ? 'border-gray-700 text-gray-400 bg-gray-750' : 'border-gray-200 text-gray-500 bg-gray-50'
+            }`}>
+              <tr>
+                <th className="px-5 py-3 w-40">Дата и время</th>
+                <th className="px-5 py-3 w-44">Сотрудник</th>
+                <th className="px-5 py-3 w-32">Груз</th>
+                <th className="px-5 py-3">Действие</th>
+                <th className="px-5 py-3 w-48">Изменение статуса</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-100'}`}>
+              {filtered.map(log => (
+                <tr key={log.id} className={isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}>
+                  <td className={`px-5 py-3 text-xs whitespace-nowrap ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {formatDate(log.created_at)}
+                  </td>
+                  <td className="px-5 py-3">
+                    <div className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                      {log.user_name || 'Неизвестно'}
+                    </div>
+                    {log.user_role && (
+                      <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {ROLE_LABELS[log.user_role] || log.user_role}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-700'
+                    )}
+                  </td>
+                  <td className="px-5 py-3">
+                    {log.shipment_number ? (
+                      <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
+                        isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-50 text-blue-700'
                       }`}>
-                        <Activity className="w-3.5 h-3.5" />
-                        {getReadableLog(log)}
+                        {log.shipment_number}
                       </span>
-                    </td>
-                    <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                      {log.user_role === 'courier' ? t('platformCourier') : 
-                       log.user_role === 'receiver' ? t('platformReceiver') : 
-                       log.user_role === 'individual' || log.user_role === 'corporate' ? t('platformClient') : 
-                       t('platformDashboard')}
-                    </td>
-                    <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {log.new_value ? (
-                        <span>→ <strong>{STATUS_LABELS[log.new_value] || log.new_value}</strong></span>
-                      ) : (
-                        <span>{log.reason || '—'}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    ) : (
+                      <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>—</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3">
+                    <div className={`flex items-center gap-2 text-sm font-medium ${getActionColor(log.action, isDark)}`}>
+                      <span>{getActionIcon(log.action)}</span>
+                      <span>{getReadableAction(log.action)}</span>
+                    </div>
+                    {log.reason && (
+                      <div className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        Причина: {log.reason}
+                      </div>
+                    )}
+                    {log.station_id && (
+                      <div className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        📍 {log.station_id}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-5 py-3">
+                    {(log.old_value || log.new_value) && (
+                      <div className="flex items-center gap-1 text-xs">
+                        {log.old_value && (
+                          <span className={`px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>
+                            {getStatusLabel(log.old_value)}
+                          </span>
+                        )}
+                        {log.old_value && log.new_value && <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>→</span>}
+                        {log.new_value && (
+                          <span className={`px-1.5 py-0.5 rounded font-medium ${isDark ? 'bg-green-900/50 text-green-300' : 'bg-green-50 text-green-700'}`}>
+                            {getStatusLabel(log.new_value)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+            {filtered.map(log => (
+              <div key={log.id} className={`p-4 ${isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}>
+                <div className="flex items-start justify-between mb-1">
+                  <div className={`text-sm font-medium flex items-center gap-1 ${getActionColor(log.action, isDark)}`}>
+                    {getActionIcon(log.action)} {getReadableAction(log.action)}
+                  </div>
+                  {log.shipment_number && (
+                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
+                      {log.shipment_number}
+                    </span>
+                  )}
+                </div>
+                <div className={`text-sm font-medium mb-0.5 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                  {log.user_name || 'Неизвестно'}
+                  {log.user_role && <span className={`ml-1 text-xs font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({ROLE_LABELS[log.user_role] || log.user_role})</span>}
+                </div>
+                {(log.old_value || log.new_value) && (
+                  <div className="flex items-center gap-1 text-xs mb-0.5">
+                    {log.old_value && <span className={`px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>{getStatusLabel(log.old_value)}</span>}
+                    {log.old_value && log.new_value && <span>→</span>}
+                    {log.new_value && <span className={`px-1.5 py-0.5 rounded ${isDark ? 'bg-green-900/50 text-green-300' : 'bg-green-50 text-green-700'}`}>{getStatusLabel(log.new_value)}</span>}
+                  </div>
+                )}
+                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{formatDate(log.created_at)}</div>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
