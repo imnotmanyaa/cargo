@@ -13,6 +13,8 @@ func (s *Server) mountAuthRoutes(r chi.Router) {
 	r.Post("/auth/login", s.handleLogin)
 	r.Post("/auth/courier/login", s.handleCourierLogin)
 	r.Post("/auth/register", s.handleRegister)
+	r.Post("/auth/forgot-password", s.handleForgotPassword)
+	r.Post("/auth/reset-password", s.handleResetPassword)
 	r.Post("/auth/qr-login", s.handleQRLogin)
 	r.With(s.requireAuth).Get("/auth/me", s.handleMe)
 	r.Post("/auth/logout", s.handleLogout)
@@ -61,6 +63,38 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, withToken(user, token))
+}
+
+func (s *Server) handleForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Login string `json:"login"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	err := s.services.Auth.ForgotPassword(r.Context(), req.Login)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func (s *Server) handleResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Login       string `json:"login"`
+		Code        string `json:"code"`
+		NewPassword string `json:"new_password"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	err := s.services.Auth.ResetPassword(r.Context(), req.Login, req.Code, req.NewPassword)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
 func (s *Server) handleCourierLogin(w http.ResponseWriter, r *http.Request) {

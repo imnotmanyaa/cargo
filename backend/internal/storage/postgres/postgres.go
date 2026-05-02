@@ -114,6 +114,11 @@ func (r *Repository) UpdateUser(ctx context.Context, user model.User) (model.Use
 	return user, nil
 }
 
+func (r *Repository) UpdateUserPassword(ctx context.Context, id, passwordHash string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE users SET password_hash = $2 WHERE id = $1`, id, passwordHash)
+	return err
+}
+
 func (r *Repository) GetUserByEmail(ctx context.Context, login string) (model.User, error) {
 	return scanUser(r.pool.QueryRow(ctx, userSelect+` WHERE login = $1`, login))
 }

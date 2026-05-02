@@ -74,6 +74,18 @@ func (m *memoryRepo) UpdateUser(_ context.Context, user model.User) (model.User,
 	return user, nil
 }
 
+func (m *memoryRepo) UpdateUserPassword(_ context.Context, id, passwordHash string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	user, ok := m.users[id]
+	if !ok {
+		return service.ErrNotFound
+	}
+	user.PasswordHash = passwordHash
+	m.users[id] = user
+	return nil
+}
+
 func (m *memoryRepo) GetUserByEmail(_ context.Context, login string) (model.User, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

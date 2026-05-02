@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -68,6 +69,63 @@ func (s *AuthService) Login(ctx context.Context, login, password string) (model.
 	}
 	token, err := s.issueToken(user)
 	return user, token, err
+}
+
+func (s *AuthService) ForgotPassword(ctx context.Context, login string) error {
+	user, err := s.repo.GetUserByEmail(ctx, normalizeLogin(login))
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil // Don't reveal user existence
+		}
+		return err
+	}
+	if user.Role != model.RoleIndividual && user.Role != model.RoleCorporate {
+		return errors.New("для сброса пароля сотрудника обратитесь к администратору")
+	}
+	if user.Phone == nil || *user.Phone == "" {
+		return errors.New("к аккаунту не привязан номер телефона")
+	}
+
+	code := fmt.Sprintf("%04d", rand.Intn(10000))
+	s.otpStore.Store(user.Login, otpData{
+		Code:      code,
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	})
+
+	go whatsapp.SendMessage(*user.Phone, fmt.Sprintf("Ваш код для сброса пароля: %s. Никому его не сообщайте.", code))
+	return nil
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, login, code, newPassword string) error {
+	login = normalizeLogin(login)
+	data, ok := s.otpStore.Load(login)
+	if !ok {
+		return errors.New("код не найден или устарел")
+	}
+	otp := data.(otpData)
+	if time.Now().After(otp.ExpiresAt) {
+		s.otpStore.Delete(login)
+		return errors.New("код устарел")
+	}
+	if otp.Code != code {
+		return errors.New("неверный код")
+	}
+
+	user, err := s.repo.GetUserByEmail(ctx, login)
+	if err != nil {
+		return err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.UpdateUserPassword(ctx, user.ID, string(hash))
+	if err == nil {
+		s.otpStore.Delete(login)
+	}
+	return err
 }
 
 func (s *AuthService) Me(ctx context.Context, id string) (model.User, error) {

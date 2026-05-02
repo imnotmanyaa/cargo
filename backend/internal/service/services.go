@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"cargo/backend/internal/model"
 )
@@ -55,10 +56,16 @@ func NewServices(repo Repository, jwtSecret string) Services {
 	}
 }
 
+type otpData struct {
+	Code      string
+	ExpiresAt time.Time
+}
+
 type AuthService struct {
 	repo      Repository
 	jwtSecret string
 	blacklist sync.Map
+	otpStore  sync.Map
 }
 
 type AdminService struct{ repo Repository }
