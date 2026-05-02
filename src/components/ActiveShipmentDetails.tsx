@@ -134,12 +134,14 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
                 <p className={label}>{t('client')}</p>
                 <p className={value}>{shipment.client}</p>
               </div>
-              {shipment.client_email && (
-                <div>
-                  <p className={label}>Email</p>
-                  <p className={value}>{shipment.client_email}</p>
-                </div>
-              )}
+              <div>
+                <p className={label}>Email</p>
+                <p className={value}>
+                  {(shipment.client_email && !shipment.client_email.includes('@cargo.kz') && shipment.client_email.trim() !== '')
+                    ? shipment.client_email
+                    : '—'}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -228,7 +230,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
                 <span className={value}>{shipment.weight}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                <span className={label}>{t('quantity')}</span>
+                <span className={label}>{t('quantityPlaces')}</span>
                 <span className={value}>{shipment.quantity_places || 1} {t('pcs')}</span>
               </div>
               {shipment.value && (
