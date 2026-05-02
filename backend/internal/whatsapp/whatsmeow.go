@@ -12,15 +12,19 @@ import (
 )
 
 // Green API docs: https://green-api.com/en/docs/api/sending/SendMessage/
-// Set environment variables: GREEN_API_ID and GREEN_API_TOKEN
+// Required env vars: GREEN_API_ID, GREEN_API_TOKEN, GREEN_API_URL (e.g. 7107.api.greenapi.com)
 
 func sendViaGreenAPI(phone, message string) error {
 	idInstance := os.Getenv("GREEN_API_ID")
 	apiToken := os.Getenv("GREEN_API_TOKEN")
+	apiURL := os.Getenv("GREEN_API_URL") // e.g. 7107.api.greenapi.com
 
 	if idInstance == "" || apiToken == "" {
 		log.Println("[WHATSAPP] GREEN_API_ID or GREEN_API_TOKEN not set")
 		return fmt.Errorf("green api credentials not configured")
+	}
+	if apiURL == "" {
+		apiURL = "api.green-api.com"
 	}
 
 	// Normalize phone: strip non-digits, fix 8-xxx → 7-xxx
@@ -30,7 +34,7 @@ func sendViaGreenAPI(phone, message string) error {
 	}
 	chatID := phone + "@c.us"
 
-	url := fmt.Sprintf("https://api.green-api.com/waInstance%s/sendMessage/%s", idInstance, apiToken)
+	url := fmt.Sprintf("https://%s/waInstance%s/sendMessage/%s", apiURL, idInstance, apiToken)
 
 	body, _ := json.Marshal(map[string]string{
 		"chatId":  chatID,
