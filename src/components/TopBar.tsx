@@ -1,4 +1,4 @@
-import { Sun, Moon, Menu, Search, Globe, LogOut, Bell, Info } from 'lucide-react';
+import { Sun, Moon, Menu, Search, Globe, LogOut, Bell, Info, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useRef } from 'react';
@@ -94,6 +94,26 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
       await fetch(withApiBase(`/api/notifications/${id}/read`), { method: 'PATCH' });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteNotification = async (id: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      const res = await fetch(withApiBase(`/api/notifications/${id}`), { method: 'DELETE' });
+      if (res.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        // Also update unread count if we deleted an unread notification
+        setUnreadCount(prev => {
+          const isUnread = notifications.find(n => n.id === id)?.read === false;
+          return isUnread ? Math.max(0, prev - 1) : prev;
+        });
+        if (selectedNotification?.id === id) {
+          setSelectedNotification(null);
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -205,14 +225,25 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
                 notifications.map(n => (
                   <div
                     key={n.id}
-                    className={`p-3 border-b last:border-0 cursor-pointer ${!n.read ? (isDark ? 'bg-blue-900/20' : 'bg-blue-50') : ''} ${isDark ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'}`}
+                    className={`p-3 border-b last:border-0 cursor-pointer group relative ${!n.read ? (isDark ? 'bg-blue-900/20' : 'bg-blue-50') : ''} ${isDark ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'}`}
                     onClick={() => {
                       markAsRead(n.id);
                       setSelectedNotification(n);
                     }}
                   >
-                    <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{n.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className={`text-sm pr-6 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{n.message}</p>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                      </div>
+                      <button 
+                        onClick={(e) => deleteNotification(n.id, e)}
+                        className={`p-1 rounded-md ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'hover:bg-gray-600 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
+                        title={t('delete') || 'Удалить'}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -304,6 +335,12 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
                     {t('openShipment')}
                   </button>
                 )}
+                 <button
+                  onClick={() => deleteNotification(selectedNotification.id)}
+                  className={`px-3 py-2 text-sm rounded-lg ${isDark ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                >
+                  {t('delete') || 'Удалить'}
+                </button>
                  <button
                   onClick={() => setSelectedNotification(null)}
                   className={`px-3 py-2 text-sm rounded-lg ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}

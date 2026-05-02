@@ -18,3 +18,6 @@ func (s *NotificationService) Create(ctx context.Context, notification model.Not
 	return s.repo.CreateNotification(ctx, notification)
 }
 
+func (s *NotificationService) Delete(ctx context.Context, id int64) error {
+	return s.repo.DeleteNotification(ctx, id)
+}

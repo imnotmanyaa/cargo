@@ -618,7 +618,12 @@ func (r *Repository) CreateNotification(ctx context.Context, notification model.
 }
 
 func (r *Repository) MarkNotificationRead(ctx context.Context, id int64) error {
-	_, err := r.pool.Exec(ctx, `UPDATE notifications SET read = TRUE WHERE id = $1`, id)
+	_, err := r.pool.Exec(ctx, `UPDATE notifications SET read = true WHERE id = $1`, id)
+	return err
+}
+
+func (r *Repository) DeleteNotification(ctx context.Context, id int64) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM notifications WHERE id = $1`, id)
 	return err
 }
 

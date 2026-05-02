@@ -59,6 +59,7 @@ type Repository interface {
 	ListNotifications(ctx context.Context, userID string) ([]model.Notification, error)
 	CreateNotification(ctx context.Context, notification model.Notification) (model.Notification, error)
 	MarkNotificationRead(ctx context.Context, id int64) error
+	DeleteNotification(ctx context.Context, id int64) error
 
 	AddAuditLog(ctx context.Context, log model.AuditLog) error
 	ListAuditLogs(ctx context.Context) ([]model.AuditLog, error)
