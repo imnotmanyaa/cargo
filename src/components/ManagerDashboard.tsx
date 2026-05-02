@@ -146,6 +146,24 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     return result;
   };
 
+  const translateLifecycleStatus = (status: string) => {
+    switch (status) {
+      case 'CREATED': case 'CREATED_DOOR': return t('statusRegistered');
+      case 'PAYMENT_PENDING': return t('statusPaymentPending');
+      case 'PAID': return t('statusPaid');
+      case 'PICKUP_ASSIGNED': return t('statusPickupAssigned');
+      case 'PICKED_UP': return t('statusPickedUp');
+      case 'AT_STATION_INTAKE': return t('statusAtStation');
+      case 'READY_FOR_LOADING': return t('readyForLoading');
+      case 'LOADED': return t('statusInWagon');
+      case 'IN_TRANSIT': return t('statusInTransit');
+      case 'ARRIVED': return t('statusArrived');
+      case 'READY_FOR_ISSUE': return t('statusReadyForIssue');
+      case 'ISSUED': return t('statusIssued');
+      default: return status;
+    }
+  };
+
   // 1. «До двери»
   const doorShipments = applySortAndFilter(s.filter(x => 
     x.is_door_to_door && 
@@ -196,7 +214,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     to: shipment.to_station,
     date: formatDate(shipment.created_at),
     weight: shipment.weight + ' ' + (t('kg') || 'кг'),
-    status: shipment.shipment_status === 'AT_STATION_INTAKE' ? t('statusAtStation') : shipment.status,
+    status: translateLifecycleStatus(shipment.shipment_status || shipment.status),
   });
 
   const handleIssueClick = (shipmentId: string) => {

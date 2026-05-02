@@ -195,7 +195,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                             ? 'bg-green-100 text-green-800'
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {arrival.shipment_status === 'READY_FOR_ISSUE' ? t('readyForIssue') : t('arrived')}
+                          {arrival.shipment_status === 'READY_FOR_ISSUE' ? t('statusReadyForIssue') : t('statusArrived')}
                         </span>
                       </div>
                       <h4 className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{arrival.client_name}</h4>
