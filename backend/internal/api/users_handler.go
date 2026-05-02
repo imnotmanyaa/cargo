@@ -17,6 +17,7 @@ func (s *Server) mountUserRoutes(r chi.Router) {
 	r.Post("/admin/employees", s.handleCreateEmployee)
 	r.Get("/admin/employees/{id}/qr-login-token", s.handleEmployeeQRLoginToken)
 	r.Delete("/admin/employees/{id}", s.handleDeleteEmployee)
+	r.Post("/admin/employees/{id}/reset-password", s.handleResetEmployeePassword)
 }
 
 func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
@@ -180,4 +181,31 @@ func (s *Server) handleDeleteEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"message": "Employee deleted"})
+}
+
+func (s *Server) handleResetEmployeePassword(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	var req struct {
+		NewPassword string `json:"new_password"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if req.NewPassword == "" {
+		writeError(w, http.StatusBadRequest, "Новый пароль не может быть пустым")
+		return
+	}
+	employeeID := chi.URLParam(r, "id")
+	if err := s.services.Admin.UpdateEmployeePassword(r.Context(), employeeID, req.NewPassword); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Пароль успешно изменён"})
 }

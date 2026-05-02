@@ -55,6 +55,14 @@ func (s *AdminService) UpdateUser(ctx context.Context, user model.User) (model.U
 	return s.repo.UpdateUser(ctx, user)
 }
 
+func (s *AdminService) UpdateEmployeePassword(ctx context.Context, id, newPassword string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.repo.UpdateUserPassword(ctx, id, string(hash))
+}
+
 func (s *AdminService) DeleteEmployee(ctx context.Context, id string) error {
 	return s.repo.DeleteEmployee(ctx, id)
 }

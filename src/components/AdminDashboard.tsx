@@ -1,7 +1,7 @@
 import { withApiBase } from "../lib/api-base";
 
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { UserPlus, Shield, Users, Edit2, Trash2, Search, QrCode } from 'lucide-react';
+import { UserPlus, Shield, Users, Edit2, Trash2, Search, QrCode, KeyRound } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -29,6 +29,10 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   const [qrToken, setQrToken] = useState<string>('');
   const [qrError, setQrError] = useState<string>('');
   const qrSvgRef = useRef<SVGSVGElement | null>(null);
+  const [resetPwEmployee, setResetPwEmployee] = useState<Employee | null>(null);
+  const [newPw, setNewPw] = useState('');
+  const [resetPwLoading, setResetPwLoading] = useState(false);
+  const [resetPwMsg, setResetPwMsg] = useState('');
 
   useEffect(() => {
     fetchEmployees();
@@ -171,6 +175,32 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
       } catch (error) {
         console.error('Failed to delete employee:', error);
       }
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPwEmployee) return;
+    setResetPwLoading(true);
+    setResetPwMsg('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(withApiBase(`/api/admin/employees/${resetPwEmployee.id}/reset-password`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ new_password: newPw })
+      });
+      if (res.ok) {
+        setResetPwMsg('Пароль успешно изменён');
+        setTimeout(() => { setResetPwEmployee(null); setNewPw(''); setResetPwMsg(''); }, 1500);
+      } else {
+        const err = await res.json();
+        setResetPwMsg(err.error || 'Ошибка');
+      }
+    } catch {
+      setResetPwMsg('Ошибка сети');
+    } finally {
+      setResetPwLoading(false);
     }
   };
 
@@ -527,6 +557,13 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                         </button>
                       )}
                       <button
+                        onClick={() => { setResetPwEmployee(employee); setNewPw(''); setResetPwMsg(''); }}
+                        className={isDark ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-900'}
+                        title="Сменить пароль"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleOpenEdit(employee)}
                         className={isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-900'}
                         title="Редактировать"
@@ -679,6 +716,48 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* Модалка смены пароля */}
+      {resetPwEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className={`w-full max-w-sm rounded-xl shadow-2xl p-6 ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Смена пароля</h3>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{resetPwEmployee.name} · {resetPwEmployee.login}</p>
+              </div>
+              <button onClick={() => { setResetPwEmployee(null); setNewPw(''); setResetPwMsg(''); }}
+                className={isDark ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}>✕</button>
+            </div>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Новый пароль</label>
+                <input
+                  type="password"
+                  value={newPw}
+                  onChange={e => setNewPw(e.target.value)}
+                  required
+                  minLength={6}
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'}`}
+                  placeholder="Минимум 6 символов"
+                />
+              </div>
+              {resetPwMsg && (
+                <p className={`text-sm ${resetPwMsg.includes('успешно') ? 'text-green-600' : 'text-red-600'}`}>{resetPwMsg}</p>
+              )}
+              <div className="flex gap-3">
+                <button type="submit" disabled={resetPwLoading}
+                  className="flex-1 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium disabled:opacity-60">
+                  {resetPwLoading ? 'Сохраняем...' : 'Сохранить'}
+                </button>
+                <button type="button" onClick={() => { setResetPwEmployee(null); setNewPw(''); setResetPwMsg(''); }}
+                  className={`flex-1 py-2 border rounded-lg font-medium ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
+                  Отмена
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
