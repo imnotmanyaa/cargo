@@ -6,9 +6,9 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Package, MapPin, Phone, User, Weight, Navigation, CheckCircle2, Clock, Home, Building2, ArrowRight, Sun, Moon, LogOut } from 'lucide-react';
+import { Package, MapPin, Phone, User, Weight, Navigation, Home, Building2, ArrowRight, Sun, Moon, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DeliveryTask {
@@ -55,7 +55,6 @@ export function CourierDashboard() {
   }, [theme]);
 
   const [tasks, setTasks] = useState<DeliveryTask[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const getStatusTranslation = (status: string) => {
     const dict: Record<string, string> = {
@@ -78,7 +77,6 @@ export function CourierDashboard() {
   };
 
   const loadTasks = async () => {
-    setLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
@@ -156,7 +154,6 @@ export function CourierDashboard() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
     }
   };
 
@@ -167,7 +164,7 @@ export function CourierDashboard() {
   }, [user?.station, user?.id]);
 
   useEffect(() => {
-    const wsBase = import.meta.env.VITE_WS_BASE;
+    const wsBase = (import.meta as any).env?.VITE_WS_BASE;
     const socketUrl = wsBase ? `${wsBase}/ws` : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
     const socket = new WebSocket(socketUrl);
 
@@ -202,12 +199,6 @@ export function CourierDashboard() {
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const myTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'picked_up');
 
-  const stats = {
-    todayTasks: myTasks.length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-    pending: pendingTasks.length,
-    inProgress: myTasks.length
-  };
 
   const handleTaskClick = (task: DeliveryTask) => {
     setSelectedTask(task);
