@@ -37,6 +37,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const [actualWeight, setActualWeight] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!processing && !weightMode) {
@@ -285,31 +286,6 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         /* ── MAIN SCAN VIEW ── */
         <div className="flex-1 flex flex-col items-center justify-center p-4 max-w-lg w-full mx-auto">
 
-          {/* Legend */}
-          <div className={`w-full rounded-2xl border p-4 mb-6 ${cardBg}`}>
-            <p className={`text-xs font-semibold uppercase tracking-widest mb-3 ${textSecondary}`}>{t('scanLogic')}</p>
-            <div className="space-y-2.5 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                <span className={textSecondary}>
-                  <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>{t('onWarehouse')}</span>
-                  {' '}{t('yourStationDeparture')}
-                </span>
-                <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
-                <span className="font-bold text-blue-600">{t('loaded')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                <span className={textSecondary}>
-                  <span className={`font-medium ${isDark ? 'text-green-400' : 'text-green-700'}`}>{t('inTransit')}</span>
-                  {' '}{t('yourStationDestination')}
-                </span>
-                <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
-                <span className="font-bold text-green-600">{t('arrived')}</span>
-              </div>
-            </div>
-          </div>
-
           {/* Scan or Weight Input */}
           {weightMode ? (
             <div className={`w-full rounded-2xl border p-5 ${cardBg}`}>
@@ -395,10 +371,22 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 autoComplete="off"
                 value={scanInput}
                 disabled={processing}
-                onChange={e => setScanInput(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setScanInput(val);
+                  // Auto-submit in QR mode after short pause (barcode scanners type fast)
+                  if (scanMode === 'qr') {
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    debounceRef.current = setTimeout(() => {
+                      const trimmed = val.trim();
+                      if (trimmed) handleScan(trimmed);
+                    }, 200);
+                  }
+                }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
                     const val = e.currentTarget.value.trim();
                     if (val) handleScan(val);
                   }
@@ -410,18 +398,21 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                     : (isDark ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400')
                 }`}
               />
-              <button
-                onClick={() => { const v = scanInput.trim(); if (v) handleScan(v); }}
-                disabled={!scanInput.trim() || processing}
-                className="mt-3 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-base transition-colors"
-              >
-                {processing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    {t('processing')}
-                  </span>
-                ) : t('confirm')}
-              </button>
+              {/* Show confirm button only in manual mode */}
+              {scanMode === 'manual' && (
+                <button
+                  onClick={() => { const v = scanInput.trim(); if (v) handleScan(v); }}
+                  disabled={!scanInput.trim() || processing}
+                  className="mt-3 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-bold text-base transition-colors"
+                >
+                  {processing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      {t('processing')}
+                    </span>
+                  ) : t('confirm')}
+                </button>
+              )}
             </div>
           )}
 

@@ -48,48 +48,86 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
     }
   };
 
-  const translateAction = (action: string) => {
-    return action.replace(/_/g, ' ');
+  const ROLE_LABELS: Record<string, string> = {
+    manager: 'Менеджер',
+    receiver: 'Приемосдатчик',
+    train_receiver: 'Приемосдатчик в поезде',
+    courier: 'Курьер',
+    individual: 'Клиент',
+    corporate: 'Компания',
+    admin: 'Администратор',
+    chief_head: 'Главный руководитель',
+    direction_head: 'Руководитель направления',
+  };
+
+  const STATUS_LABELS: Record<string, string> = {
+    CREATED: 'Создана',
+    CREATED_DOOR: 'Оформлена',
+    PICKUP_ASSIGNED: 'Курьер назначен',
+    PICKED_UP: 'Курьер забрал',
+    READY_FOR_LOADING: 'На складе',
+    LOADED: 'Погружена в поезд',
+    IN_TRANSIT: 'В пути',
+    ARRIVED: 'Прибыла',
+    READY_FOR_ISSUE: 'Ждёт выдачи',
+    ISSUED: 'Выдана',
+    PAYMENT_PENDING: 'Ожидает оплаты',
+    PAID: 'Оплачена',
+    CANCELLED: 'Отменена',
+    CONFIRMED: 'Подтверждена',
   };
 
   const getReadableLog = (log: AuditLog) => {
-    const actorName = log.user_name && log.user_name !== 'Система' ? log.user_name : t('system');
-    let roleText = '';
-    if (log.user_role === 'individual' || log.user_role === 'corporate') roleText = t('clientRole');
-    else if (log.user_role === 'courier') roleText = t('courierRole');
-    else if (log.user_role === 'receiver') roleText = t('receiverRole');
-    else if (log.user_role === 'manager') roleText = t('managerRole');
+    const name = log.user_name && log.user_name.trim() !== '' ? log.user_name : null;
+    const role = log.user_role ? (ROLE_LABELS[log.user_role] || log.user_role) : null;
+    const actor = name
+      ? (role ? `${role} ${name}` : name)
+      : (role || 'Система');
 
-    const actor = roleText ? `${roleText} ${actorName}` : actorName;
-    const num = log.shipment_number ? `${t('shipmentEntity')} ${log.shipment_number}` : t('genericEntity');
-    
-    const act = (log.action || '').toUpperCase();
-    if (act.includes('CREATED_DOOR') || act === 'CREATED' || act.includes('CREATE')) {
-      return `${actor} ${t('actionCreated')} ${num}`;
+    const num = log.shipment_number ? `посылку ${log.shipment_number}` : 'запись';
+    const act = (log.action || '').toUpperCase().replace(/ /g, '_');
+
+    if (act.includes('CREATED_DOOR') || (act === 'CREATED') || act.includes('CREATE_SHIPMENT')) {
+      return `${actor} оформил(а) ${num}`;
     }
-    if (act.includes('PICKUP_ASSIGNED') || act.includes('COURIER PICKUP ASSIGNED')) {
-      return `${actor} ${t('actionTookWork')} ${num}`;
+    if (act.includes('PICKUP_ASSIGNED') || act.includes('COURIER_PICKUP_ASSIGNED') || act.includes('COURIER_TOOK')) {
+      return `${actor} взял(а) задание — ${num}`;
     }
-    if (act.includes('PICKUP CONFIRM') || act === 'PICKED_UP') {
-      return `${actor} ${t('actionPickedUp')} ${num}`;
+    if (act.includes('COURIER_PICKUP_CONFIRM') || act === 'PICKED_UP' || act.includes('COURIER_PICKED')) {
+      return `${actor} забрал(а) ${num} у отправителя`;
     }
-    if (act.includes('READY FOR LOADING') || act === 'READY_FOR_LOADING') {
-      return `${actor} ${t('actionStationIntake')} ${num}`;
+    if (act.includes('READY_FOR_LOADING') || act.includes('STATION_INTAKE') || act.includes('ПРИЁМКА')) {
+      return `${actor} принял(а) ${num} на склад`;
     }
-    if (act.includes('PAYMENT_PENDING') || act.includes('PAID') || act.includes('PAYMENT')) {
-      return `${actor} ${t('actionPayment')} ${num}`;
+    if (act.includes('LOADED') || act.includes('SHIPMENT_LOADED') || act.includes('ПОГРУЗ')) {
+      return `${actor} погрузил(а) ${num} в поезд`;
     }
-    if (act.includes('LOADED') || act === 'LOAD' || act.includes('SHIPMENT LOADED')) {
-      return `${actor} ${t('actionLoaded')} ${num}`;
+    if (act.includes('IN_TRANSIT') || act.includes('TRANSIT')) {
+      return `${actor} отметил(а) ${num} как «В пути»`;
     }
-    if (act.includes('ARRIVED') || act === 'ARRIVAL' || act.includes('SHIPMENT ARRIVED')) {
-      return `${actor} ${t('actionArrived')} ${num}`;
+    if (act.includes('ARRIVED') || act.includes('SHIPMENT_ARRIVED')) {
+      return `${actor} принял(а) ${num} в пункте назначения`;
     }
-    if (act.includes('GENERATE_QR')) {
-      return `${actor} ${t('actionQR')} ${num}`;
+    if (act.includes('READY_FOR_ISSUE')) {
+      return `${actor} подготовил(а) ${num} к выдаче`;
     }
-    
-    return `${actor} ${t('actionExecuted')}: ${translateAction(log.action)}`;
+    if (act.includes('ISSUED') || act.includes('SHIPMENT_ISSUED') || act.includes('DELIVER')) {
+      return `${actor} выдал(а) ${num} получателю`;
+    }
+    if (act.includes('PAYMENT') || act.includes('PAID') || act.includes('CONFIRMED')) {
+      return `${actor} подтвердил(а) оплату за ${num}`;
+    }
+    if (act.includes('GENERATE_QR') || act.includes('QR')) {
+      return `${actor} распечатал(а) QR-наклейку для ${num}`;
+    }
+    if (act.includes('WEIGHT') || act.includes('ВЕС')) {
+      return `${actor} скорректировал(а) вес ${num}`;
+    }
+    if (act.includes('CANCEL')) {
+      return `${actor} отменил(а) ${num}`;
+    }
+    // Fallback — show action readably
+    return `${actor}: ${log.action.replace(/_/g, ' ').toLowerCase()}`;
   };
 
   const filteredLogs = logs.filter(log => {
@@ -166,9 +204,9 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {log.new_value ? (
-                        <span>{t('statusChangedTo')} {log.new_value}</span>
+                        <span>→ <strong>{STATUS_LABELS[log.new_value] || log.new_value}</strong></span>
                       ) : (
-                        <span>{log.reason || '-'}</span>
+                        <span>{log.reason || '—'}</span>
                       )}
                     </td>
                   </tr>

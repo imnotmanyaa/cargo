@@ -263,15 +263,13 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 	role := user.Role
 
 	// ── Приемосдатчик в поезде (train_receiver) ─────────────────────────────
+	// Приемосдатчик в поезде ездит между городами, фиксированной станции нет.
 	if role == model.RoleTrainReceiver {
 		switch current.ShipmentStatus {
 		case model.ShipmentReadyForLoading:
-			if station != current.FromStation {
-				writeError(w, http.StatusForbidden,
-					"Груз отправляется из "+current.FromStation+". Ваша станция: "+station)
-				return
-			}
-			shipment, err := s.services.Shipments.Load(r.Context(), shipmentID, &user.ID, &user.Name, &station, nil)
+			// Используем станцию отправления посылки (train_receiver не привязан к станции)
+			loadStation := current.FromStation
+			shipment, err := s.services.Shipments.Load(r.Context(), shipmentID, &user.ID, &user.Name, &loadStation, nil)
 			if err != nil {
 				handleServiceError(w, err)
 				return

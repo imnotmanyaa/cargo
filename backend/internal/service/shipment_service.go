@@ -992,6 +992,19 @@ func (s *ShipmentService) ConfirmIntake(ctx context.Context, id, actualWeight, s
 		if err == nil {
 			notification = &n
 		}
+		// WhatsApp уведомление клиенту
+		clientPhone := ""
+		if updated.DoorToDoorPhone != nil && *updated.DoorToDoorPhone != "" {
+			clientPhone = *updated.DoorToDoorPhone
+		} else if updated.SenderPhone != nil && *updated.SenderPhone != "" {
+			clientPhone = *updated.SenderPhone
+		}
+		if clientPhone != "" {
+			go whatsapp.SendMessage(clientPhone, fmt.Sprintf(
+				"⚠️ Доплата за посылку %s\n\nФактический вес: %s (заявлено: %s)\nСумма доплаты: %.0f тг\n\nДоплатите в офисе для получения груза.",
+				updated.ShipmentNumber, actualWeight, oldWeightStr, extraCharge,
+			))
+		}
 	}
 
 	// Переводим в READY_FOR_LOADING
