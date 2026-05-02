@@ -134,7 +134,7 @@ export function DailySheet() {
       <div style={{ display: 'flex', gap: 12, padding: '16px 24px', flexWrap: 'wrap' }}>
         {[
           { label: 'Всего', value: summary.total, color: '#3b82f6' },
-          { label: '📦 К погрузке', value: summary.readyForLoading, color: '#f59e0b' },
+          { label: 'К погрузке', value: summary.readyForLoading, color: '#f59e0b' },
           { label: 'Погружено', value: summary.loaded, color: '#6366f1' },
           { label: 'В пути', value: summary.inTransit, color: '#8b5cf6' },
           { label: 'Прибыло', value: summary.arrived, color: '#06b6d4' },
@@ -170,7 +170,7 @@ export function DailySheet() {
           style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '8px 12px', fontSize: 14, width: 240 }}
         />
         <div style={{ display: 'flex', gap: 8 }}>
-          {([['all', 'Все'], ['loading', '📦 К погрузке'], ['outgoing', 'Отправление'], ['incoming', 'Входящие'], ['arrived', 'Прибыло']] as const).map(([val, label]) => (
+          {([['all', 'Все'], ['loading', 'К погрузке'], ['outgoing', 'Отправление'], ['incoming', 'Входящие'], ['arrived', 'Прибыло']] as const).map(([val, label]) => (
             <button
               key={val}
               onClick={() => setFilter(val)}

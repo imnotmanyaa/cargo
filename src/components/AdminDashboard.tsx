@@ -394,7 +394,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   {t('station')}
                   {formData.role === 'mobile_group' && (
-                    <span className="ml-2 text-xs text-orange-500 font-normal">⚠️ Обязательно для этой роли</span>
+                    <span className="ml-2 text-xs text-orange-500 font-normal">Обязательно для этой роли</span>
                   )}
                 </label>
                 <select
@@ -562,7 +562,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className={`w-full max-w-md rounded-xl shadow-2xl p-6 ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
             <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-              ✏️ Редактировать сотрудника
+              Редактировать сотрудника
             </h3>
             <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{editEmployee.email}</p>
             <form onSubmit={handleSaveEdit} className="space-y-4">
@@ -598,7 +598,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                 <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   {t('station')}
                   {editFormData.role === 'mobile_group' && (
-                    <span className="ml-2 text-xs text-orange-500 font-normal">⚠️ Обязательно</span>
+                    <span className="ml-2 text-xs text-orange-500 font-normal">Обязательно</span>
                   )}
                 </label>
                 <select

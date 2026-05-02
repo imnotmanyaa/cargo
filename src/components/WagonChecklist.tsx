@@ -33,7 +33,7 @@ const STATUS_CONFIG = {
   PENDING: { label: 'Ожидает', color: '#f59e0b', bg: '#78350f' },
   LOADED: { label: 'Погружен', color: '#22c55e', bg: '#14532d' },
   UNLOADED: { label: 'Выгружен', color: '#06b6d4', bg: '#164e63' },
-  MISSING: { label: '⚠️ Утерян', color: '#ef4444', bg: '#7f1d1d' },
+  MISSING: { label: 'Утерян', color: '#ef4444', bg: '#7f1d1d' },
 };
 
 export function WagonChecklist({ wagonId, onClose }: Props) {
@@ -76,7 +76,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
         const result = await res.json();
         setData(prev => prev ? { ...prev, ...result, checklist: result.checklist } : null);
         if (result.all_done) {
-          alert('✅ Все грузы в вагоне обработаны!');
+          alert('Все грузы в вагоне обработаны!');
         }
       }
     } finally {
@@ -111,7 +111,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
       });
       const result = await res.json();
       if (res.ok) {
-        alert(`✅ ${result.message || 'Вагон отправлен в рейс!'}`);
+        alert(`${result.message || 'Вагон отправлен в рейс!'}`);
         await fetchChecklist();
       } else {
         const pending = result.pending ?? '';
@@ -150,7 +150,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
       <div style={{ background: '#0f172a', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 18, color: '#f1f5f9' }}>
-            🚃 Вагон {data.wagon.wagon_number}
+            Вагон {data.wagon.wagon_number}
           </div>
           <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
             {data.wagon.current_station} · {new Date(data.wagon.departure_date).toLocaleDateString('ru')}
@@ -166,7 +166,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: 13, color: '#94a3b8' }}>Прогресс</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: data.complete ? '#22c55e' : '#f1f5f9' }}>
-            {data.done}/{data.total} {data.complete && '✅'}
+            {data.done}/{data.total} {data.complete && ''}
           </span>
         </div>
         <div style={{ background: '#334155', borderRadius: 999, height: 8, overflow: 'hidden' }}>
@@ -180,7 +180,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
         </div>
         {data.complete && (
           <div style={{ marginTop: 8, color: '#22c55e', fontWeight: 600, fontSize: 14, textAlign: 'center' }}>
-            ✅ Все грузы обработаны — вагон готов к отправке
+            Все грузы обработаны — вагон готов к отправке
           </div>
         )}
       </div>
@@ -197,7 +197,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
             marginBottom: 10,
             fontWeight: 500,
           }}>
-            🚫 {dispatchError}
+            {dispatchError}
           </div>
         )}
         <button
@@ -221,7 +221,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
             gap: 8,
           }}
         >
-          {dispatching ? '⏳ Отправка...' : data.complete ? '🚀 Отправить вагон в рейс' : `🔒 Не готов (${data.total - data.done} не обработано)`}
+          {dispatching ? 'Отправка...' : data.complete ? 'Отправить вагон в рейс' : `Не готов (${data.total - data.done} не обработано)`}
         </button>
       </div>
 

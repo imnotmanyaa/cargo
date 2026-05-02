@@ -186,10 +186,10 @@ export function InspectorDashboard({ theme }: ThemeProps) {
     setInspections((prev: Inspection[]) => [newInspection, ...prev]);
     if (currentParcel.stationMatch) {
       setApprovedCount((c: number) => c + 1);
-      toast.success('✅ Груз одобрен');
+      toast.success('Груз одобрен');
     } else {
       setMismatchCount((c: number) => c + 1);
-      toast.warning('⚠️ Принято с отметкой о несовпадении станции');
+      toast.warning('Принято с отметкой о несовпадении станции');
     }
     setShowParcelDialog(false);
     setCurrentParcel(null);
@@ -218,7 +218,7 @@ export function InspectorDashboard({ theme }: ThemeProps) {
 
     setInspections((prev: Inspection[]) => [newInspection, ...prev]);
     setRejectedCount((c: number) => c + 1);
-    toast.error('❌ Груз отклонён');
+    toast.error('Груз отклонён');
     setShowRejectionDialog(false);
     setCurrentParcel(null);
     setRejectionReason('');
@@ -406,17 +406,17 @@ export function InspectorDashboard({ theme }: ThemeProps) {
                         </span>
                         {inspection.result === 'approved' && (
                           <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
-                            ✅ Одобрен
+                            Одобрен
                           </Badge>
                         )}
                         {inspection.result === 'rejected' && (
                           <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100 text-xs">
-                            ❌ Отклонён
+                            Отклонён
                           </Badge>
                         )}
                         {inspection.result === 'mismatch' && (
                           <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-xs">
-                            ⚠️ Несовпадение
+                            Несовпадение
                           </Badge>
                         )}
                       </div>

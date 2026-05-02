@@ -255,7 +255,7 @@ export function ZebraTerminal() {
       <div style={{marginTop: '20px', fontSize: '12px', color: '#9ca3af'}}>
         {history.map(h => (
           <div key={h.id} style={{marginBottom: '4px'}}>
-            {h.ok ? (h.match ? '✅' : '⚠️') : '❌'} {h.code} — {h.time}
+            {h.ok ? (h.match ? '' : '') : ''} {h.code} — {h.time}
           </div>
         ))}
       </div>

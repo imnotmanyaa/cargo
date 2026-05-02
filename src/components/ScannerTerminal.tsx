@@ -69,7 +69,7 @@ export function ScannerTerminal() {
       if (!token) return;
       const { synced } = await offlineStorage.syncPending(token);
       if (synced > 0) {
-        setResult({ type: 'success', message: `✅ Синхронизировано ${synced} сканов` });
+        setResult({ type: 'success', message: `Синхронизировано ${synced} сканов` });
       }
       const count = await offlineStorage.countPending();
       setPendingCount(count);
@@ -131,7 +131,7 @@ export function ScannerTerminal() {
       playBeep(SUCCESS_BEEP_FREQ, 80);
       const count = await offlineStorage.countPending();
       setPendingCount(count);
-      const msg = `📦 Сохранено оффлайн: ${trimmed}`;
+      const msg = `Сохранено оффлайн: ${trimmed}`;
       setResult({ type: 'offline', message: msg, shipmentId: trimmed });
       addToHistory({ shipmentId: trimmed, type: 'offline', message: msg });
       setIsProcessing(false);
@@ -153,7 +153,7 @@ export function ScannerTerminal() {
       if (res.ok) {
         const data = await res.json();
         playBeep(SUCCESS_BEEP_FREQ);
-        const msg = `✅ ${trimmed}`;
+        const msg = `${trimmed}`;
         setResult({
           type: 'success',
           message: msg,
@@ -164,13 +164,13 @@ export function ScannerTerminal() {
         setScanCount(c => c + 1);
       } else if (res.status === 403) {
         playBeep(ERROR_BEEP_FREQ, 600);
-        const msg = `🚫 ОШИБКА СТАНЦИИ: груз ${trimmed} не предназначен для станции «${user?.station || '?'}»`;
+        const msg = `ОШИБКА СТАНЦИИ: груз ${trimmed} не предназначен для станции «${user?.station || '?'}»`;
         setResult({ type: 'station-error', message: msg, shipmentId: trimmed });
         addToHistory({ shipmentId: trimmed, type: 'station-error', message: msg });
       } else {
         const err = await res.json().catch(() => ({}));
         playBeep(ERROR_BEEP_FREQ, 400);
-        const msg = `❌ ${err.error || 'Ошибка — проверьте груз'}`;
+        const msg = `${err.error || 'Ошибка — проверьте груз'}`;
         setResult({
           type: 'error',
           message: msg,
@@ -180,7 +180,7 @@ export function ScannerTerminal() {
       }
     } catch {
       playBeep(ERROR_BEEP_FREQ, 400);
-      setResult({ type: 'error', message: '⚠️ Ошибка сети' });
+      setResult({ type: 'error', message: 'Ошибка сети' });
     } finally {
       setIsProcessing(false);
       inputRef.current?.focus();
@@ -239,7 +239,7 @@ export function ScannerTerminal() {
           fontSize: 13,
           fontWeight: 600,
         }}>
-          {isOnline ? '🟢 Онлайн' : '🔴 Оффлайн'}
+          {isOnline ? 'Онлайн' : 'Оффлайн'}
         </div>
         {pendingCount > 0 && (
           <div style={{
@@ -250,7 +250,7 @@ export function ScannerTerminal() {
             fontSize: 13,
             fontWeight: 600,
           }}>
-            ⏳ Ожидает синхронизации: {pendingCount}
+            Ожидает синхронизации: {pendingCount}
           </div>
         )}
         <div style={{
@@ -292,7 +292,7 @@ export function ScannerTerminal() {
           </div>
         ) : (
           <div style={{ fontSize: 16, color: '#475569', textAlign: 'center' }}>
-            {isProcessing ? '⏳ Обрабатывается...' : 'Ожидание сканирования...'}
+            {isProcessing ? 'Обрабатывается...' : 'Ожидание сканирования...'}
           </div>
         )}
       </div>

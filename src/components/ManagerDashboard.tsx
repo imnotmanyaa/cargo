@@ -185,9 +185,9 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok) {
-        alert('✅ ' + (body.message || 'Уведомление отправлено'));
+        alert('' + (body.message || 'Уведомление отправлено'));
       } else {
-        alert('❌ ' + (body.error || 'Ошибка отправки'));
+        alert('' + (body.error || 'Ошибка отправки'));
       }
     } catch {
       alert('Ошибка сети');
@@ -437,12 +437,12 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                     const st = s.shipment_status;
                     if (st === 'ARRIVED') return (
                       <div className={`text-xs mb-2 px-2 py-1 rounded-lg ${isDark ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-50 text-yellow-700'}`}>
-                        ⏳ Ожидает назначения курьера для доставки
+                        Ожидает назначения курьера для доставки
                       </div>
                     );
                     if (st === 'READY_FOR_ISSUE') return (
                       <div className={`text-xs mb-2 px-2 py-1 rounded-lg ${isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
-                        🚴 Курьер едет к получателю
+                        Курьер едет к получателю
                       </div>
                     );
                     return null;
@@ -453,7 +453,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                       onClick={(e) => handleNotifyArrival(s.id, e)}
                       className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
                     >
-                      📱 {t('notifyArrival') || 'Уведомить'}
+                      {t('notifyArrival') || 'Уведомить'}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${s.door_to_door_phone || s.receiver_phone || ''}`; }}

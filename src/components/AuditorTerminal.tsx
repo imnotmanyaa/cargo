@@ -163,10 +163,10 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
           stationMatch: sm,
           lastScannedAt: data.last_scanned_at || undefined,
           message: !sm
-            ? `❌ ${s.shipment_number} (${s.current_station})`
+            ? `${s.shipment_number} (${s.current_station})`
             : alreadyScanned
-              ? `⚠️ ✅ Уже принят${alreadyText ? ` (${alreadyText})` : ''}`
-              : `✅ ${t('mobileGroupApproved')} — ${s.shipment_number}`,
+              ? `Уже принят${alreadyText ? ` (${alreadyText})` : ''}`
+              : `${t('mobileGroupApproved')} — ${s.shipment_number}`,
         };
         setResult(auditResult);
         addToHistory({
@@ -182,20 +182,20 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
         }));
       } else if (res.status === 404) {
         playBeep(220, 500);
-        setResult({ type: 'not-found', shipmentId: trimmed, message: `❌ ${trimmed}` });
+        setResult({ type: 'not-found', shipmentId: trimmed, message: `${trimmed}` });
         addToHistory({ shipmentId: trimmed, type: 'not-found', info: t('mobileGroupRejected') });
         setStats(prev => ({ ...prev, total: prev.total + 1, rejected: prev.rejected + 1 }));
       } else if (res.status === 403) {
         playBeep(220, 400);
-        setResult({ type: 'error', shipmentId: trimmed, message: '🚫 Access denied' });
+        setResult({ type: 'error', shipmentId: trimmed, message: 'Access denied' });
         setStats(prev => ({ ...prev, total: prev.total + 1, rejected: prev.rejected + 1 }));
       } else {
         playBeep(220, 400);
-        setResult({ type: 'error', shipmentId: trimmed, message: '⚠️ Server error' });
+        setResult({ type: 'error', shipmentId: trimmed, message: 'Server error' });
       }
     } catch {
       playBeep(220, 400);
-      setResult({ type: 'error', shipmentId: trimmed, message: '⚠️ Network error' });
+      setResult({ type: 'error', shipmentId: trimmed, message: 'Network error' });
     } finally {
       setIsProcessing(false);
       inputRef.current?.focus();
