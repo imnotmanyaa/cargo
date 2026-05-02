@@ -115,7 +115,6 @@ func (s *Server) routes() chi.Router {
 		// WhatsApp debug endpoints (admin only in production)
 		api.Get("/whatsapp/status", s.handleWhatsAppStatus)
 		api.Post("/whatsapp/test", s.handleWhatsAppTest)
-		api.Get("/admin/alter-db", s.handleAlterTable)
 	})
 	return r
 }
