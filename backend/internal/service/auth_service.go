@@ -84,12 +84,18 @@ func (s *AuthService) ParseToken(token string) (AuthenticatedUser, error) {
 	name, _ := claims["name"].(string)
 	id, _ := claims["sub"].(string)
 	email, _ := claims["email"].(string)
+	phoneStr, _ := claims["phone"].(string)
+	var phone *string
+	if phoneStr != "" {
+		phone = &phoneStr
+	}
 	return AuthenticatedUser{
 		ID:      id,
 		Email:   email,
 		Role:    model.Role(role),
 		Name:    name,
 		Station: station,
+		Phone:   phone,
 	}, nil
 }
 
@@ -147,6 +153,9 @@ func (s *AuthService) issueToken(user model.User) (string, error) {
 	}
 	if user.Station != nil {
 		claims["station"] = *user.Station
+	}
+	if user.Phone != nil {
+		claims["phone"] = *user.Phone
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.jwtSecret))

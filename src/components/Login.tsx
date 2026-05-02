@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, Package, UserPlus } from 'lucide-react';
 import { Register } from './Register';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export function Login() {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showRegister, setShowRegister] = useState(false);
@@ -33,11 +35,11 @@ export function Login() {
             <Package className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">CargoTrans</h1>
-          <p className="text-gray-600">Система управления грузоперевозками</p>
+          <p className="text-gray-600">{t('systemNameDesc') || 'Система управления грузоперевозками'}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Вход в систему</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('login')}</h2>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -56,7 +58,7 @@ export function Login() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Пароль
+                {t('password')}
               </label>
               <input
                 type="password"
@@ -73,7 +75,7 @@ export function Login() {
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium mt-6"
             >
               <LogIn className="w-5 h-5" />
-              Войти
+              {t('login')}
             </button>
           </form>
 
@@ -83,10 +85,10 @@ export function Login() {
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 font-medium transition-all"
             >
               <UserPlus className="w-5 h-5" />
-              Регистрация клиента
+              {t('clientRegistration') || 'Регистрация клиента'}
             </button>
             <p className="text-xs text-center text-gray-500 mt-4">
-              Для физических и корпоративных клиентов
+              {t('forIndividualAndCorporate') || 'Для физических и корпоративных клиентов'}
             </p>
           </div>
         </div>

@@ -63,6 +63,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         ...prev,
         clientId: user.id,
         clientName: prev.clientName || user.name || '',
+        clientPhone: prev.clientPhone || user.phone || '',
         isDoorToDoor: user.role === 'individual' ? true : prev.isDoorToDoor,
         clientType: user.role === 'corporate' ? 'legal' : prev.clientType,
       }));
@@ -95,7 +96,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const handleCreateShipment = async () => {
     if (isSubmitting) return; // prevent double submission
     if (sameFromTo) {
-      alert('Пункты отправления и назначения не могут совпадать.');
+      alert(t('errorSameStation') || 'Пункты отправления и назначения не могут совпадать.');
       return;
     }
     setIsSubmitting(true);
@@ -126,9 +127,11 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           receiver_name: shipmentData.receiverName || null,
           receiver_phone: shipmentData.receiverPhone || null,
           is_door_to_door: shipmentData.isDoorToDoor,
+          client_role: shipmentData.clientType === 'legal' ? 'corporate' : 'individual',
           pickup_address: shipmentData.isDoorToDoor ? shipmentData.pickupAddress : null,
           delivery_address: shipmentData.isDoorToDoor ? shipmentData.deliveryAddress : null,
-          door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null
+          door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null,
+          sender_phone: shipmentData.clientPhone || null
         })
       });
 
@@ -139,8 +142,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       }
       const shipment = await createRes.json();
       const shipmentId = shipment.id;
-
-      const calculatedCost = calculateCost();
+      const finalCost = shipment.cost; // Use the cost returned by the server!
 
       // Step 3: Send to payment
       const sendRes = await fetch(withApiBase(`/api/shipments/${shipmentId}/send-to-payment`), {
@@ -159,7 +161,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         headers,
         body: JSON.stringify({
           shipment_id: shipmentId,
-          amount: calculatedCost,
+          amount: finalCost,
           payment_method: shipmentData.paymentMethod || 'cash'
         })
       });

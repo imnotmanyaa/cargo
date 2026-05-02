@@ -53,43 +53,43 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
   };
 
   const getReadableLog = (log: AuditLog) => {
-    const actorName = log.user_name && log.user_name !== 'Система' ? log.user_name : 'Система';
+    const actorName = log.user_name && log.user_name !== 'Система' ? log.user_name : t('system');
     let roleText = '';
-    if (log.user_role === 'individual' || log.user_role === 'corporate') roleText = 'Клиент';
-    else if (log.user_role === 'courier') roleText = 'Курьер';
-    else if (log.user_role === 'receiver') roleText = 'Приемосдатчик';
-    else if (log.user_role === 'manager') roleText = 'Менеджер';
+    if (log.user_role === 'individual' || log.user_role === 'corporate') roleText = t('clientRole');
+    else if (log.user_role === 'courier') roleText = t('courierRole');
+    else if (log.user_role === 'receiver') roleText = t('receiverRole');
+    else if (log.user_role === 'manager') roleText = t('managerRole');
 
     const actor = roleText ? `${roleText} ${actorName}` : actorName;
-    const num = log.shipment_number ? `посылку ${log.shipment_number}` : `сущность`;
+    const num = log.shipment_number ? `${t('shipmentEntity')} ${log.shipment_number}` : t('genericEntity');
     
     const act = (log.action || '').toUpperCase();
     if (act.includes('CREATED_DOOR') || act === 'CREATED' || act.includes('CREATE')) {
-      return `${actor} оформил ${num}`;
+      return `${actor} ${t('actionCreated')} ${num}`;
     }
     if (act.includes('PICKUP_ASSIGNED') || act.includes('COURIER PICKUP ASSIGNED')) {
-      return `${actor} взял в работу ${num} (поехал к клиенту)`;
+      return `${actor} ${t('actionTookWork')} ${num}`;
     }
     if (act.includes('PICKUP CONFIRM') || act === 'PICKED_UP') {
-      return `${actor} забрал ${num} у клиента`;
+      return `${actor} ${t('actionPickedUp')} ${num}`;
     }
     if (act.includes('READY FOR LOADING') || act === 'READY_FOR_LOADING') {
-      return `${actor} сдал ${num} на склад`;
+      return `${actor} ${t('actionStationIntake')} ${num}`;
     }
     if (act.includes('PAYMENT_PENDING') || act.includes('PAID') || act.includes('PAYMENT')) {
-      return `${actor} провел оплату за ${num}`;
+      return `${actor} ${t('actionPayment')} ${num}`;
     }
     if (act.includes('LOADED') || act === 'LOAD' || act.includes('SHIPMENT LOADED')) {
-      return `${actor} погрузил ${num}`;
+      return `${actor} ${t('actionLoaded')} ${num}`;
     }
     if (act.includes('ARRIVED') || act === 'ARRIVAL' || act.includes('SHIPMENT ARRIVED')) {
-      return `${actor} принял ${num} на станции`;
+      return `${actor} ${t('actionArrived')} ${num}`;
     }
     if (act.includes('GENERATE_QR')) {
-      return `${actor} сгенерировал QR-код для ${num}`;
+      return `${actor} ${t('actionQR')} ${num}`;
     }
     
-    return `${actor} выполнил: ${translateAction(log.action)}`;
+    return `${actor} ${t('actionExecuted')}: ${translateAction(log.action)}`;
   };
 
   const filteredLogs = logs.filter(log => {
@@ -136,8 +136,8 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
               <thead>
                 <tr className={`text-left border-b ${isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
                   <th className="px-6 py-4 font-medium">{t('date')}</th>
-                  <th className="px-6 py-4 font-medium">Событие</th>
-                  <th className="px-6 py-4 font-medium">Источник (Платформа)</th>
+                  <th className="px-6 py-4 font-medium">{t('event')}</th>
+                  <th className="px-6 py-4 font-medium">{t('source')}</th>
                   <th className="px-6 py-4 font-medium">{t('details')}</th>
                 </tr>
               </thead>
@@ -159,14 +159,14 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                       </span>
                     </td>
                     <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                      {log.user_role === 'courier' ? 'Приложение Курьера' : 
-                       log.user_role === 'receiver' ? 'Терминал Приемосдатчика' : 
-                       log.user_role === 'individual' || log.user_role === 'corporate' ? 'Личный кабинет клиента' : 
-                       'Панель управления'}
+                      {log.user_role === 'courier' ? t('platformCourier') : 
+                       log.user_role === 'receiver' ? t('platformReceiver') : 
+                       log.user_role === 'individual' || log.user_role === 'corporate' ? t('platformClient') : 
+                       t('platformDashboard')}
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {log.new_value ? (
-                        <span>Изменен статус на: {log.new_value}</span>
+                        <span>{t('statusChangedTo')} {log.new_value}</span>
                       ) : (
                         <span>{log.reason || '-'}</span>
                       )}

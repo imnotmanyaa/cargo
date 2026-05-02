@@ -248,7 +248,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleReceiver, model.RoleTrainReceiver, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleTrainReceiver, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -423,11 +423,33 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			"message":  "Груз " + shipment.ShipmentNumber + " принят на станцию назначения ✓",
 		})
 
-	// Повторные сканирования (оранжевый экран)
+	// Сканирование на выдачу (если уже прибыл)
+	case model.ShipmentArrived, model.ShipmentReadyForIssue:
+		// Создаем событие ISSUE_SCAN для подтверждения физического наличия при выдаче
+		_, err := s.services.Tracking.Scan(r.Context(), shipmentID, "ISSUE_SCAN", &station, nil, &user.ID, nil)
+		if err != nil {
+			handleServiceError(w, err)
+			return
+		}
+		
+		// Если был ARRIVED, переводим в READY_FOR_ISSUE
+		if current.ShipmentStatus == model.ShipmentArrived {
+			shipment, err := s.services.Shipments.ReadyForIssue(r.Context(), shipmentID, &user.ID, &user.Name)
+			if err != nil {
+				handleServiceError(w, err)
+				return
+			}
+			s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", shipment)
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"shipment": current,
+			"action":   "ISSUE_SCAN",
+			"message":  "Груз " + current.ShipmentNumber + " отсканирован перед выдачей ✓",
+		})
+
 	case model.ShipmentReadyForLoading:
 		writeError(w, http.StatusConflict, "Груз уже на складе — ожидает погрузки")
-	case model.ShipmentArrived, model.ShipmentReadyForIssue:
-		writeError(w, http.StatusConflict, "Груз уже прибыл на станцию назначения")
 	case model.ShipmentIssued:
 		writeError(w, http.StatusConflict, "Груз уже выдан получателю")
 
@@ -445,7 +467,7 @@ func (s *Server) handleConfirmIntake(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleReceiver, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}

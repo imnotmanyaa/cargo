@@ -1,6 +1,7 @@
 import { withApiBase } from "../lib/api-base";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import {
   CheckCircle, XCircle, AlertTriangle, RefreshCw,
   Scan, Clock, MapPin, Package, ArrowRight, ClipboardList
@@ -19,6 +20,7 @@ interface ReceiverDashboardProps {
 }
 
 export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
+  const { t } = useLanguage();
   const isDark = theme === 'dark';
   const { user } = useAuth();
 
@@ -105,33 +107,33 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         const action = body.action as 'LOADED' | 'ARRIVED' | 'READY_FOR_LOADING';
         const shipmentNum = body.shipment?.shipment_number || id;
         const msg = body.message || (action === 'LOADED'
-          ? `Груз ${shipmentNum} погружен ✓`
+          ? t('shipmentLoadedMsg').replace('{num}', shipmentNum)
           : action === 'READY_FOR_LOADING'
-          ? `Груз ${shipmentNum} принят на склад ✓`
-          : `Груз ${shipmentNum} принят ✓`);
+          ? t('shipmentIntakeMsg').replace('{num}', shipmentNum)
+          : t('shipmentArrivedMsg').replace('{num}', shipmentNum));
 
         setFeedback({ type: 'success', message: msg });
         setAuditLog(prev => [{
           id: Date.now().toString(),
-          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           action,
           shipmentNumber: shipmentNum,
           message: msg,
         }, ...prev]);
       } else {
         const isConflict = res.status === 409;
-        const errMsg = body.error || 'Ошибка сканирования';
+        const errMsg = body.error || t('scanError');
         setFeedback({ type: isConflict ? 'warning' : 'error', message: errMsg });
         setAuditLog(prev => [{
           id: Date.now().toString(),
-          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           action: 'ERROR',
           shipmentNumber: id,
           message: errMsg,
         }, ...prev]);
       }
     } catch {
-      setFeedback({ type: 'error', message: 'Ошибка сети. Проверьте подключение.' });
+      setFeedback({ type: 'error', message: t('networkError') });
     } finally {
       setProcessing(false);
     }
@@ -158,19 +160,18 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
       if (res.ok) {
         const shipmentNum = weightMode.shipmentNumber;
-        let msg = body.message || `Груз ${shipmentNum} принят на склад ✓`;
+        let msg = body.message || t('shipmentIntakeMsg').replace('{num}', shipmentNum);
         let type: 'success' | 'warning' | 'error' = 'success';
         
         if (body.requires_payment) {
-          msg = `Принято. Клиенту отправлено уведомление о доплате ${body.extra_charge} тг`;
-          // Prompt requests "зелёный экран с предупреждением", we can use success but change text.
+          msg = t('extraChargeMsg').replace('{charge}', body.extra_charge);
           type = 'success';
         }
 
         setFeedback({ type, message: msg });
         setAuditLog(prev => [{
           id: Date.now().toString(),
-          time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           action: 'ARRIVED',
           shipmentNumber: shipmentNum,
           message: msg,
@@ -178,10 +179,10 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         setWeightMode(null);
         setActualWeight('');
       } else {
-        setFeedback({ type: 'error', message: body.error || 'Ошибка подтверждения веса' });
+        setFeedback({ type: 'error', message: body.error || t('weightConfirmError') });
       }
     } catch {
-      setFeedback({ type: 'error', message: 'Ошибка сети. Проверьте подключение.' });
+      setFeedback({ type: 'error', message: t('networkError') });
     } finally {
       setProcessing(false);
     }
@@ -226,10 +227,10 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
       {/* ── HEADER ── */}
       <div className={`border-b ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} px-4 py-3 flex items-center justify-between`}>
         <div>
-          <h1 className={`text-lg font-bold ${textPrimary}`}>Приемосдатчик</h1>
+          <h1 className={`text-lg font-bold ${textPrimary}`}>{t('receiverPanel')}</h1>
           <p className={`text-xs flex items-center gap-1 mt-0.5 ${textSecondary}`}>
             <MapPin className="w-3 h-3" />
-            {user?.station || 'Станция не указана'}
+            {user?.station || t('stationNotSpecified')}
           </p>
         </div>
         <button
@@ -241,18 +242,18 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
           }`}
         >
           <ClipboardList className="w-4 h-4" />
-          Журнал {auditLog.length > 0 && `(${auditLog.length})`}
+          {t('log')} {auditLog.length > 0 && `(${auditLog.length})`}
         </button>
       </div>
 
       {showAudit ? (
         /* ── AUDIT LOG VIEW ── */
         <div className="flex-1 overflow-y-auto p-4 max-w-2xl w-full mx-auto">
-          <h2 className={`text-base font-semibold mb-3 ${textPrimary}`}>Журнал смены</h2>
+          <h2 className={`text-base font-semibold mb-3 ${textPrimary}`}>{t('shiftLog')}</h2>
           {auditLog.length === 0 ? (
             <div className={`text-center py-16 ${textSecondary}`}>
               <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-40" />
-              <p>Журнал пуст</p>
+              <p>{t('logEmpty')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -286,25 +287,25 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
           {/* Legend */}
           <div className={`w-full rounded-2xl border p-4 mb-6 ${cardBg}`}>
-            <p className={`text-xs font-semibold uppercase tracking-widest mb-3 ${textSecondary}`}>Логика сканирования</p>
+            <p className={`text-xs font-semibold uppercase tracking-widest mb-3 ${textSecondary}`}>{t('scanLogic')}</p>
             <div className="space-y-2.5 text-sm">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                 <span className={textSecondary}>
-                  <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>НА СКЛАДЕ</span>
-                  {' '}+ ваша станция = отправление
+                  <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>{t('onWarehouse')}</span>
+                  {' '}{t('yourStationDeparture')}
                 </span>
                 <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
-                <span className="font-bold text-blue-600">ПОГРУЖЕН</span>
+                <span className="font-bold text-blue-600">{t('loaded')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                 <span className={textSecondary}>
-                  <span className={`font-medium ${isDark ? 'text-green-400' : 'text-green-700'}`}>В ПУТИ</span>
-                  {' '}+ ваша станция = назначение
+                  <span className={`font-medium ${isDark ? 'text-green-400' : 'text-green-700'}`}>{t('inTransit')}</span>
+                  {' '}{t('yourStationDestination')}
                 </span>
                 <ArrowRight className="w-3 h-3 text-gray-400 ml-auto flex-shrink-0" />
-                <span className="font-bold text-green-600">ПРИНЯТ</span>
+                <span className="font-bold text-green-600">{t('arrived')}</span>
               </div>
             </div>
           </div>
@@ -314,12 +315,12 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
             <div className={`w-full rounded-2xl border p-5 ${cardBg}`}>
               <div className={`flex items-center gap-2 mb-4 text-sm font-medium ${textSecondary}`}>
                 <Package className="w-4 h-4" />
-                Взвешивание груза
+                {t('weighingCargo')}
               </div>
               <div className={`mb-4 p-3 rounded-lg ${isDark ? 'bg-blue-900 border border-blue-800 text-blue-200' : 'bg-blue-50 border border-blue-200 text-blue-800'} text-sm`}>
-                Введите фактический вес (заявлено: <strong>{weightMode.declared}</strong>)
+                {t('enterActualWeight').replace('{declared}', weightMode.declared)}
               </div>
-              <input
+               <input
                 ref={weightInputRef}
                 type="text"
                 autoFocus
@@ -333,7 +334,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                     handleConfirmWeight();
                   }
                 }}
-                placeholder="Фактический вес (например: 15.5)"
+                placeholder={t('actualWeightPlaceholder')}
                 className={`w-full px-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
                   processing
                     ? (isDark ? 'bg-gray-700 border-gray-600 text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-400')
@@ -349,7 +350,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                   disabled={processing}
                   className={`flex-1 py-3.5 rounded-xl border ${isDark ? 'border-gray-600 hover:bg-gray-700 text-gray-300' : 'border-gray-300 hover:bg-gray-50 text-gray-700'} font-medium transition-colors`}
                 >
-                  Отмена
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={handleConfirmWeight}
@@ -360,7 +361,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                     <span className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-4 h-4 animate-spin" />
                     </span>
-                  ) : 'Подтвердить вес'}
+                  ) : t('confirmWeight')}
                 </button>
               </div>
             </div>
@@ -369,7 +370,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
               <div className="flex items-center justify-between mb-4">
                 <div className={`flex items-center gap-2 text-sm font-medium ${textSecondary}`}>
                   <Scan className="w-4 h-4" />
-                  Сканирование
+                  {t('scanning')}
                 </div>
                 <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
                   <button
@@ -402,7 +403,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                     if (val) handleScan(val);
                   }
                 }}
-                placeholder={scanMode === 'qr' ? "Отсканируйте QR..." : "Введите SH-XXXXXX"}
+                placeholder={scanMode === 'qr' ? t('scanQrPlaceholder') : t('scanNumberPlaceholder')}
                 className={`w-full px-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
                   processing
                     ? (isDark ? 'bg-gray-700 border-gray-600 text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-400')
@@ -417,16 +418,16 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 {processing ? (
                   <span className="flex items-center justify-center gap-2">
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    Обработка...
+                    {t('processing')}
                   </span>
-                ) : 'Подтвердить'}
+                ) : t('confirm')}
               </button>
             </div>
           )}
 
           {/* Station hint */}
           <p className={`mt-4 text-xs text-center ${textSecondary}`}>
-            Станция: <span className="font-semibold">{user?.station || '—'}</span>
+            {t('station')}: <span className="font-semibold">{user?.station || '—'}</span>
           </p>
         </div>
       )}

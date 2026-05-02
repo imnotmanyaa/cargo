@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, Truck, MapPin, Clock, Home, Phone, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Package, Truck, MapPin, Clock, Home, Phone, CheckCircle, AlertTriangle, Scan, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { withApiBase } from '../lib/api-base';
@@ -42,6 +42,52 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const [receiverName, setReceiverName] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [scanInput, setScanInput] = useState('');
+
+  const playBeep = (freq: number) => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } catch { }
+  };
+
+  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const code = scanInput.trim();
+      setScanInput('');
+      if (!code) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(code)}/smart-scan`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ station_id: user?.station })
+        });
+        if (res.ok) {
+          playBeep(880);
+          alert((t('scanSuccess') || `Груз ${code} отсканирован.`) + ' ' + (t('nowYouCanIssue') || 'Теперь можно нажать «Выдать».'));
+          fetchShipments();
+        } else {
+          playBeep(220);
+          const err = await res.json();
+          alert((t('scanError') || 'Ошибка сканирования') + ': ' + (err.error || ''));
+        }
+      } catch (err) {
+        console.error(err);
+        alert(t('errorNetwork'));
+      }
+    }
+  };
 
   const fetchShipments = async () => {
     setLoading(true);
@@ -100,6 +146,24 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     return result;
   };
 
+  const translateLifecycleStatus = (status: string) => {
+    switch (status) {
+      case 'CREATED': case 'CREATED_DOOR': return t('statusRegistered');
+      case 'PAYMENT_PENDING': return t('statusPaymentPending');
+      case 'PAID': return t('statusPaid');
+      case 'PICKUP_ASSIGNED': return t('statusPickupAssigned');
+      case 'PICKED_UP': return t('statusPickedUp');
+      case 'AT_STATION_INTAKE': return t('statusAtStation');
+      case 'READY_FOR_LOADING': return t('readyForLoading');
+      case 'LOADED': return t('statusInWagon');
+      case 'IN_TRANSIT': return t('statusInTransit');
+      case 'ARRIVED': return t('statusArrived');
+      case 'READY_FOR_ISSUE': return t('statusReadyForIssue');
+      case 'ISSUED': return t('statusIssued');
+      default: return status;
+    }
+  };
+
   // 1. «До двери»
   const doorShipments = applySortAndFilter(s.filter(x => 
     x.is_door_to_door && 
@@ -123,16 +187,21 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     matchSearch(x)
   ));
 
-  // 4. «Прибытие»
   const arrivalShipments = applySortAndFilter(s.filter(x => 
     x.to_station === myStation &&
-    (x.shipment_status || x.status) === 'ARRIVED' &&
+    ['ARRIVED', 'READY_FOR_ISSUE'].includes(x.shipment_status || x.status) &&
+    matchSearch(x)
+  ));
+
+  const transitShipments = applySortAndFilter(s.filter(x =>
+    x.to_station === myStation &&
+    ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
 
   const formatDate = (d: string) => {
     const dt = new Date(d);
-    return Number.isNaN(dt.getTime()) ? '-' : dt.toLocaleString('ru-RU', { 
+    return Number.isNaN(dt.getTime()) ? '-' : dt.toLocaleString(t('locale') || 'ru-RU', { 
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
   };
@@ -144,15 +213,42 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     from: shipment.from_station,
     to: shipment.to_station,
     date: formatDate(shipment.created_at),
-    weight: shipment.weight + ' кг',
-    status: shipment.shipment_status === 'AT_STATION_INTAKE' ? 'На складе' : shipment.status,
+    weight: shipment.weight + ' ' + (t('kg') || 'кг'),
+    status: translateLifecycleStatus(shipment.shipment_status || shipment.status),
   });
+
+  const handleIssueClick = (shipmentId: string) => {
+    setIssueModal({ isOpen: true, shipmentId, error: null });
+    setReceiverName(''); setReceiverPhone('');
+  };
+
+  const handleClearPayment = async (shipmentId: string) => {
+    if (!window.confirm(t('confirmSurchargePayment') || 'Подтвердить получение доплаты?')) return;
+    setProcessing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(withApiBase(`/api/shipments/${shipmentId}/clear-payment`), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchShipments();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error clearing payment');
+      }
+    } catch (err) {
+      alert(t('errorNetwork'));
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleIssueSubmit = async () => {
     const { shipmentId } = issueModal;
     if (!shipmentId) return;
     if (!receiverName.trim() || !receiverPhone.trim()) {
-      setIssueModal(prev => ({ ...prev, error: "Укажите имя и телефон" }));
+      setIssueModal(prev => ({ ...prev, error: t('errorProvideNamePhone') || "Укажите имя и телефон" }));
       return;
     }
     setProcessing(true);
@@ -169,15 +265,15 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       } else {
         const err = await res.json();
         if (res.status === 402) {
-          setIssueModal(prev => ({ ...prev, error: `Сначала необходимо получить доплату ${err.error?.match(/\d+/)?.[0] || ""} тг` }));
+          setIssueModal(prev => ({ ...prev, error: (t('errorSurchargeNeeded') || "Сначала необходимо получить доплату") + ` ${err.error?.match(/\d+/)?.[0] || ""} тг` }));
         } else if (res.status === 403) {
-          setIssueModal(prev => ({ ...prev, error: "Данные получателя не совпадают. Укажите правильное имя и телефон." }));
+          setIssueModal(prev => ({ ...prev, error: t('errorReceiverMismatch') || "Данные получателя не совпадают. Укажите правильное имя и телефон." }));
         } else {
-          setIssueModal(prev => ({ ...prev, error: err.error || 'Ошибка выдачи' }));
+          setIssueModal(prev => ({ ...prev, error: err.error || t('errorIssue') || 'Ошибка выдачи' }));
         }
       }
     } catch (err) {
-      setIssueModal(prev => ({ ...prev, error: 'Ошибка сети' }));
+      setIssueModal(prev => ({ ...prev, error: t('errorNetwork') || 'Ошибка сети' }));
     } finally {
       setProcessing(false);
     }
@@ -215,29 +311,37 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold mb-2">Дашборд менеджера</h1>
-          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Управление посылками на станции {myStation}</p>
+          <h1 className="text-2xl font-bold mb-2">{t('managerDashboard')}</h1>
+          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('manageShipmentsAtStation')} {myStation}</p>
+          <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            {t('totalShipmentsCount').replace('{{count}}', String(
+              activeTab === 'door' ? doorShipments.length :
+              activeTab === 'waiting' ? waitingShipments.length :
+              activeTab === 'active' ? activeShipmentsList.length :
+              activeTab === 'arrival' ? arrivalShipments.length :
+              activeTab === 'transit' ? transitShipments.length : 0
+            ))}
+          </span>
         </div>
         <input
           type="text"
-          placeholder="Поиск: номер, клиент, маршрут..."
+          placeholder={t('searchManagerPlaceholder') || "Поиск: номер, клиент, маршрут..."}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className={`px-3 py-2 text-sm border rounded-lg w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'}`}
         />
       </div>
 
-      {/* Filters row */}
       <div className={`mb-4 flex flex-wrap gap-3 items-center`}>
         <select
           value={sortBy}
           onChange={e => setSortBy(e.target.value as any)}
           className={`px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 bg-white'}`}
         >
-          <option value="date_desc">Новые сначала</option>
-          <option value="date_asc">Старые сначала</option>
-          <option value="cost_desc">Дороже сначала</option>
-          <option value="cost_asc">Дешевле сначала</option>
+          <option value="date_desc">{t('newestFirst')}</option>
+          <option value="date_asc">{t('oldestFirst')}</option>
+          <option value="cost_desc">{t('expensiveFirst')}</option>
+          <option value="cost_asc">{t('cheapestFirst')}</option>
         </select>
 
         <select
@@ -245,19 +349,19 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
           onChange={e => { setFilterStatus(e.target.value); }}
           className={`px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 bg-white'}`}
         >
-          <option value="all">Все статусы</option>
-          <option value="CREATED_DOOR">Оформлено (до двери)</option>
-          <option value="CREATED">Оформлено</option>
-          <option value="PAYMENT_PENDING">Ожидает оплаты</option>
-          <option value="PAID">Оплачено</option>
-          <option value="PICKUP_ASSIGNED">Курьер назначен</option>
-          <option value="PICKED_UP">Курьер забрал</option>
-          <option value="READY_FOR_LOADING">На складе</option>
-          <option value="LOADED">В вагоне</option>
-          <option value="IN_TRANSIT">В пути</option>
-          <option value="ARRIVED">Прибыло</option>
-          <option value="READY_FOR_ISSUE">Готово к выдаче</option>
-          <option value="ISSUED">Выдано</option>
+          <option value="all">{t('allStatuses')}</option>
+          <option value="CREATED_DOOR">{t('statusRegisteredDoor')}</option>
+          <option value="CREATED">{t('statusRegistered')}</option>
+          <option value="PAYMENT_PENDING">{t('statusPaymentPending')}</option>
+          <option value="PAID">{t('statusPaid')}</option>
+          <option value="PICKUP_ASSIGNED">{t('statusCourierAssigned')}</option>
+          <option value="PICKED_UP">{t('statusCourierPickedUp')}</option>
+          <option value="READY_FOR_LOADING">{t('statusAtStation')}</option>
+          <option value="LOADED">{t('statusInWagon')}</option>
+          <option value="IN_TRANSIT">{t('statusInTransit')}</option>
+          <option value="ARRIVED">{t('statusArrived')}</option>
+          <option value="READY_FOR_ISSUE">{t('statusReadyForIssue')}</option>
+          <option value="ISSUED">{t('statusIssued')}</option>
         </select>
 
         {(search || filterStatus !== 'all') && (
@@ -265,69 +369,80 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
             onClick={() => { setSearch(''); setFilterStatus('all'); }}
             className="px-3 py-2 text-sm text-red-500 hover:text-red-700 border border-red-200 rounded-lg hover:bg-red-50"
           >
-            Сбросить фильтры
+            {t('resetFilters')}
           </button>
         )}
-
-        <span className={`ml-auto text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          Всего: {[doorShipments, waitingShipments, activeShipmentsList, arrivalShipments].find((_, i) =>
-            ['door', 'waiting', 'active', 'arrival'][i] === activeTab
-          )?.length ?? 0} посылок
-        </span>
       </div>
 
       <div className={`mb-6 flex overflow-x-auto border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-        {renderTabButton('door', 'До двери', doorShipments.length)}
-        {renderTabButton('waiting', 'Ожидают привоза', waitingShipments.length)}
-        {renderTabButton('active', 'Активные', activeShipmentsList.length)}
-        {renderTabButton('arrival', 'Прибытие', arrivalShipments.length)}
+        {renderTabButton('door', t('tabDoorToDoor'), doorShipments.length)}
+        {renderTabButton('waiting', t('tabWaitingPickup'), waitingShipments.length)}
+        {renderTabButton('active', t('tabActive'), activeShipmentsList.length)}
+        {renderTabButton('arrival', t('tabArrival'), arrivalShipments.length)}
+        {renderTabButton('transit', t('tabTransit'), transitShipments.length)}
       </div>
+
+      {activeTab === 'arrival' && (
+        <div className={`mb-6 p-4 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="flex items-center gap-3 mb-2">
+            <Scan className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+            <h3 className="text-sm font-semibold">{t('scanForIssue') || 'Сканирование перед выдачей'}</h3>
+          </div>
+          <input
+            type="text"
+            value={scanInput}
+            onChange={e => setScanInput(e.target.value)}
+            onKeyDown={handleScan}
+            placeholder={t('barcodePlaceholder') || "Считайте код..."}
+            className={`w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+          />
+        </div>
+      )}
 
       <div className="space-y-4">
         {loading && shipments.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">Загрузка...</div>
+          <div className="p-8 text-center text-gray-500">{t('loading')}</div>
         ) : (
           <>
             {activeTab === 'door' && (
-              doorShipments.length === 0 ? <p className="text-gray-500 p-4">Нет задач</p> : doorShipments.map(s => (
+              doorShipments.length === 0 ? <p className="text-gray-500 p-4">{t('noTasks')}</p> : doorShipments.map(s => (
                 <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-bold text-blue-600">{s.shipment_number}</span>
                     <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
                       {(() => {
                         const st = s.shipment_status || s.status || '';
-                        if (st === 'CREATED_DOOR') return 'Ожидает курьера';
-                        if (st === 'PICKUP_ASSIGNED') return 'Курьер едет';
-                        if (st === 'PICKED_UP') return 'Груз забран';
-                        if (st === 'PAYMENT_PENDING') return 'Ожидает оплаты';
-                        if (st === 'PAID') return 'Оплачено';
-                        return 'Ожидает курьера';
+                        if (st === 'PICKUP_ASSIGNED') return t('statusCourierDriving');
+                        if (st === 'PICKED_UP') return t('statusCargoPickedUp');
+                        if (st === 'PAYMENT_PENDING') return t('statusPaymentPending');
+                        if (st === 'PAID') return t('statusPaid');
+                        return t('statusWaitingCourier');
                       })()}
                     </span>
                   </div>
                   <div className="text-sm font-medium mb-1">{s.client_name}</div>
-                  <div className="text-xs text-gray-500 mb-2">{s.pickup_address || 'Адрес не указан'}</div>
+                  <div className="text-xs text-gray-500 mb-2">{s.pickup_address || t('addressNotSpecified')}</div>
                   <div className="text-xs text-gray-400 mt-2 flex items-center gap-1"><Clock className="w-3 h-3"/> {formatDate(s.created_at)}</div>
                 </div>
               ))
             )}
 
             {activeTab === 'waiting' && (
-              waitingShipments.length === 0 ? <p className="text-gray-500 p-4">Нет ожидающих</p> : waitingShipments.map(s => (
+              waitingShipments.length === 0 ? <p className="text-gray-500 p-4">{t('noWaiting')}</p> : waitingShipments.map(s => (
                 <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-bold text-blue-600">{s.shipment_number}</span>
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-yellow-100 text-yellow-800">Юрлицо: ожидаем привоз</span>
+                    <span className="text-xs font-semibold px-2 py-1 rounded bg-yellow-100 text-yellow-800">{t('legalWaitingPickup')}</span>
                   </div>
                   <div className="text-sm font-medium mb-1">{s.client_name}</div>
-                  <div className="text-xs text-gray-500 mb-2">{s.quantity_places} мест • {s.weight} кг</div>
+                  <div className="text-xs text-gray-500 mb-2">{s.quantity_places} {t('pcs')} • {s.weight} {t('kg')}</div>
                   <div className="text-xs text-gray-400 mt-2 flex items-center gap-1"><Clock className="w-3 h-3"/> {formatDate(s.created_at)}</div>
                 </div>
               ))
             )}
 
             {activeTab === 'active' && (
-              activeShipmentsList.length === 0 ? <p className="text-gray-500 p-4">Нет активных</p> : activeShipmentsList.map(s => (
+              activeShipmentsList.length === 0 ? <p className="text-gray-500 p-4">{t('noActive')}</p> : activeShipmentsList.map(s => (
                 <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
@@ -335,7 +450,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                       {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">Door-to-Door</span>}
                     </div>
                     <span className="text-xs font-semibold px-2 py-1 rounded bg-purple-100 text-purple-800">
-                      {s.shipment_status === 'AT_STATION_INTAKE' ? 'На складе' : s.shipment_status === 'READY_FOR_LOADING' ? 'Готов к погрузке' : s.shipment_status === 'LOADED' ? 'Погружен' : 'В пути'}
+                      {s.shipment_status === 'AT_STATION_INTAKE' ? t('statusAtStation') : s.shipment_status === 'READY_FOR_LOADING' ? t('readyForLoading') : s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
                     </span>
                   </div>
                   <div className="text-sm font-medium mb-1">{s.client_name}</div>
@@ -345,37 +460,69 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
             )}
 
             {activeTab === 'arrival' && (
-              arrivalShipments.length === 0 ? <p className="text-gray-500 p-4">Нет прибывших</p> : arrivalShipments.map(s => (
-                <div key={s.id} className={`p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              arrivalShipments.length === 0 ? <p className="text-gray-500 p-4">{t('noArrivals')}</p> : arrivalShipments.map(s => (
+                <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-green-600">{s.shipment_number}</span>
                         {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Door-to-Door</span>}
-                        {s.payment_required && <span className="text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Доплата требуется</span>}
+                        {s.payment_required && <span className="text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> {t('surchargeRequired')}</span>}
                       </div>
                       <span className="text-sm font-medium">{s.client_name}</span>
                     </div>
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-800">Прибыл</span>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${s.shipment_status === 'READY_FOR_ISSUE' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                      {s.shipment_status === 'READY_FOR_ISSUE' ? t('statusReadyForIssue') : t('statusArrived')}
+                    </span>
                   </div>
-                  <div className="text-xs text-gray-500 mb-3">{s.from_station} → {s.to_station} ({s.quantity_places} мест, {s.weight} кг)</div>
+                  <div className="text-xs text-gray-500 mb-3">{s.from_station} → {s.to_station} ({s.quantity_places} {t('pcs')}, {s.weight} {t('kg')})</div>
                   
                   <div className="flex gap-2 mt-4">
-                    <a
-                      href={`tel:${s.door_to_door_phone || s.receiver_phone || ''}`}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${s.door_to_door_phone || s.receiver_phone || ''}`; }}
                       className={`flex items-center justify-center gap-1 flex-1 py-2 rounded-lg text-sm font-medium border ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-750' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                     >
-                      <Phone className="w-4 h-4" /> Позвонить
-                    </a>
-                    <button
-                      onClick={() => {
-                        setIssueModal({ isOpen: true, shipmentId: s.id, error: null });
-                        setReceiverName(''); setReceiverPhone('');
-                      }}
-                      className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                    >
-                      Выдать
+                      <Phone className="w-4 h-4" /> {t('call')}
                     </button>
+                    {s.payment_required ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleClearPayment(s.id); }}
+                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                      >
+                        {t('paySurcharge') || 'Оплатить доплату'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleIssueClick(s.id); }}
+                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                      >
+                        {t('issue') || 'Выдать'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+
+            {activeTab === 'transit' && (
+              transitShipments.length === 0 ? <p className="text-gray-500 p-4">{t('nothingFound')}</p> : transitShipments.map(s => (
+                <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-blue-600">{s.shipment_number}</span>
+                        {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Door-to-Door</span>}
+                      </div>
+                      <span className="text-sm font-medium">{s.client_name}</span>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
+                      {s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
+                    </span>
+                  </div>
+                  <div className={`text-sm flex flex-wrap gap-x-4 gap-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {s.from_station} → {s.to_station}</span>
+                    <span className="flex items-center gap-1"><Package className="w-3 h-3" /> {s.weight} {t('kg')}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(s.created_at)}</span>
                   </div>
                 </div>
               ))
@@ -388,7 +535,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className={`rounded-xl shadow-lg w-full max-w-md overflow-hidden ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
             <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h3 className="text-lg font-bold">Выдача груза</h3>
+              <h3 className="text-lg font-bold">{t('issueCargo')}</h3>
             </div>
             <div className="p-6 space-y-4">
               {issueModal.error && (
@@ -397,23 +544,23 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium mb-1">Имя получателя</label>
+                <label className="block text-sm font-medium mb-1">{t('receiverNameLabel')}</label>
                 <input
                   type="text"
                   value={receiverName}
                   onChange={e => setReceiverName(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                  placeholder="ФИО по документу"
+                  placeholder={t('fullNamePlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Телефон получателя</label>
+                <label className="block text-sm font-medium mb-1">{t('receiverPhoneLabel')}</label>
                 <input
                   type="text"
                   value={receiverPhone}
                   onChange={e => setReceiverPhone(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                  placeholder="+7 (___) ___-__-__"
+                  placeholder={t('phonePlaceholderPattern')}
                 />
               </div>
             </div>
@@ -422,14 +569,14 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                 onClick={() => setIssueModal({ isOpen: false, shipmentId: null, error: null })}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`}
               >
-                Отмена
+                {t('cancel')}
               </button>
               <button
                 onClick={handleIssueSubmit}
                 disabled={processing}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                {processing ? 'Обработка...' : 'Выдать'}
+                {processing ? t('processing') : t('issue')}
               </button>
             </div>
           </div>

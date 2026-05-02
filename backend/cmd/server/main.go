@@ -8,10 +8,13 @@ import (
 	"cargo/backend/internal/config"
 	"cargo/backend/internal/service"
 	"cargo/backend/internal/storage/postgres"
+	"cargo/backend/internal/whatsapp"
 )
 
 func main() {
 	cfg := config.Load()
+
+	go whatsapp.Init(cfg.DatabaseURL)
 
 	db, err := postgres.Open(cfg.DatabaseURL)
 	if err != nil {

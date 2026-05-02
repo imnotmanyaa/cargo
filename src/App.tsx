@@ -47,7 +47,7 @@ function AppContent() {
 
   const [currentPage, setCurrentPage] = useState(() => {
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
       admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients'],
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
@@ -84,7 +84,7 @@ function AppContent() {
   useEffect(() => {
     if (!user?.role) return;
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
       admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients'],
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
@@ -260,7 +260,7 @@ function AppContent() {
     );
   }
 
-  if (user?.role === 'receiver') {
+  if (user?.role === 'receiver' || user?.role === 'train_receiver') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <TopBar

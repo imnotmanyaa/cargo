@@ -19,16 +19,18 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
   const isManager = userRole === 'manager';
   const menuItems = isManager
     ? [
-        { id: 'dashboard', label: 'Дашборд', icon: List },
+        { id: 'dashboard', label: t('sidebarDashboard') || 'Дашборд', icon: List },
         { id: 'new-shipment', label: t('newShipment'), icon: Package },
+        { id: 'transit', label: t('transit'), icon: Truck },
+        { id: 'arrival', label: t('arrival'), icon: MapPin },
       ]
     : [
-        ...(userRole === 'admin' ? [{ id: 'dashboard', label: 'Дашборд', icon: Package }] : []),
+        ...(userRole === 'admin' ? [{ id: 'dashboard', label: t('sidebarDashboard') || 'Дашборд', icon: Package }] : []),
         { id: 'new-shipment', label: t('newShipment'), icon: Package },
         { id: 'active-shipments', label: t('activeShipments'), icon: List },
         { id: 'transit', label: t('transit'), icon: Truck },
         { id: 'arrival', label: t('arrival'), icon: MapPin },
-        { id: 'door-to-door', label: 'До двери', icon: Home },
+        { id: 'door-to-door', label: t('sidebarDoorToDoor') || 'До двери', icon: Home },
         { id: 'reports', label: t('reports'), icon: FileText },
       ];
 
@@ -36,7 +38,7 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
     ? [
         { id: 'payments', label: t('paymentLog'), icon: CreditCard },
         { id: 'audit', label: t('auditLog'), icon: Activity },
-        { id: 'frequent-clients', label: 'Быстрые клиенты', icon: Users },
+        { id: 'frequent-clients', label: t('sidebarFrequentClients') || 'Быстрые клиенты', icon: Users },
         { id: 'settings', label: t('settings'), icon: SettingsIcon },
         { id: 'corporate', label: t('corporate'), icon: Building2 },
       ]
@@ -44,7 +46,7 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
         ...(userRole === 'admin' ? [
           { id: 'audit', label: t('auditLog'), icon: Activity },
           { id: 'payments', label: t('paymentLog'), icon: CreditCard },
-          { id: 'frequent-clients', label: 'Быстрые клиенты', icon: Users },
+          { id: 'frequent-clients', label: t('sidebarFrequentClients') || 'Быстрые клиенты', icon: Users },
         ] : []),
         { id: 'settings', label: t('settings'), icon: SettingsIcon },
         { id: 'corporate', label: t('corporate'), icon: Building2 },

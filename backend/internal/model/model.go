@@ -140,6 +140,7 @@ type Shipment struct {
 	QuantityPlaces  int               `json:"quantity_places"`
 	ReceiverName    *string           `json:"receiver_name,omitempty"`
 	ReceiverPhone   *string           `json:"receiver_phone,omitempty"`
+	SenderPhone     *string           `json:"sender_phone,omitempty"`
 	TrackingCode    *string           `json:"tracking_code,omitempty"`
 	QRCodeID        *string           `json:"qr_code_id,omitempty"`
 	TransportUnitID *string           `json:"transport_unit_id,omitempty"`
@@ -290,10 +291,11 @@ type StatusSummaryItem struct {
 }
 
 type ShipmentFilter struct {
-	Type     string
-	Station  string
-	ClientID string
-	Query    string
+	Type        string
+	Station     string
+	ClientID    string
+	ClientPhone string
+	Query       string
 }
 
 type WagonStatus string

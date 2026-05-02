@@ -58,13 +58,21 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		ReceiverName    *string `json:"receiver_name"`
 		ReceiverPhone   *string `json:"receiver_phone"`
 		IsDoorToDoor    bool    `json:"is_door_to_door"`
+		ClientRole      string  `json:"client_role"`
 		PickupAddress   *string `json:"pickup_address"`
 		DeliveryAddress *string `json:"delivery_address"`
 		DoorToDoorPhone *string `json:"door_to_door_phone"`
+		SenderPhone     *string `json:"sender_phone"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
+	// Default client role if not provided
+	clientRole := req.ClientRole
+	if clientRole == "" {
+		clientRole = string(user.Role)
+	}
+
 	// Client roles (corporate/individual) have no assigned station — allow any from_station.
 	// Staff roles must work from their assigned station only.
 	isClientRole := user.Role == model.RoleCorporate || user.Role == model.RoleIndividual
@@ -97,9 +105,11 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		ReceiverPhone:   req.ReceiverPhone,
 		CreatedBy:       &user.ID,
 		IsDoorToDoor:    req.IsDoorToDoor,
+		ClientRole:      clientRole,
 		PickupAddress:   req.PickupAddress,
 		DeliveryAddress: req.DeliveryAddress,
 		DoorToDoorPhone: req.DoorToDoorPhone,
+		SenderPhone:     req.SenderPhone,
 	})
 	if err != nil {
 		handleServiceError(w, err)
@@ -213,6 +223,11 @@ func (s *Server) handleListShipments(w http.ResponseWriter, r *http.Request) {
 		Station:  r.URL.Query().Get("station"),
 		ClientID: r.URL.Query().Get("client_id"),
 		Query:    r.URL.Query().Get("q"),
+	}
+	if user.Role == model.RoleCorporate || user.Role == model.RoleIndividual {
+		if user.Phone != nil {
+			filter.ClientPhone = *user.Phone
+		}
 	}
 	if user.Role == model.RoleDirectionHead {
 		filter.Station = user.Station
