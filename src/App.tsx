@@ -260,7 +260,7 @@ function AppContent() {
     );
   }
 
-  if (user?.role === 'receiver') {
+  if (user?.role === 'receiver' || user?.role === 'train_receiver') {
     return (
       <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <TopBar
