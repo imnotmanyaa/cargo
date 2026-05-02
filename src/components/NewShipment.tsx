@@ -28,7 +28,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const [shipmentData, setShipmentData] = useState({
     clientId: user?.id || '',
     clientType: user?.role === 'corporate' ? 'legal' : 'individual',
-    clientName: user?.name || '',
+    clientName: (user?.role === 'individual' || user?.role === 'corporate') ? (user?.name || '') : '',
     corporateClientId: '',
     clientSource: '',
     clientPhone: '',
@@ -62,7 +62,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       setShipmentData(prev => ({
         ...prev,
         clientId: user.id,
-        clientName: prev.clientName || user.name || '',
+        clientName: prev.clientName || ((user.role === 'individual' || user.role === 'corporate') ? (user.name || '') : ''),
         clientPhone: prev.clientPhone || user.phone || '',
         isDoorToDoor: user.role === 'individual' ? true : prev.isDoorToDoor,
         clientType: user.role === 'corporate' ? 'legal' : prev.clientType,
