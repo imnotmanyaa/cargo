@@ -289,6 +289,18 @@ func (m *memoryRepo) ListShipmentsByOriginStation(_ context.Context, station str
 	return items, nil
 }
 
+func (m *memoryRepo) ListShipmentsByStatus(_ context.Context, status model.ShipmentLifecycle, loadedBefore time.Time) ([]model.Shipment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var items []model.Shipment
+	for _, shipment := range m.shipments {
+		if shipment.ShipmentStatus == status && shipment.UpdatedAt.Before(loadedBefore) {
+			items = append(items, shipment)
+		}
+	}
+	return items, nil
+}
+
 func (m *memoryRepo) UpdateShipment(_ context.Context, shipment model.Shipment) (model.Shipment, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

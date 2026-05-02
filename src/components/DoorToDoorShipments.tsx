@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Phone, Clock, RefreshCw, Truck } from 'lucide-react';
+import { Search, RefreshCw, Truck } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ActiveShipmentDetails } from './ActiveShipmentDetails';
