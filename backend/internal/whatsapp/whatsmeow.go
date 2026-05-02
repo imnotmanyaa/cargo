@@ -27,12 +27,30 @@ func sendViaGreenAPI(phone, message string) error {
 		apiURL = "api.green-api.com"
 	}
 
-	// Normalize phone: strip non-digits, fix 8-xxx → 7-xxx
-	phone = strings.NewReplacer("+", "", "-", "", " ", "", "(", "", ")", "").Replace(phone)
-	if strings.HasPrefix(phone, "87") {
-		phone = "77" + phone[2:]
+	// Normalize phone number to international format (77XXXXXXXXX)
+	// Strip all non-digit characters
+	phone = strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, phone)
+
+	switch {
+	case len(phone) == 11 && strings.HasPrefix(phone, "8"):
+		// 8XXXXXXXXXX → 7XXXXXXXXXX (Kazakh local format)
+		phone = "7" + phone[1:]
+	case len(phone) == 10 && strings.HasPrefix(phone, "7"):
+		// 7XXXXXXXXX → 77XXXXXXXXX (missing country code)
+		phone = "7" + phone
+	case len(phone) == 10:
+		// XXXXXXXXXX → 77XXXXXXXXX (no country code at all)
+		phone = "77" + phone
 	}
+	// If already 77XXXXXXXXX or +77XXXXXXXXX — just use as-is
+
 	chatID := phone + "@c.us"
+	log.Printf("[WHATSAPP] Нормализованный номер: %s → chatID: %s", phone, chatID)
 
 	url := fmt.Sprintf("https://%s/waInstance%s/sendMessage/%s", apiURL, idInstance, apiToken)
 
