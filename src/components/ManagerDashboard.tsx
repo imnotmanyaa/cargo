@@ -222,6 +222,28 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     setReceiverName(''); setReceiverPhone('');
   };
 
+  const handleClearPayment = async (shipmentId: string) => {
+    if (!window.confirm(t('confirmSurchargePayment') || 'Подтвердить получение доплаты?')) return;
+    setProcessing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(withApiBase(`/api/shipments/${shipmentId}/clear-payment`), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchShipments();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error clearing payment');
+      }
+    } catch (err) {
+      alert(t('errorNetwork'));
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleIssueSubmit = async () => {
     const { shipmentId } = issueModal;
     if (!shipmentId) return;
@@ -462,12 +484,21 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                     >
                       <Phone className="w-4 h-4" /> {t('call')}
                     </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleIssueClick(s.id); }}
-                      className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                    >
-                      {t('issue')}
-                    </button>
+                    {s.payment_required ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleClearPayment(s.id); }}
+                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                      >
+                        {t('paySurcharge') || 'Оплатить доплату'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleIssueClick(s.id); }}
+                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                      >
+                        {t('issue') || 'Выдать'}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

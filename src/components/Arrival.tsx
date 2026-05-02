@@ -134,6 +134,28 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     }
   };
 
+  const handleClearPayment = async (shipmentId: string) => {
+    if (!window.confirm(t('confirmSurchargePayment') || 'Подтвердить получение доплаты?')) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(withApiBase(`/api/shipments/${shipmentId}/clear-payment`), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchArrivals();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error clearing payment');
+      }
+    } catch (err) {
+      alert(t('errorNetwork'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-8 flex justify-between items-center">
@@ -218,12 +240,21 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                         }`}>
                       {t('notify')}
                     </button>
-                    <button
-                      onClick={() => handleIssueClick(arrival.id)}
-                      className="flex-1 sm:flex-none px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
-                    >
-                      {t('issue')}
-                    </button>
+                    {arrival.payment_required ? (
+                      <button
+                        onClick={() => handleClearPayment(arrival.id)}
+                        className="flex-1 sm:flex-none px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 whitespace-nowrap"
+                      >
+                        {t('paySurcharge') || 'Оплатить доплату'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleIssueClick(arrival.id)}
+                        className="flex-1 sm:flex-none px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
+                      >
+                        {t('issue')}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
