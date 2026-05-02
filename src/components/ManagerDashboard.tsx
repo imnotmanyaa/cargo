@@ -68,10 +68,10 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(withApiBase('/api/scan'), {
+        const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(code)}/smart-scan`), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ shipment_id: code, event_type: 'ISSUE_SCAN', station_id: user?.station })
+          body: JSON.stringify({ station_id: user?.station })
         });
         if (res.ok) {
           playBeep(880);
