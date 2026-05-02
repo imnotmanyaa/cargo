@@ -115,21 +115,6 @@ function formatDate(d: string) {
   });
 }
 
-function getActionIcon(action: string) {
-  if (action.includes('CREATE') || action === 'Shipment created') return '📦';
-  if (action.includes('SCAN'))   return '🔍';
-  if (action.includes('loaded') || action.includes('LOADED')) return '🚂';
-  if (action.includes('dispatched') || action.includes('TRANSIT')) return '🚀';
-  if (action.includes('arrived') || action.includes('ARRIVED')) return '📍';
-  if (action.includes('ISSUE') || action === 'ISSUED') return '✅';
-  if (action.includes('Courier') || action.includes('delivery') || action.includes('pickup')) return '🚴';
-  if (action.includes('PAYMENT') || action.includes('Correction')) return '💳';
-  if (action.includes('CANCEL')) return '❌';
-  if (action.includes('HOLD')) return '⏸️';
-  if (action.includes('DAMAGE')) return '⚠️';
-  return '📋';
-}
-
 function getActionColor(action: string, isDark: boolean) {
   if (action.includes('CREATE') || action === 'Shipment created')
     return isDark ? 'text-blue-400' : 'text-blue-600';
@@ -359,18 +344,17 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                   </td>
                   <td className="px-5 py-3">
                     {log.shipment_number ? (
-                      <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
-                        isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-50 text-blue-700'
+                      <span className={`text-sm font-semibold ${
+                        isDark ? 'text-gray-300' : 'text-gray-700'
                       }`}>
                         {log.shipment_number}
                       </span>
                     ) : (
-                      <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>—</span>
+                      <span className={`text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>—</span>
                     )}
                   </td>
                   <td className="px-5 py-3">
                     <div className={`flex items-center gap-2 text-sm font-medium ${getActionColor(log.action, isDark)}`}>
-                      <span>{getActionIcon(log.action)}</span>
                       <span>{getReadableAction(log.action)}</span>
                     </div>
                     {log.reason && (
@@ -386,15 +370,15 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
                   </td>
                   <td className="px-5 py-3">
                     {(log.old_value || log.new_value) && (
-                      <div className="flex items-center gap-1 text-xs">
+                      <div className="flex items-center gap-2 text-sm">
                         {log.old_value && (
-                          <span className={`px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>
+                          <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
                             {getStatusLabel(log.old_value)}
                           </span>
                         )}
                         {log.old_value && log.new_value && <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>→</span>}
                         {log.new_value && (
-                          <span className={`px-1.5 py-0.5 rounded font-medium ${isDark ? 'bg-green-900/50 text-green-300' : 'bg-green-50 text-green-700'}`}>
+                          <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
                             {getStatusLabel(log.new_value)}
                           </span>
                         )}
@@ -412,23 +396,23 @@ export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
               <div key={log.id} className={`p-4 ${isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`}>
                 <div className="flex items-start justify-between mb-1">
                   <div className={`text-sm font-medium flex items-center gap-1 ${getActionColor(log.action, isDark)}`}>
-                    {getActionIcon(log.action)} {getReadableAction(log.action)}
+                    {getReadableAction(log.action)}
                   </div>
                   {log.shipment_number && (
-                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
+                    <span className={`text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                       {log.shipment_number}
                     </span>
                   )}
                 </div>
-                <div className={`text-sm font-medium mb-0.5 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                <div className={`text-sm font-medium mb-1 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
                   {log.user_name || 'Неизвестно'}
                   {log.user_role && <span className={`ml-1 text-xs font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({ROLE_LABELS[log.user_role] || log.user_role})</span>}
                 </div>
                 {(log.old_value || log.new_value) && (
-                  <div className="flex items-center gap-1 text-xs mb-0.5">
-                    {log.old_value && <span className={`px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>{getStatusLabel(log.old_value)}</span>}
-                    {log.old_value && log.new_value && <span>→</span>}
-                    {log.new_value && <span className={`px-1.5 py-0.5 rounded ${isDark ? 'bg-green-900/50 text-green-300' : 'bg-green-50 text-green-700'}`}>{getStatusLabel(log.new_value)}</span>}
+                  <div className="flex items-center gap-1 text-sm mb-1">
+                    {log.old_value && <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{getStatusLabel(log.old_value)}</span>}
+                    {log.old_value && log.new_value && <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>→</span>}
+                    {log.new_value && <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{getStatusLabel(log.new_value)}</span>}
                   </div>
                 )}
                 <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{formatDate(log.created_at)}</div>
