@@ -160,16 +160,8 @@ func TestPilotLifecycleFlow(t *testing.T) {
 		t.Fatalf("expected READY_FOR_ISSUE, got %s", shipment.ShipmentStatus)
 	}
 
-	scanResp := performJSON(t, server.Router(), "POST", "/api/scan", map[string]any{
-		"shipment_id": shipment.ID,
-		"event_type": "ISSUE_SCAN",
-		"station_id": destStation,
-	}, issueToken)
-	if scanResp.Code != http.StatusCreated {
-		t.Fatalf("issue scan failed: %d %s", scanResp.Code, scanResp.Body.String())
-	}
-
 	issueResp := performJSON(t, server.Router(), "POST", "/api/shipments/"+shipment.ID+"/issue", map[string]any{
+		"code": "0000",
 		"receiver_name": receiverName,
 		"receiver_phone": receiverPhone,
 	}, issueToken)

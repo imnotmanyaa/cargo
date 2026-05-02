@@ -479,6 +479,19 @@ func (m *memoryRepo) MarkNotificationRead(_ context.Context, id int64) error {
 	return nil
 }
 
+func (m *memoryRepo) DeleteNotification(_ context.Context, id int64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var updated []model.Notification
+	for _, n := range m.notifications {
+		if n.ID != id {
+			updated = append(updated, n)
+		}
+	}
+	m.notifications = updated
+	return nil
+}
+
 func (m *memoryRepo) AddAuditLog(_ context.Context, log model.AuditLog) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
