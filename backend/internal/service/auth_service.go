@@ -14,11 +14,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *AuthService) Register(ctx context.Context, name, email, password string, role model.Role, company, phone *string) (model.User, string, error) {
-	email = normalizeEmail(email)
-	_, err := s.repo.GetUserByEmail(ctx, email)
+func (s *AuthService) Register(ctx context.Context, name, login, password string, role model.Role, company, phone *string) (model.User, string, error) {
+	login = normalizeLogin(login)
+	_, err := s.repo.GetUserByEmail(ctx, login)
 	if err == nil {
-		return model.User{}, "", ErrDuplicateEmail
+		return model.User{}, "", ErrDuplicateLogin
 	}
 	if !errors.Is(err, ErrNotFound) {
 		return model.User{}, "", err
@@ -30,7 +30,7 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 	user := model.User{
 		ID:             uuid.NewString(),
 		Name:           name,
-		Email:          email,
+		Login:          login,
 		PasswordHash:   string(hash),
 		Role:           role,
 		ClientSegment:  model.ClientSegmentForRole(role),
@@ -52,8 +52,8 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 	return created, token, err
 }
 
-func (s *AuthService) Login(ctx context.Context, email, password string) (model.User, string, error) {
-	user, err := s.repo.GetUserByEmail(ctx, normalizeEmail(email))
+func (s *AuthService) Login(ctx context.Context, login, password string) (model.User, string, error) {
+	user, err := s.repo.GetUserByEmail(ctx, normalizeLogin(login))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return model.User{}, "", ErrInvalidCredentials
@@ -89,7 +89,7 @@ func (s *AuthService) ParseToken(token string) (AuthenticatedUser, error) {
 	station, _ := claims["station"].(string)
 	name, _ := claims["name"].(string)
 	id, _ := claims["sub"].(string)
-	email, _ := claims["email"].(string)
+	login, _ := claims["login"].(string)
 	phoneStr, _ := claims["phone"].(string)
 	var phone *string
 	if phoneStr != "" {
@@ -97,7 +97,7 @@ func (s *AuthService) ParseToken(token string) (AuthenticatedUser, error) {
 	}
 	return AuthenticatedUser{
 		ID:      id,
-		Email:   email,
+		Login:   login,
 		Role:    model.Role(role),
 		Name:    name,
 		Station: station,
@@ -152,7 +152,7 @@ func (s *AuthService) QRLogin(ctx context.Context, qrToken string) (model.User, 
 func (s *AuthService) issueToken(user model.User) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":   user.ID,
-		"email": user.Email,
+		"login": user.Login,
 		"role":  string(user.Role),
 		"name":  user.Name,
 		"exp":   time.Now().Add(24 * time.Hour).Unix(),

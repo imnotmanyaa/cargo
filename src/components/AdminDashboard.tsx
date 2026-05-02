@@ -8,7 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 interface Employee {
   id: string;
   name: string;
-  email: string;
+  login: string;
   role: 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'receiver' | 'train_receiver' | 'mobile_group' | 'courier';
   station: string;
   createdAt: string;
@@ -68,7 +68,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   });
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    login: '',
     password: '',
     role: 'manager' as Employee['role'],
     station: ''
@@ -96,7 +96,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
         setShowCreateForm(false);
         setFormData({
           name: '',
-          email: '',
+          login: '',
           password: '',
           role: 'manager' as Employee['role'],
           station: ''
@@ -135,7 +135,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
         body: JSON.stringify({
           id: editEmployee.id,
           name: editFormData.name,
-          email: editEmployee.email,
+          login: editEmployee.login,
           role: editFormData.role,
           station: editFormData.station || null,
           is_active: true
@@ -208,7 +208,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `qr-login-${qrEmployee.email}.svg`;
+    a.download = `qr-login-${qrEmployee.login}.svg`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -226,7 +226,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.login.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (emp.station && emp.station.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -339,12 +339,12 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {t('email')}
+                  {t('login')}
                 </label>
                 <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  type="login"
+                  value={formData.login}
+                  onChange={(e) => setFormData({ ...formData, login: e.target.value })}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'
                     }`}
                   placeholder={t('enterEmail')}
@@ -442,7 +442,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   {t('employeeLabel')}
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('email')}
+                  {t('login')}
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   {t('role')}
@@ -477,7 +477,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{employee.email}</div>
+                    <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{employee.login}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -564,7 +564,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
             <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
               Редактировать сотрудника
             </h3>
-            <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{editEmployee.email}</p>
+            <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{editEmployee.login}</p>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
                 <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('fullName')}</label>
@@ -639,7 +639,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className={`text-lg font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>QR-логин для ТСД</h3>
-                <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{qrEmployee.email}</p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{qrEmployee.login}</p>
               </div>
               <button
                 onClick={() => {

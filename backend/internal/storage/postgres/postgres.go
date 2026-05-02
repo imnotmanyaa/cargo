@@ -69,7 +69,7 @@ func (db *DB) Migrate() error {
 	
 	// Create or update default admin user
 	_, _ = db.pool.Exec(ctx, `
-		INSERT INTO users (id, name, email, password_hash, role, deposit_balance, is_active)
+		INSERT INTO users (id, name, login, password_hash, role, deposit_balance, is_active)
 		VALUES ('admin-001', 'Admin', 'admin@admin.com', '$2a$10$6a38vVYPoVs0OBngM21Ksu9Rz0QaShAfhSg.DjRxjb8oInIKlh0me', 'admin', 0, true)
 		ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash
 	`)
@@ -91,9 +91,9 @@ func (r *Repository) CreateUser(ctx context.Context, user model.User) (model.Use
 		user.ClientSegment = model.ClientSegmentForRole(user.Role)
 	}
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO users (id, name, email, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at)
+		INSERT INTO users (id, name, login, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-	`, user.ID, user.Name, user.Email, user.PasswordHash, user.Role, user.ClientSegment, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive, user.CreatedAt)
+	`, user.ID, user.Name, user.Login, user.PasswordHash, user.Role, user.ClientSegment, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive, user.CreatedAt)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -105,17 +105,17 @@ func (r *Repository) UpdateUser(ctx context.Context, user model.User) (model.Use
 		user.ClientSegment = model.ClientSegmentForRole(user.Role)
 	}
 	_, err := r.pool.Exec(ctx, `
-		UPDATE users SET name = $2, email = $3, role = $4, client_segment = $5, company = $6, deposit_balance = $7, contract_number = $8, phone = $9, station = $10, is_active = $11
+		UPDATE users SET name = $2, login = $3, role = $4, client_segment = $5, company = $6, deposit_balance = $7, contract_number = $8, phone = $9, station = $10, is_active = $11
 		WHERE id = $1
-	`, user.ID, user.Name, user.Email, user.Role, user.ClientSegment, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive)
+	`, user.ID, user.Name, user.Login, user.Role, user.ClientSegment, user.Company, user.DepositBalance, user.ContractNumber, user.Phone, user.Station, user.IsActive)
 	if err != nil {
 		return model.User{}, err
 	}
 	return user, nil
 }
 
-func (r *Repository) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
-	return scanUser(r.pool.QueryRow(ctx, userSelect+` WHERE email = $1`, email))
+func (r *Repository) GetUserByEmail(ctx context.Context, login string) (model.User, error) {
+	return scanUser(r.pool.QueryRow(ctx, userSelect+` WHERE login = $1`, login))
 }
 
 func (r *Repository) GetUserByID(ctx context.Context, id string) (model.User, error) {
@@ -312,7 +312,7 @@ func (r *Repository) CreateShipment(ctx context.Context, shipment model.Shipment
 	routeJSON, _ := json.Marshal(shipment.Route)
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO shipments (
-			id, shipment_number, client_id, client_name, client_email, from_station, to_station, current_station, next_station, route,
+			id, shipment_number, client_id, client_name, client_login, from_station, to_station, current_station, next_station, route,
 			status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places,
 			receiver_name, receiver_phone, sender_phone, tracking_code, qr_code_id, transport_unit_id,
 			is_door_to_door, pickup_address, delivery_address, door_to_door_phone,
@@ -324,7 +324,7 @@ func (r *Repository) CreateShipment(ctx context.Context, shipment model.Shipment
 			$27,$28,$29,$30,
 			$31,$32,$33,$34,$35,$36,$37,$38
 		)
-	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.SenderPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.CreatedAt, shipment.UpdatedAt)
+	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientLogin, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.SenderPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.CreatedAt, shipment.UpdatedAt)
 	return shipment, err
 }
 
@@ -403,7 +403,7 @@ func (r *Repository) UpdateShipment(ctx context.Context, shipment model.Shipment
 			shipment_number = $2,
 			client_id = $3,
 			client_name = $4,
-			client_email = $5,
+			client_login = $5,
 			from_station = $6,
 			to_station = $7,
 			current_station = $8,
@@ -438,7 +438,7 @@ func (r *Repository) UpdateShipment(ctx context.Context, shipment model.Shipment
 			created_by = $37,
 			updated_at = $38
 		WHERE id = $1
-	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.SenderPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.CourierID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.UpdatedAt)
+	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientLogin, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.SenderPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.CourierID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.UpdatedAt)
 	return shipment, err
 }
 
@@ -792,12 +792,12 @@ func (r *Repository) GetStatusSummary(ctx context.Context) ([]model.StatusSummar
 	return items, rows.Err()
 }
 
-const userSelect = `SELECT id, name, email, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
-const shipmentSelect = `SELECT id, shipment_number, client_id, client_name, client_email, from_station, to_station, current_station, next_station, route, status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, sender_phone, tracking_code, qr_code_id, transport_unit_id, COALESCE(courier_id, '') as courier_id, is_door_to_door, pickup_address, delivery_address, door_to_door_phone, payment_required, extra_charge, pickup_code, issue_code, last_updated_at, created_by, created_at, updated_at FROM shipments`
+const userSelect = `SELECT id, name, login, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
+const shipmentSelect = `SELECT id, shipment_number, client_id, client_name, client_login, from_station, to_station, current_station, next_station, route, status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, sender_phone, tracking_code, qr_code_id, transport_unit_id, COALESCE(courier_id, '') as courier_id, is_door_to_door, pickup_address, delivery_address, door_to_door_phone, payment_required, extra_charge, pickup_code, issue_code, last_updated_at, created_by, created_at, updated_at FROM shipments`
 
 func scanUser(row pgx.Row) (model.User, error) {
 	var user model.User
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.ClientSegment, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Name, &user.Login, &user.PasswordHash, &user.Role, &user.ClientSegment, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.User{}, service.ErrNotFound
 	}
@@ -808,7 +808,7 @@ func collectUsers(rows pgx.Rows) ([]model.User, error) {
 	items := []model.User{}
 	for rows.Next() {
 		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role, &user.ClientSegment, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Login, &user.PasswordHash, &user.Role, &user.ClientSegment, &user.Company, &user.DepositBalance, &user.ContractNumber, &user.Phone, &user.Station, &user.IsActive, &user.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, user)
@@ -820,7 +820,7 @@ func scanShipment(row pgx.Row) (model.Shipment, error) {
 	var shipment model.Shipment
 	var routeRaw []byte
 	var courierID string
-	err := row.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientEmail, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt)
+	err := row.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientLogin, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.Shipment{}, service.ErrNotFound
 	}
@@ -840,7 +840,7 @@ func collectShipments(rows pgx.Rows) ([]model.Shipment, error) {
 		var shipment model.Shipment
 		var routeRaw []byte
 		var courierID string
-		if err := rows.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientEmail, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt); err != nil {
+		if err := rows.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientLogin, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if courierID != "" {

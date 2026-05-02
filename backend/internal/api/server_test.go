@@ -24,7 +24,7 @@ func TestPilotLifecycleFlow(t *testing.T) {
 
 	registerResp := performJSON(t, server.Router(), "POST", "/api/auth/register", map[string]any{
 		"name":     "Client",
-		"email":    "client@test",
+		"login":    "client@test",
 		"password": "secret123",
 		"role":     "individual",
 	}, "")
@@ -50,7 +50,7 @@ func TestPilotLifecycleFlow(t *testing.T) {
 	badCreateResp := performJSON(t, server.Router(), "POST", "/api/shipments", map[string]any{
 		"client_id":      clientID,
 		"client_name":    "Client",
-		"client_email":   "client@test",
+		"client_login":   "client@test",
 		"from_station":   originStation + " ",
 		"to_station":     originStation,
 		"departure_date": time.Now().UTC().Format(time.RFC3339),
@@ -70,7 +70,7 @@ func TestPilotLifecycleFlow(t *testing.T) {
 	createResp := performJSON(t, server.Router(), "POST", "/api/shipments", map[string]any{
 		"client_id":      clientID,
 		"client_name":    "Client",
-		"client_email":   "client@test",
+		"client_login":   "client@test",
 		"from_station":   originStation,
 		"to_station":     destStation,
 		"departure_date": time.Now().UTC().Format(time.RFC3339),
@@ -186,7 +186,7 @@ func TestTrackingAndReportsEndpoints(t *testing.T) {
 	shipment, err := services.Shipments.Create(context.Background(), service.CreateShipmentRequest{
 		ClientID:      "client-1",
 		ClientName:    "Client",
-		ClientEmail:   "client@test",
+		ClientLogin:   "client@test",
 		FromStation:   "Алматы-1",
 		ToStation:     "Ақтөбе",
 		DepartureDate: time.Now().UTC(),
@@ -257,23 +257,23 @@ func decodeResponse(t *testing.T, resp *httptest.ResponseRecorder, dst any) {
 	}
 }
 
-func createEmployeeAndLogin(t *testing.T, server *Server, services service.Services, name, email, password string, role model.Role, station *string) string {
+func createEmployeeAndLogin(t *testing.T, server *Server, services service.Services, name, login, password string, role model.Role, station *string) string {
 	t.Helper()
-	if _, err := services.Admin.CreateEmployee(context.Background(), name, email, password, role, station); err != nil {
-		t.Fatalf("create employee %s: %v", email, err)
+	if _, err := services.Admin.CreateEmployee(context.Background(), name, login, password, role, station); err != nil {
+		t.Fatalf("create employee %s: %v", login, err)
 	}
 	resp := performJSON(t, server.Router(), "POST", "/api/auth/login", map[string]any{
-		"email":    email,
+		"login":    login,
 		"password": password,
 	}, "")
 	if resp.Code != http.StatusOK {
-		t.Fatalf("login %s failed: %d %s", email, resp.Code, resp.Body.String())
+		t.Fatalf("login %s failed: %d %s", login, resp.Code, resp.Body.String())
 	}
 	var payload map[string]any
 	decodeResponse(t, resp, &payload)
 	token, _ := payload["token"].(string)
 	if token == "" {
-		t.Fatalf("token missing for %s", email)
+		t.Fatalf("token missing for %s", login)
 	}
 	return token
 }

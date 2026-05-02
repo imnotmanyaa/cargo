@@ -18,7 +18,7 @@ import (
 type CreateShipmentRequest struct {
 	ClientID        string
 	ClientName      string
-	ClientEmail     string
+	ClientLogin     string
 	FromStation     string
 	ToStation       string
 	DepartureDate   time.Time
@@ -42,7 +42,7 @@ type CreateShipmentRequest struct {
 
 type CorrectionRequest struct {
 	ClientName     *string
-	ClientEmail    *string
+	ClientLogin    *string
 	FromStation    *string
 	ToStation      *string
 	Weight         *string
@@ -107,7 +107,7 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		ShipmentNumber:  number,
 		ClientID:        req.ClientID,
 		ClientName:      req.ClientName,
-		ClientEmail:     req.ClientEmail,
+		ClientLogin:     req.ClientLogin,
 		FromStation:     req.FromStation,
 		ToStation:       req.ToStation,
 		CurrentStation:  req.FromStation,
@@ -423,8 +423,8 @@ func (s *ShipmentService) CorrectAfterPayment(ctx context.Context, id string, op
 	if req.ClientName != nil {
 		shipment.ClientName = *req.ClientName
 	}
-	if req.ClientEmail != nil {
-		shipment.ClientEmail = *req.ClientEmail
+	if req.ClientLogin != nil {
+		shipment.ClientLogin = *req.ClientLogin
 	}
 	if req.FromStation != nil {
 		shipment.FromStation = strings.TrimSpace(*req.FromStation)
@@ -1004,8 +1004,8 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 		return fmt.Errorf("%w: client_id is required", ErrValidation)
 	case req.ClientName == "":
 		return fmt.Errorf("%w: client_name is required", ErrValidation)
-	case req.ClientEmail == "" && req.ClientID == "":
-		return fmt.Errorf("%w: client_email is required", ErrValidation)
+	case req.ClientLogin == "" && req.ClientID == "":
+		return fmt.Errorf("%w: client_login is required", ErrValidation)
 	case from == "":
 		return fmt.Errorf("%w: from_station is required", ErrValidation)
 	case to == "":
@@ -1027,8 +1027,8 @@ func validateEditableShipment(shipment model.Shipment) error {
 	switch {
 	case shipment.ClientName == "":
 		return fmt.Errorf("%w: client_name is required", ErrValidation)
-	case shipment.ClientEmail == "":
-		return fmt.Errorf("%w: client_email is required", ErrValidation)
+	case shipment.ClientLogin == "":
+		return fmt.Errorf("%w: client_login is required", ErrValidation)
 	case from == "":
 		return fmt.Errorf("%w: from_station is required", ErrValidation)
 	case to == "":

@@ -4,12 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 
 export function CourierLogin() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [login, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password, 'courier');
+    await login(login, password, 'courier');
   };
 
   return (
@@ -24,9 +24,9 @@ export function CourierLogin() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
-            type="email"
-            placeholder="Email"
-            value={email}
+            type="login"
+            placeholder="Login"
+            value={login}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required

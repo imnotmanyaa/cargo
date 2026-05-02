@@ -8,7 +8,7 @@ interface Shipment {
   id: string;
   shipment_number: string;
   client_name: string;
-  client_email?: string;
+  client_login?: string;
   pickup_address?: string;
   delivery_address?: string;
   door_to_door_phone?: string;

@@ -47,7 +47,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var req struct {
 		Name     string  `json:"name"`
-		Email    string  `json:"email"`
+		Login    string  `json:"login"`
 		Password string  `json:"password"`
 		Role     string  `json:"role"`
 		Station  *string `json:"station"`
@@ -55,7 +55,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	createdUser, err := s.services.Admin.CreateEmployee(r.Context(), req.Name, req.Email, req.Password, model.Role(req.Role), req.Station)
+	createdUser, err := s.services.Admin.CreateEmployee(r.Context(), req.Name, req.Login, req.Password, model.Role(req.Role), req.Station)
 	if err != nil {
 		handleServiceError(w, err)
 		return
@@ -124,7 +124,7 @@ func (s *Server) handleCreateEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 	var req struct {
 		Name     string  `json:"name"`
-		Email    string  `json:"email"`
+		Login    string  `json:"login"`
 		Password string  `json:"password"`
 		Role     string  `json:"role"`
 		Station  *string `json:"station"`
@@ -132,7 +132,7 @@ func (s *Server) handleCreateEmployee(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	createdUser, err := s.services.Admin.CreateEmployee(r.Context(), req.Name, req.Email, req.Password, model.Role(req.Role), req.Station)
+	createdUser, err := s.services.Admin.CreateEmployee(r.Context(), req.Name, req.Login, req.Password, model.Role(req.Role), req.Station)
 	if err != nil {
 		handleServiceError(w, err)
 		return
@@ -140,7 +140,7 @@ func (s *Server) handleCreateEmployee(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"id":         createdUser.ID,
 		"name":       createdUser.Name,
-		"email":      createdUser.Email,
+		"login":      createdUser.Login,
 		"role":       createdUser.Role,
 		"station":    createdUser.Station,
 		"created_at": createdUser.CreatedAt,

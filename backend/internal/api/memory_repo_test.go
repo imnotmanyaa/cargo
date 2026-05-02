@@ -53,8 +53,8 @@ func (m *memoryRepo) CreateUser(_ context.Context, user model.User) (model.User,
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, existing := range m.users {
-		if existing.Email == user.Email {
-			return model.User{}, service.ErrDuplicateEmail
+		if existing.Login == user.Login {
+			return model.User{}, service.ErrDuplicateLogin
 		}
 	}
 	if user.CreatedAt.IsZero() {
@@ -74,11 +74,11 @@ func (m *memoryRepo) UpdateUser(_ context.Context, user model.User) (model.User,
 	return user, nil
 }
 
-func (m *memoryRepo) GetUserByEmail(_ context.Context, email string) (model.User, error) {
+func (m *memoryRepo) GetUserByEmail(_ context.Context, login string) (model.User, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, user := range m.users {
-		if user.Email == email {
+		if user.Login == login {
 			return user, nil
 		}
 	}

@@ -7,7 +7,7 @@ interface ActiveShipmentDetailsProps {
     id: string;
     shipment_number?: string;
     client: string;
-    client_email?: string;
+    client_login?: string;
     from: string;
     to: string;
     status: string;
@@ -135,10 +135,10 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
                 <p className={value}>{shipment.client}</p>
               </div>
               <div>
-                <p className={label}>Email</p>
+                <p className={label}>Login</p>
                 <p className={value}>
-                  {(shipment.client_email && !shipment.client_email.includes('@cargo.kz') && shipment.client_email.trim() !== '')
-                    ? shipment.client_email
+                  {(shipment.client_login && !shipment.client_login.includes('@cargo.kz') && shipment.client_login.trim() !== '')
+                    ? shipment.client_login
                     : '—'}
                 </p>
               </div>

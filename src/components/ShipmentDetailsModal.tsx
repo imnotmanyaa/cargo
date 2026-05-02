@@ -7,7 +7,7 @@ interface ShipmentDetailsModalProps {
     id: string;
     shipment_number?: string;
     client: string;
-    client_email?: string;
+    client_login?: string;
     from: string;
     to: string;
     status: string;
@@ -118,11 +118,11 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
                 <span className={label}>{t('client')}:</span>
                 <span className={value}>{shipment.client}</span>
               </div>
-              {shipment.client_email && (
+              {shipment.client_login && (
                 <div className="flex items-center gap-3">
                   <Phone className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-                  <span className={label}>Email:</span>
-                  <span className={value}>{shipment.client_email}</span>
+                  <span className={label}>Login:</span>
+                  <span className={value}>{shipment.client_login}</span>
                 </div>
               )}
             </div>

@@ -7,13 +7,13 @@ import { useLanguage } from '../contexts/LanguageContext';
 export function Login() {
   const { login } = useAuth();
   const { t } = useLanguage();
-  const [email, setEmail] = useState('');
+  const [login, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showRegister, setShowRegister] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password);
+    await login(login, password);
 
     // Check for redirect param and navigate if present
     const params = new URLSearchParams(window.location.search);
@@ -44,14 +44,14 @@ export function Login() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                Login
               </label>
               <input
-                type="email"
-                value={email}
+                type="login"
+                value={login}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="your@email.com"
+                placeholder="your@login.com"
                 required
               />
             </div>

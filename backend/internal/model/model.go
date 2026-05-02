@@ -77,7 +77,7 @@ const (
 type User struct {
 	ID             string        `json:"id"`
 	Name           string        `json:"name"`
-	Email          string        `json:"email"`
+	Login          string        `json:"login"`
 	PasswordHash   string        `json:"-"`
 	Role           Role          `json:"role"`
 	ClientSegment  ClientSegment `json:"client_segment,omitempty"`
@@ -122,7 +122,7 @@ type Shipment struct {
 	ShipmentNumber  string            `json:"shipment_number"`
 	ClientID        string            `json:"client_id"`
 	ClientName      string            `json:"client_name"`
-	ClientEmail     string            `json:"client_email"`
+	ClientLogin     string            `json:"client_login"`
 	FromStation     string            `json:"from_station"`
 	ToStation       string            `json:"to_station"`
 	CurrentStation  string            `json:"current_station"`

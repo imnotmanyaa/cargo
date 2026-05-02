@@ -147,7 +147,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                         <div>{t('arrivedFrom')} {arrival.from_station}</div>
                         <div>{t('arrivedAt')} {new Date(arrival.updated_at || Date.now()).toLocaleString()}</div>
                         <div>{t('weightColumn')}: {arrival.weight} кг</div>
-                        <div>{t('phone')} {arrival.receiver_phone || arrival.client_email}</div>
+                        <div>{t('phone')} {arrival.receiver_phone || arrival.client_login}</div>
                       </div>
                     </div>
                   </div>

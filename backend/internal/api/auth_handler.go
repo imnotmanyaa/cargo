@@ -21,7 +21,7 @@ func (s *Server) mountAuthRoutes(r chi.Router) {
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name     string  `json:"name"`
-		Email    string  `json:"email"`
+		Login    string  `json:"login"`
 		Password string  `json:"password"`
 		Role     string  `json:"role"`
 		Company  *string `json:"company"`
@@ -39,7 +39,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		req.Role = string(model.RoleIndividual) // Default to individual if invalid or attempted privilege escalation
 	}
 
-	user, token, err := s.services.Auth.Register(r.Context(), req.Name, req.Email, req.Password, model.Role(req.Role), req.Company, req.Phone)
+	user, token, err := s.services.Auth.Register(r.Context(), req.Name, req.Login, req.Password, model.Role(req.Role), req.Company, req.Phone)
 	if err != nil {
 		handleServiceError(w, err)
 		return
@@ -49,13 +49,13 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email    string `json:"email"`
+		Login    string `json:"login"`
 		Password string `json:"password"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	user, token, err := s.services.Auth.Login(r.Context(), req.Email, req.Password)
+	user, token, err := s.services.Auth.Login(r.Context(), req.Login, req.Password)
 	if err != nil {
 		handleServiceError(w, err)
 		return
@@ -65,13 +65,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCourierLogin(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email    string `json:"email"`
+		Login    string `json:"login"`
 		Password string `json:"password"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	user, token, err := s.services.Auth.Login(r.Context(), req.Email, req.Password)
+	user, token, err := s.services.Auth.Login(r.Context(), req.Login, req.Password)
 	if err != nil {
 		handleServiceError(w, err)
 		return

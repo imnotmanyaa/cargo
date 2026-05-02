@@ -6,7 +6,7 @@ type UserRole = 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 
 interface User {
   id: string;
   name: string;
-  email: string;
+  login: string;
   role: UserRole;
   company?: string;
   depositBalance?: number;
@@ -17,7 +17,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, loginType?: 'default' | 'courier') => Promise<void>;
+  login: (login: string, password: string, loginType?: 'default' | 'courier') => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   register: (data: RegisterData) => void;
@@ -26,7 +26,7 @@ interface AuthContextType {
 
 interface RegisterData {
   name: string;
-  email: string;
+  login: string;
   password: string;
   role: 'corporate' | 'individual';
   company?: string;
@@ -49,14 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
 
-  const login = async (email: string, password: string, loginType: 'default' | 'courier' = 'default') => {
+  const login = async (login: string, password: string, loginType: 'default' | 'courier' = 'default') => {
     try {
-      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedEmail = login.trim().toLowerCase();
       const endpoint = loginType === 'courier' ? '/api/auth/courier/login' : '/api/auth/login';
       const response = await fetch(withApiBase(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, password }),
+        body: JSON.stringify({ login: normalizedEmail, password }),
         cache: 'no-store',
       });
 
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const normalizedData = {
         ...data,
-        email: data.email.trim().toLowerCase(),
+        login: data.login.trim().toLowerCase(),
       };
       const response = await fetch(withApiBase('/api/auth/register'), {
         method: 'POST',

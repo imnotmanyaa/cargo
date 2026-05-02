@@ -40,7 +40,7 @@ func (s *Server) handleCreateCorporateClient(w http.ResponseWriter, r *http.Requ
 	}
 	var req struct {
 		Name     string  `json:"name"`
-		Email    string  `json:"email"`
+		Login    string  `json:"login"`
 		Password string  `json:"password"`
 		Company  string  `json:"company"`
 		BIN      string  `json:"bin"`
@@ -50,7 +50,7 @@ func (s *Server) handleCreateCorporateClient(w http.ResponseWriter, r *http.Requ
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	createdUser, err := s.services.Clients.CreateCorporateClient(r.Context(), req.Name, req.Email, req.Password, req.Company, req.BIN, req.Phone, req.Deposit)
+	createdUser, err := s.services.Clients.CreateCorporateClient(r.Context(), req.Name, req.Login, req.Password, req.Company, req.BIN, req.Phone, req.Deposit)
 	if err != nil {
 		handleServiceError(w, err)
 		return

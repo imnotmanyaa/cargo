@@ -45,7 +45,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ClientID        string  `json:"client_id"`
 		ClientName      string  `json:"client_name"`
-		ClientEmail     string  `json:"client_email"`
+		ClientLogin     string  `json:"client_login"`
 		FromStation     string  `json:"from_station"`
 		ToStation       string  `json:"to_station"`
 		DepartureDate   string  `json:"departure_date"`
@@ -91,7 +91,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 	shipment, err := s.services.Shipments.Create(r.Context(), service.CreateShipmentRequest{
 		ClientID:        req.ClientID,
 		ClientName:      req.ClientName,
-		ClientEmail:     req.ClientEmail,
+		ClientLogin:     req.ClientLogin,
 		FromStation:     req.FromStation,
 		ToStation:       req.ToStation,
 		DepartureDate:   departure,
@@ -455,7 +455,7 @@ func (s *Server) handleCorrectionRequest(w http.ResponseWriter, r *http.Request)
 	}
 	var req struct {
 		ClientName     *string  `json:"client_name"`
-		ClientEmail    *string  `json:"client_email"`
+		ClientLogin    *string  `json:"client_login"`
 		FromStation    *string  `json:"from_station"`
 		ToStation      *string  `json:"to_station"`
 		Weight         *string  `json:"weight"`
@@ -473,7 +473,7 @@ func (s *Server) handleCorrectionRequest(w http.ResponseWriter, r *http.Request)
 	}
 	shipment, err := s.services.Shipments.CorrectAfterPayment(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name, service.CorrectionRequest{
 		ClientName:     req.ClientName,
-		ClientEmail:    req.ClientEmail,
+		ClientLogin:    req.ClientLogin,
 		FromStation:    req.FromStation,
 		ToStation:      req.ToStation,
 		Weight:         req.Weight,

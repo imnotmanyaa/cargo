@@ -114,7 +114,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         body: JSON.stringify({
           client_id: shipmentData.clientType === 'legal' && shipmentData.corporateClientId ? shipmentData.corporateClientId : (shipmentData.clientId || user?.id || ''),
           client_name: shipmentData.clientName,
-          client_email: user?.email || '',
+          client_login: user?.login || '',
           from_station: shipmentData.fromStation,
           to_station: shipmentData.toStation,
           departure_date: new Date().toISOString(),

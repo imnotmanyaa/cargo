@@ -49,11 +49,11 @@ func (s *ClientService) CreateFrequentClient(ctx context.Context, provider, clie
 	return s.repo.CreateFrequentClient(ctx, item)
 }
 
-func (s *ClientService) CreateCorporateClient(ctx context.Context, name, email, password, company, contractNumber string, phone *string, deposit float64) (model.User, error) {
-	email = normalizeEmail(email)
-	_, err := s.repo.GetUserByEmail(ctx, email)
+func (s *ClientService) CreateCorporateClient(ctx context.Context, name, login, password, company, contractNumber string, phone *string, deposit float64) (model.User, error) {
+	login = normalizeLogin(login)
+	_, err := s.repo.GetUserByEmail(ctx, login)
 	if err == nil {
-		return model.User{}, ErrDuplicateEmail
+		return model.User{}, ErrDuplicateLogin
 	}
 	if !errors.Is(err, ErrNotFound) {
 		return model.User{}, err
@@ -65,7 +65,7 @@ func (s *ClientService) CreateCorporateClient(ctx context.Context, name, email, 
 	user := model.User{
 		ID:             uuid.NewString(),
 		Name:           name,
-		Email:          email,
+		Login:          login,
 		PasswordHash:   string(hash),
 		Role:           model.RoleCorporate,
 		ClientSegment:  model.ClientSegmentLegalEntity,

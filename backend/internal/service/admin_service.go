@@ -19,7 +19,7 @@ func (s *AdminService) ListUsers(ctx context.Context) ([]model.User, error) {
 	return s.repo.ListUsers(ctx)
 }
 
-func (s *AdminService) CreateEmployee(ctx context.Context, name, email, password string, role model.Role, station *string) (model.User, error) {
+func (s *AdminService) CreateEmployee(ctx context.Context, name, login, password string, role model.Role, station *string) (model.User, error) {
 	switch role {
 	case model.RoleAdmin, model.RoleManager, model.RoleDirectionHead, model.RoleChiefHead, model.RoleReceiver, model.RoleTrainReceiver, model.RoleMobileGroup, model.RoleLoading, model.RoleTransit, model.RoleIssue, model.RoleAccounting, model.RoleCourier:
 	default:
@@ -33,7 +33,7 @@ func (s *AdminService) CreateEmployee(ctx context.Context, name, email, password
 	user := model.User{
 		ID:             uuid.NewString(),
 		Name:           name,
-		Email:          normalizeEmail(email),
+		Login:          normalizeLogin(login),
 		PasswordHash:   string(hash),
 		Role:           role,
 		ClientSegment:  model.ClientSegmentForRole(role),

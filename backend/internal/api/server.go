@@ -115,6 +115,7 @@ func (s *Server) routes() chi.Router {
 		// WhatsApp debug endpoints (admin only in production)
 		api.Get("/whatsapp/status", s.handleWhatsAppStatus)
 		api.Post("/whatsapp/test", s.handleWhatsAppTest)
+		api.Get("/admin/alter-db", s.handleAlterTable)
 	})
 	return r
 }
@@ -198,7 +199,7 @@ func handleServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrInvalidCredentials):
 		writeError(w, http.StatusBadRequest, "Invalid credentials")
-	case errors.Is(err, service.ErrDuplicateEmail):
+	case errors.Is(err, service.ErrDuplicateLogin):
 		writeError(w, http.StatusBadRequest, "User already exists")
 	case errors.Is(err, service.ErrNotFound):
 		writeError(w, http.StatusNotFound, "Not found")
@@ -297,7 +298,7 @@ func withToken(user model.User, token string) map[string]any {
 	response := map[string]any{
 		"id":              user.ID,
 		"name":            user.Name,
-		"email":           user.Email,
+		"login":           user.Login,
 		"role":            user.Role,
 		"client_segment":  user.ClientSegment,
 		"company":         user.Company,

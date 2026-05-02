@@ -10,7 +10,7 @@ interface Shipment {
   id: string;
   shipment_number?: string;
   client_name?: string;
-  client_email?: string;
+  client_login?: string;
   from_station: string;
   to_station: string;
   status: string;
@@ -115,7 +115,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
             id: selectedShipment.id,
             shipment_number: selectedShipment.shipment_number,
             client: selectedShipment.client_name || user?.name || 'Клиент',
-            client_email: selectedShipment.client_email || user?.email,
+            client_login: selectedShipment.client_login || user?.login,
             from: selectedShipment.from_station,
             to: selectedShipment.to_station,
             status: prettyStatus(selectedShipment),

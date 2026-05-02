@@ -15,7 +15,7 @@ var (
 	ErrUnauthorized       = errors.New("unauthorized")
 	ErrForbidden          = errors.New("forbidden")
 	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrDuplicateEmail     = errors.New("email already exists")
+	ErrDuplicateLogin     = errors.New("login already exists")
 	ErrNotFound           = errors.New("not found")
 	ErrStationMismatch    = errors.New("station mismatch")
 	ErrInvalidTransition  = errors.New("invalid status transition")
@@ -73,7 +73,7 @@ type ShipmentService struct{ repo Repository }
 
 type AuthenticatedUser struct {
 	ID      string
-	Email   string
+	Login   string
 	Role    model.Role
 	Name    string
 	Station string
@@ -105,8 +105,8 @@ func indexOf(items []string, target string) int {
 	return -1
 }
 
-func normalizeEmail(email string) string {
-	return strings.ToLower(strings.TrimSpace(email))
+func normalizeLogin(login string) string {
+	return strings.ToLower(strings.TrimSpace(login))
 }
 
 func ptr[T any](value T) *T {

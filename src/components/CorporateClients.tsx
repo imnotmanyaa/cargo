@@ -11,7 +11,7 @@ interface CorporateClient {
   contract_number: string; // BIN/Contract
   deposit_balance: number;
   phone: string;
-  email: string;
+  login: string;
   activeShipments?: number; // Not in DB yet, optional
 }
 
@@ -28,7 +28,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
     companyName: '',
     bin: '', // Will be saved as contract_number
     contactPerson: '', // Will be saved as name
-    email: '',
+    login: '',
     phone: '',
     password: '',
     deposit: ''
@@ -62,7 +62,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
       companyName: client.company || '',
       bin: client.contract_number || '',
       contactPerson: client.name || '',
-      email: client.email || '',
+      login: client.login || '',
       phone: client.phone || '',
       password: '', // Leave empty for edit
       deposit: client.deposit_balance ? client.deposit_balance.toString() : ''
@@ -107,7 +107,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
         },
         body: JSON.stringify({
           name: formData.contactPerson,
-          email: formData.email,
+          login: formData.login,
           ...(formData.password ? { password: formData.password } : {}), // only send if filled
           company: formData.companyName,
           bin: formData.bin,
@@ -123,7 +123,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
           companyName: '',
           bin: '',
           contactPerson: '',
-          email: '',
+          login: '',
           phone: '',
           password: '',
           deposit: ''
@@ -152,7 +152,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
         <button
           onClick={() => {
             setEditingClientId(null);
-            setFormData({ companyName: '', bin: '', contactPerson: '', email: '', phone: '', password: '', deposit: '' });
+            setFormData({ companyName: '', bin: '', contactPerson: '', login: '', phone: '', password: '', deposit: '' });
             setShowAddModal(true);
           }}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -224,7 +224,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
                         </div>
                         <div className="flex items-center gap-2">
                           <Mail className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-                          <span>{client.email}</span>
+                          <span>{client.login}</span>
                         </div>
                         <div className="flex items-center gap-2 col-span-2">
                           <span className="font-medium">{t('contactPerson')}</span>
@@ -311,14 +311,14 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Login</label>
                   <input
-                    type="email"
+                    type="login"
                     required
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    value={formData.login}
+                    onChange={e => setFormData({ ...formData, login: e.target.value })}
                     className={`w-full p-2 rounded border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                    placeholder="email@company.com"
+                    placeholder="login@company.com"
                   />
                 </div>
                 <div>

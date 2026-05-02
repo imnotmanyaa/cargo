@@ -88,10 +88,10 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
           </div>
         </div>
 
-        {/* Email */}
+        {/* Login */}
         <div>
           <label className={label}>{t('emailReceipt')}</label>
-          <input type="email" className={input} placeholder="example@mail.com" />
+          <input type="login" className={input} placeholder="example@mail.com" />
         </div>
 
         {/* Card */}
