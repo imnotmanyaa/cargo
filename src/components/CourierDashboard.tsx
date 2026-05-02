@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Package, MapPin, Phone, User, Weight, Navigation, CheckCircle2, Clock, Home, Building2, ArrowRight, Sun, Moon } from 'lucide-react';
+import { Package, MapPin, Phone, User, Weight, Navigation, CheckCircle2, Clock, Home, Building2, ArrowRight, Sun, Moon, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DeliveryTask {
@@ -33,7 +33,7 @@ interface DeliveryTask {
 
 export function CourierDashboard() {
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   
   const [selectedTask, setSelectedTask] = useState<DeliveryTask | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -368,6 +368,9 @@ export function CourierDashboard() {
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
                   {theme === 'light' ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-yellow-400" />}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={logout} title="Выйти">
+                  <LogOut className="w-5 h-5 text-gray-500" />
                 </Button>
                 <Badge className="bg-green-100 text-green-800 shrink-0">Активен</Badge>
               </div>
