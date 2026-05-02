@@ -39,15 +39,15 @@ func main() {
 
 	ctx := context.Background()
 	name := "Test Courier"
-	email := "courier@cargo.kz"
+	login := "courier@cargo.kz"
 	password := "courier123"
 	role := model.RoleCourier
 
-	user, _, err := services.Auth.Register(ctx, name, email, password, role, nil, nil)
+	user, _, err := services.Auth.Register(ctx, name, login, password, role, nil, nil)
 	if err != nil {
 		// If already exists, just print it
 		fmt.Printf("Note: %v\n", err)
 	} else {
-		fmt.Printf("Successfully created courier: %s (%s)\n", user.Name, user.Email)
+		fmt.Printf("Successfully created courier: %s (%s)\n", user.Name, user.Login)
 	}
 }
