@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"net/url"
 	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -51,6 +52,8 @@ func Init(dbURL string) {
 				if evt.Event == "code" {
 					fmt.Println("\n\n=======================================================")
 					fmt.Println("СКАНИРУЙТЕ ЭТОТ QR КОД ЧЕРЕЗ WHATSAPP НА ВАШЕМ ТЕЛЕФОНЕ")
+					fmt.Println("Если код ниже не читается, просто откройте эту ссылку в браузере:")
+					fmt.Printf("https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=%s\n", url.QueryEscape(evt.Code))
 					fmt.Println("=======================================================")
 					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
 				} else {
