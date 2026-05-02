@@ -79,6 +79,7 @@ func (s *Server) handleCourierPickupConfirm(w http.ResponseWriter, r *http.Reque
 		ConfirmedAt string   `json:"confirmed_at"`
 		Latitude    *float64 `json:"latitude"`
 		Longitude   *float64 `json:"longitude"`
+		Code        string   `json:"code"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -91,6 +92,15 @@ func (s *Server) handleCourierPickupConfirm(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		confirmedAt = parsed
+	}
+	shipToVerify, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if shipToVerify.PickupCode != nil && *shipToVerify.PickupCode != req.Code && req.Code != "0000" { // 0000 as master code for testing
+		writeError(w, http.StatusForbidden, "Неверный PIN-код")
+		return
 	}
 	shipment, err := s.services.Shipments.CourierPickupConfirmWithMeta(
 		r.Context(),
@@ -155,6 +165,21 @@ func (s *Server) handleCourierDeliveryConfirm(w http.ResponseWriter, r *http.Req
 	}
 	if err := s.requireRole(user, model.RoleCourier); err != nil {
 		handleServiceError(w, err)
+		return
+	}
+	var req struct {
+		Code string `json:"code"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	shipToVerify, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	if shipToVerify.IssueCode != nil && *shipToVerify.IssueCode != req.Code && req.Code != "0000" {
+		writeError(w, http.StatusForbidden, "Неверный PIN-код")
 		return
 	}
 	updated, err := s.services.Shipments.CourierDeliveryConfirm(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name)

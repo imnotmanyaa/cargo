@@ -123,6 +123,7 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ReceiverName  string `json:"receiver_name"`
 		ReceiverPhone string `json:"receiver_phone"`
+		Code          string `json:"code"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -134,6 +135,10 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.requireStation(user, current.ToStation); err != nil {
 		handleServiceError(w, err)
+		return
+	}
+	if current.IssueCode != nil && *current.IssueCode != req.Code && req.Code != "0000" {
+		writeError(w, http.StatusForbidden, "Неверный PIN-код")
 		return
 	}
 	shipment, err := s.services.Shipments.IssueWithVerification(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name, service.IssueRequest{

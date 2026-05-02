@@ -324,7 +324,7 @@ func (r *Repository) CreateShipment(ctx context.Context, shipment model.Shipment
 			$26,$27,$28,$29,
 			$30,$31,$32,$33,$34,$35
 		)
-	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.CreatedAt, shipment.UpdatedAt)
+	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.CreatedAt, shipment.UpdatedAt)
 	return shipment, err
 }
 
@@ -424,11 +424,13 @@ func (r *Repository) UpdateShipment(ctx context.Context, shipment model.Shipment
 			door_to_door_phone = $30,
 			payment_required = $31,
 			extra_charge = $32,
-			last_updated_at = $33,
-			created_by = $34,
+			pickup_code = $33,
+			issue_code = $34,
+			last_updated_at = $37,
+			created_by = $36,
 			updated_at = $35
 		WHERE id = $1
-	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.CourierID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.UpdatedAt)
+	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientEmail, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.CourierID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.UpdatedAt)
 	return shipment, err
 }
 
@@ -674,7 +676,7 @@ func (r *Repository) ListAuditLogsByUser(ctx context.Context, userID string) ([]
 func (r *Repository) GetDashboardReport(ctx context.Context) (model.DashboardReport, error) {
 	var report model.DashboardReport
 	start := startOfMonth()
-	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM shipments WHERE created_at >= $1`, start).Scan(&report.MonthlyShipments); err != nil {
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) , pickup_code, issue_code FROM shipments WHERE created_at >= $1`, start).Scan(&report.MonthlyShipments); err != nil {
 		return report, err
 	}
 	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM shipments WHERE created_at >= $1 AND shipment_status IN ('ISSUED','CLOSED')`, start).Scan(&report.CompletedShipments); err != nil {
@@ -781,7 +783,7 @@ func (r *Repository) GetStatusSummary(ctx context.Context) ([]model.StatusSummar
 }
 
 const userSelect = `SELECT id, name, email, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
-const shipmentSelect = `SELECT id, shipment_number, client_id, client_name, client_email, from_station, to_station, current_station, next_station, route, status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, tracking_code, qr_code_id, transport_unit_id, COALESCE(courier_id, '') as courier_id, is_door_to_door, pickup_address, delivery_address, door_to_door_phone, payment_required, extra_charge, last_updated_at, created_by, created_at, updated_at FROM shipments`
+const shipmentSelect = `SELECT id, shipment_number, client_id, client_name, client_email, from_station, to_station, current_station, next_station, route, status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, tracking_code, qr_code_id, transport_unit_id, COALESCE(courier_id, '') as courier_id, is_door_to_door, pickup_address, delivery_address, door_to_door_phone, payment_required, extra_charge, pickup_code, issue_code, last_updated_at, created_by, created_at, updated_at FROM shipments`
 
 func scanUser(row pgx.Row) (model.User, error) {
 	var user model.User
@@ -808,7 +810,7 @@ func scanShipment(row pgx.Row) (model.Shipment, error) {
 	var shipment model.Shipment
 	var routeRaw []byte
 	var courierID string
-	err := row.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientEmail, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt)
+	err := row.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientEmail, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.Shipment{}, service.ErrNotFound
 	}
@@ -828,7 +830,7 @@ func collectShipments(rows pgx.Rows) ([]model.Shipment, error) {
 		var shipment model.Shipment
 		var routeRaw []byte
 		var courierID string
-		if err := rows.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientEmail, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt); err != nil {
+		if err := rows.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientEmail, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if courierID != "" {

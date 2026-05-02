@@ -129,17 +129,19 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
         {(isLegal || isManagerFlow) && (
           <div className={`rounded-lg border p-4 ${isDark ? 'border-gray-600 bg-gray-700/30' : 'border-gray-200'}`}>
             <div className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Способ оплаты</div>
-            <div className={`grid grid-cols-1 ${isLegal ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2`}>
-              <button
-                type="button"
-                onClick={() => onUpdate({ paymentMethod: 'cash' })}
-                className={`px-4 py-2 rounded-lg border text-sm ${paymentMethod === 'cash'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
-                }`}
-              >
-                Наличные
-              </button>
+            <div className={`grid grid-cols-1 ${(!isManagerFlow && isLegal) ? 'sm:grid-cols-2' : (isLegal ? 'sm:grid-cols-3' : 'sm:grid-cols-2')} gap-2`}>
+              {isManagerFlow && (
+                <button
+                  type="button"
+                  onClick={() => onUpdate({ paymentMethod: 'cash' })}
+                  className={`px-4 py-2 rounded-lg border text-sm ${paymentMethod === 'cash'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Наличные
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onUpdate({ paymentMethod: 'card' })}

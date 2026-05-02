@@ -17,6 +17,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
   });
   const [receiverName, setReceiverName] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
+  const [pinCode, setPinCode] = useState('');
 
   const fetchArrivals = async () => {
     if (!user?.station) return;
@@ -89,14 +90,15 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
     setIssueModal({ isOpen: true, shipmentId: id, error: null });
     setReceiverName('');
     setReceiverPhone('');
+    setPinCode('');
   };
 
   const handleIssueSubmit = async () => {
     const { shipmentId } = issueModal;
     if (!shipmentId) return;
 
-    if (!receiverName.trim() || !receiverPhone.trim()) {
-      setIssueModal(prev => ({ ...prev, error: "Укажите имя и телефон" }));
+    if (!receiverName.trim() || !receiverPhone.trim() || !pinCode.trim()) {
+      setIssueModal(prev => ({ ...prev, error: "Укажите имя, телефон и PIN-код" }));
       return;
     }
 
@@ -110,7 +112,8 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
         },
         body: JSON.stringify({
           receiver_name: receiverName.trim(),
-          receiver_phone: receiverPhone.trim()
+          receiver_phone: receiverPhone.trim(),
+          code: pinCode.trim()
         })
       });
 
@@ -270,6 +273,20 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                   onChange={e => setReceiverPhone(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                   placeholder="+7 (___) ___-__-__"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                  PIN-код из SMS (обязательно)
+                </label>
+                <input
+                  type="text"
+                  value={pinCode}
+                  onChange={e => setPinCode(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg tracking-widest font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                  placeholder="0000"
+                  maxLength={4}
                 />
               </div>
             </div>

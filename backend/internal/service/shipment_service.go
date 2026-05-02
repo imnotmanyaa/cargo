@@ -73,7 +73,11 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		nextStation = &route[1]
 	}
 	number := "SH-" + fmt.Sprintf("%06d", now.UnixNano()%1000000)
+	pickupCode := fmt.Sprintf("%04d", rand.Intn(10000))
+	issueCode := fmt.Sprintf("%04d", rand.Intn(10000))
 	shipment := model.Shipment{
+		PickupCode: &pickupCode,
+		IssueCode: &issueCode,
 		ID:              uuid.NewString(),
 		ShipmentNumber:  number,
 		ClientID:        req.ClientID,
@@ -313,6 +317,10 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 		if err != nil {
 			return model.Shipment{}, nil, err
 		}
+	}
+
+		if shipment.IssueCode != nil && shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
+		go whatsapp.SendMessage(*shipment.ReceiverPhone, "Груз "+shipment.ShipmentNumber+" прибыл. Ваш PIN-код для получения: "+*shipment.IssueCode)
 	}
 
 	return shipment, &notification, nil
@@ -693,7 +701,11 @@ func (s *ShipmentService) CourierTakeTask(ctx context.Context, id string, operat
 		// If already assigned (e.g. PAID), keep as pickup assigned by force through history only
 		return s.transition(ctx, id, shipment.ShipmentStatus, operatorID, operatorName, nil, "Courier took task", nil)
 	}
-	return s.transition(ctx, id, nextStatus, operatorID, operatorName, nil, "Courier took task", nil)
+	res, err := s.transition(ctx, id, nextStatus, operatorID, operatorName, nil, "Courier took task", nil)
+	if err == nil && res.PickupCode != nil && res.DoorToDoorPhone != nil && *res.DoorToDoorPhone != "" {
+		go whatsapp.SendMessage(*res.DoorToDoorPhone, "К вам выехал курьер за грузом "+res.ShipmentNumber+". Ваш PIN-код для передачи груза: "+*res.PickupCode)
+	}
+	return res, err
 }
 
 func (s *ShipmentService) CourierDeliveryConfirm(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
