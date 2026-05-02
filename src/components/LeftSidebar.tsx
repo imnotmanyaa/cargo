@@ -1,4 +1,4 @@
-import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon, Activity, CreditCard, Users, Home } from 'lucide-react';
+import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon, Activity, CreditCard, Users, Home, Archive } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LeftSidebarProps {
@@ -38,6 +38,7 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
     ? [
         { id: 'payments', label: t('paymentLog'), icon: CreditCard },
         { id: 'audit', label: t('auditLog'), icon: Activity },
+        { id: 'archive', label: 'Архив', icon: Archive },
         { id: 'frequent-clients', label: t('sidebarFrequentClients') || 'Быстрые клиенты', icon: Users },
         { id: 'settings', label: t('settings'), icon: SettingsIcon },
         { id: 'corporate', label: t('corporate'), icon: Building2 },
@@ -46,6 +47,7 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
         ...(userRole === 'admin' ? [
           { id: 'audit', label: t('auditLog'), icon: Activity },
           { id: 'payments', label: t('paymentLog'), icon: CreditCard },
+          { id: 'archive', label: 'Архив', icon: Archive },
           { id: 'frequent-clients', label: t('sidebarFrequentClients') || 'Быстрые клиенты', icon: Users },
         ] : []),
         { id: 'settings', label: t('settings'), icon: SettingsIcon },

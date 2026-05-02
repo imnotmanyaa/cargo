@@ -29,6 +29,7 @@ import { QrLogin } from './components/QrLogin';
 import DoorToDoorShipments from './components/DoorToDoorShipments';
 import { CourierLogin } from './components/CourierLogin';
 import { CourierDashboard } from './components/CourierDashboard';
+import { ShipmentArchive } from './components/ShipmentArchive';
 
 import { ZebraTerminal } from './components/ZebraTerminal';
 import { LeaderOverview } from './components/LeaderOverview';
@@ -47,8 +48,8 @@ function AppContent() {
 
   const [currentPage, setCurrentPage] = useState(() => {
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
-      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate', 'archive'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients', 'archive'],
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
     };
@@ -84,8 +85,8 @@ function AppContent() {
   useEffect(() => {
     if (!user?.role) return;
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate'],
-      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate', 'archive'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients', 'archive'],
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
       receiver: ['receiver'],
@@ -347,6 +348,8 @@ function AppContent() {
         return <PaymentLog theme={theme} />;
       case 'frequent-clients':
         return <FrequentClients theme={theme} />;
+      case 'archive':
+        return <ShipmentArchive theme={theme} />;
       case 'door-to-door':
         return <DoorToDoorShipments theme={theme} />;
       default:

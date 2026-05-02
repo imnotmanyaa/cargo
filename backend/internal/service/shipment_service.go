@@ -745,11 +745,10 @@ func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) 
 			}
 		}
 
-		// "Доставить": to_station = station + statuses (READY_FOR_ISSUE, ISSUED, etc)
-		// Or if courier is assigned, they might need to see it.
+		// "Доставить": to_station = station + statuses
 		if sh.ToStation == station {
 			switch sh.ShipmentStatus {
-			case model.ShipmentReadyForIssue, model.ShipmentIssued: // ISSUED might be needed if they want to see completed
+			case model.ShipmentArrived, model.ShipmentReadyForIssue, model.ShipmentIssued:
 				out = append(out, sh)
 			}
 		}

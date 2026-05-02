@@ -40,8 +40,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
   // Modal Issue
   const [issueModal, setIssueModal] = useState<{ isOpen: boolean; shipmentId: string | null; error: string | null }>({ isOpen: false, shipmentId: null, error: null });
-  const [receiverName, setReceiverName] = useState('');
-  const [receiverPhone, setReceiverPhone] = useState('');
+  const [issuePin, setIssuePin] = useState('');
   const [processing, setProcessing] = useState(false);
   const [scanInput, setScanInput] = useState('');
 
@@ -220,7 +219,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
   const handleIssueClick = (shipmentId: string) => {
     setIssueModal({ isOpen: true, shipmentId, error: null });
-    setReceiverName(''); setReceiverPhone('');
+    setIssuePin('');
   };
 
   const handleNotifyArrival = async (shipmentId: string, e: React.MouseEvent) => {
@@ -267,8 +266,8 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const handleIssueSubmit = async () => {
     const { shipmentId } = issueModal;
     if (!shipmentId) return;
-    if (!receiverName.trim() || !receiverPhone.trim()) {
-      setIssueModal(prev => ({ ...prev, error: t('errorProvideNamePhone') || "Укажите имя и телефон" }));
+    if (!issuePin.trim() || issuePin.trim().length !== 4) {
+      setIssueModal(prev => ({ ...prev, error: 'Укажите 4-значный PIN-код' }));
       return;
     }
     setProcessing(true);
@@ -277,7 +276,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       const res = await fetch(withApiBase(`/api/shipments/${shipmentId}/issue`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ receiver_name: receiverName.trim(), receiver_phone: receiverPhone.trim() })
+        body: JSON.stringify({ code: issuePin.trim() })
       });
       if (res.ok) {
         setIssueModal({ isOpen: false, shipmentId: null, error: null });
@@ -285,15 +284,13 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       } else {
         const err = await res.json();
         if (res.status === 402) {
-          setIssueModal(prev => ({ ...prev, error: (t('errorSurchargeNeeded') || "Сначала необходимо получить доплату") + ` ${err.error?.match(/\d+/)?.[0] || ""} тг` }));
-        } else if (res.status === 403) {
-          setIssueModal(prev => ({ ...prev, error: t('errorReceiverMismatch') || "Данные получателя не совпадают. Укажите правильное имя и телефон." }));
+          setIssueModal(prev => ({ ...prev, error: (t('errorSurchargeNeeded') || 'Сначала необходимо получить доплату') + ` ${err.error?.match(/\d+/)?.[0] || ''} тг` }));
         } else {
-          setIssueModal(prev => ({ ...prev, error: err.error || t('errorIssue') || 'Ошибка выдачи' }));
+          setIssueModal(prev => ({ ...prev, error: err.error || 'Ошибка выдачи' }));
         }
       }
-    } catch (err) {
-      setIssueModal(prev => ({ ...prev, error: t('errorNetwork') || 'Ошибка сети' }));
+    } catch {
+      setIssueModal(prev => ({ ...prev, error: 'Ошибка сети' }));
     } finally {
       setProcessing(false);
     }
@@ -497,11 +494,26 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                   </div>
                   <div className="text-xs text-gray-500 mb-3">{s.from_station} → {s.to_station} ({s.quantity_places} {t('pcs')}, {s.weight} {t('kg')})</div>
                   
-                  <div className="flex gap-2 mt-4">
+                  {/* Status for D2D arrival — show courier progress */}
+                  {s.is_door_to_door && (() => {
+                    const st = s.shipment_status;
+                    if (st === 'ARRIVED') return (
+                      <div className={`text-xs mb-2 px-2 py-1 rounded-lg ${isDark ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-50 text-yellow-700'}`}>
+                        ⏳ Ожидает назначения курьера для доставки
+                      </div>
+                    );
+                    if (st === 'READY_FOR_ISSUE') return (
+                      <div className={`text-xs mb-2 px-2 py-1 rounded-lg ${isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
+                        🚴 Курьер едет к получателю
+                      </div>
+                    );
+                    return null;
+                  })()}
+
+                  <div className="flex gap-2 mt-2">
                     <button
                       onClick={(e) => handleNotifyArrival(s.id, e)}
                       className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
-                      title="Уведомить по WhatsApp"
                     >
                       📱 {t('notifyArrival') || 'Уведомить'}
                     </button>
@@ -511,20 +523,22 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                     >
                       <Phone className="w-4 h-4" /> {t('call')}
                     </button>
-                    {s.payment_required ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleClearPayment(s.id); }}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white transition-colors"
-                      >
-                        {t('paySurcharge') || 'Оплатить доплату'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleIssueClick(s.id); }}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                      >
-                        {t('issue') || 'Выдать'}
-                      </button>
+                    {!s.is_door_to_door && (
+                      s.payment_required ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleClearPayment(s.id); }}
+                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                        >
+                          {t('paySurcharge') || 'Оплатить доплату'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleIssueClick(s.id); }}
+                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                        >
+                          {t('issue') || 'Выдать'}
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
@@ -570,24 +584,21 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                   {issueModal.error}
                 </div>
               )}
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                Укажите 4-значный PIN-код, который был отправлен получателю.
+              </p>
               <div>
-                <label className="block text-sm font-medium mb-1">{t('receiverNameLabel')}</label>
+                <label className="block text-sm font-medium mb-1">PIN-код</label>
                 <input
                   type="text"
-                  value={receiverName}
-                  onChange={e => setReceiverName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                  placeholder={t('fullNamePlaceholder')}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">{t('receiverPhoneLabel')}</label>
-                <input
-                  type="text"
-                  value={receiverPhone}
-                  onChange={e => setReceiverPhone(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                  placeholder={t('phonePlaceholderPattern')}
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={issuePin}
+                  onChange={e => setIssuePin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  onKeyDown={e => { if (e.key === 'Enter' && issuePin.length === 4) handleIssueSubmit(); }}
+                  autoFocus
+                  className={`w-full px-4 py-3 border rounded-lg text-center text-2xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  placeholder="_ _ _ _"
                 />
               </div>
             </div>

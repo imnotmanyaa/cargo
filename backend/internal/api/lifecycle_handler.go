@@ -121,11 +121,13 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		ReceiverName  string `json:"receiver_name"`
-		ReceiverPhone string `json:"receiver_phone"`
-		Code          string `json:"code"`
+		Code string `json:"code"`
 	}
 	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if req.Code == "" {
+		writeError(w, http.StatusBadRequest, "Укажите 4-значный PIN-код для выдачи")
 		return
 	}
 	current, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
@@ -141,17 +143,10 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "Неверный PIN-код")
 		return
 	}
-	shipment, err := s.services.Shipments.IssueWithVerification(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name, service.IssueRequest{
-		ReceiverName:  req.ReceiverName,
-		ReceiverPhone: req.ReceiverPhone,
-	})
+	shipment, err := s.services.Shipments.IssueWithVerification(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name, service.IssueRequest{})
 	if err != nil {
 		if errors.Is(err, service.ErrPaymentRequired) {
 			writeError(w, http.StatusPaymentRequired, fmt.Sprintf("Выдача заблокирована: требуется доплата %.0f тг", current.ExtraCharge))
-			return
-		}
-		if errors.Is(err, service.ErrForbidden) {
-			writeError(w, http.StatusForbidden, "Данные получателя не совпадают. Укажите правильное имя и телефон.")
 			return
 		}
 		handleServiceError(w, err)
