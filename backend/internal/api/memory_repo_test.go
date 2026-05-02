@@ -136,6 +136,10 @@ func (m *memoryRepo) ListCorporateClients(_ context.Context) ([]model.User, erro
 	return users, nil
 }
 
+func (m *memoryRepo) UpdateFrequentClient(_ context.Context, id, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error) {
+	return model.FrequentClient{}, nil
+}
+
 func (m *memoryRepo) TopUpDeposit(_ context.Context, userID string, amount float64) (float64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

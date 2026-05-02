@@ -1,8 +1,7 @@
 import { withApiBase } from '../lib/api-base';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useLanguage } from '../contexts/LanguageContext';
-import { Archive, Search, Download, Calendar, MapPin, RefreshCw, Filter, FileText, Truck } from 'lucide-react';
+import { Archive, Search, Download, Calendar, MapPin, RefreshCw, Filter, Truck } from 'lucide-react';
 import { ActiveShipmentDetails } from './ActiveShipmentDetails';
 
 interface ArchivedShipment {
@@ -28,7 +27,6 @@ interface Props { theme?: 'light' | 'dark' }
 
 export function ShipmentArchive({ theme = 'light' }: Props) {
   const isDark = theme === 'dark';
-  const { t } = useLanguage();
   const { user } = useAuth();
 
   const [shipments, setShipments] = useState<ArchivedShipment[]>([]);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, Truck, MapPin, Clock, Home, Phone, CheckCircle, AlertTriangle, Scan, RefreshCw } from 'lucide-react';
+import { Package, MapPin, Clock, Phone, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { withApiBase } from '../lib/api-base';
@@ -32,7 +32,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'door' | 'waiting' | 'active' | 'arrival'>('door');
+  const [activeTab, setActiveTab] = useState<'door' | 'waiting' | 'active' | 'transit' | 'arrival'>('door');
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'cost_desc' | 'cost_asc'>('date_desc');
