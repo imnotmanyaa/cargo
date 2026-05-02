@@ -12,6 +12,7 @@ interface Shipment {
   pickup_address?: string;
   delivery_address?: string;
   door_to_door_phone?: string;
+  receiver_phone?: string;
   shipment_status: string;
   status: string;
   created_at: string;
@@ -220,6 +221,25 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const handleIssueClick = (shipmentId: string) => {
     setIssueModal({ isOpen: true, shipmentId, error: null });
     setReceiverName(''); setReceiverPhone('');
+  };
+
+  const handleNotifyArrival = async (shipmentId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(withApiBase(`/api/shipments/${shipmentId}/notify-arrival`), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) {
+        alert('✅ ' + (body.message || 'Уведомление отправлено'));
+      } else {
+        alert('❌ ' + (body.error || 'Ошибка отправки'));
+      }
+    } catch {
+      alert('Ошибка сети');
+    }
   };
 
   const handleClearPayment = async (shipmentId: string) => {
@@ -479,8 +499,15 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                   
                   <div className="flex gap-2 mt-4">
                     <button
+                      onClick={(e) => handleNotifyArrival(s.id, e)}
+                      className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
+                      title="Уведомить по WhatsApp"
+                    >
+                      📱 {t('notifyArrival') || 'Уведомить'}
+                    </button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${s.door_to_door_phone || s.receiver_phone || ''}`; }}
-                      className={`flex items-center justify-center gap-1 flex-1 py-2 rounded-lg text-sm font-medium border ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-750' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                      className={`flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-sm font-medium border ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-750' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                     >
                       <Phone className="w-4 h-4" /> {t('call')}
                     </button>

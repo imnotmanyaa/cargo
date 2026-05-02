@@ -1,10 +1,12 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"cargo/backend/internal/model"
+	"cargo/backend/internal/whatsapp"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -13,6 +15,7 @@ func (s *Server) mountArrivalRoutes(r chi.Router) {
 	r.Get("/arrivals/pending", s.handlePendingArrivals)
 	r.Post("/shipments/{id}/arrive", s.handleArriveShipment)
 	r.Post("/shipments/{id}/ready-for-issue", s.handleReadyForIssue)
+	r.Post("/shipments/{id}/notify-arrival", s.handleNotifyArrival)
 }
 
 func (s *Server) handlePendingArrivals(w http.ResponseWriter, r *http.Request) {
@@ -96,4 +99,48 @@ func (s *Server) handleReadyForIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, shipment)
+}
+
+// handleNotifyArrival sends a WhatsApp message to the receiver that the shipment has arrived.
+func (s *Server) handleNotifyArrival(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin, model.RoleReceiver); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	shipment, err := s.services.Shipments.Get(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	// Determine receiver phone: prefer ReceiverPhone, then DoorToDoorPhone
+	phone := ""
+	if shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
+		phone = *shipment.ReceiverPhone
+	} else if shipment.DoorToDoorPhone != nil && *shipment.DoorToDoorPhone != "" {
+		phone = *shipment.DoorToDoorPhone
+	}
+
+	if phone == "" {
+		writeError(w, http.StatusUnprocessableEntity, "Номер телефона получателя не указан для данной посылки")
+		return
+	}
+
+	msg := fmt.Sprintf("✅ Ваша посылка %s прибыла в %s.\n\nПриходите за грузом в офис с паспортом или удостоверением личности.\nОтправитель: %s",
+		shipment.ShipmentNumber, shipment.ToStation, shipment.ClientName)
+
+	if err := whatsapp.SendMessage(phone, msg); err != nil {
+		writeError(w, http.StatusBadGateway, "Ошибка WhatsApp: "+err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"message": "Уведомление отправлено на " + phone,
+	})
+	_ = time.Now()
 }
