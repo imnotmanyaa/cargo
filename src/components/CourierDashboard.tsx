@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 interface DeliveryTask {
   id: string;
   type: 'pickup' | 'delivery';
-  status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled';
+  status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled' | 'delivery_assigned';
   parcelCode: string;
   clientName: string;
   clientPhone: string;
@@ -29,6 +29,8 @@ interface DeliveryTask {
   declaredValue?: number;
   rawStatus: string;
   operatorId?: string;
+  receiverName?: string;
+  receiverPhone?: string;
 }
 
 export function CourierDashboard() {
@@ -66,7 +68,8 @@ export function CourierDashboard() {
       'PICKED_UP': 'Груз забран',
       'AT_STATION_INTAKE': 'Сдано на склад — Завершено',
       'READY_FOR_LOADING': 'На складе',
-      'READY_FOR_ISSUE': 'Готово к выдаче',
+      'READY_FOR_ISSUE': 'Готово к доставке',
+      'DELIVERY_ASSIGNED': 'Заберите из отделения',
       'ISSUED': 'Доставлено',
       'LOADED': 'В вагоне',
       'IN_TRANSIT': 'В пути',
@@ -89,7 +92,7 @@ export function CourierDashboard() {
       
       const mapped = (data || []).map((sh: any) => {
         let type: 'pickup' | 'delivery' = 'pickup';
-        let status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled' = 'pending';
+        let status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled' | 'delivery_assigned' = 'pending';
         
         // Determine type based on station matching
         if (sh.to_station === user?.station) {
@@ -120,9 +123,13 @@ export function CourierDashboard() {
             status = opId && opId !== myId ? 'cancelled' : 'pending';
           }
         } else {
-          // delivery type
+          // delivery type — полный цикл door-to-door
           if (rawSt === 'READY_FOR_ISSUE') {
-            status = opId === myId || !opId ? 'in_progress' : 'cancelled';
+            // Задача доступна для взятия (или уже взята мной)
+            status = opId && opId !== myId ? 'cancelled' : 'pending';
+          } else if (rawSt === 'DELIVERY_ASSIGNED') {
+            // Курьер взял задачу, должен забрать из отделения
+            status = opId === myId || !opId ? 'delivery_assigned' : 'cancelled';
           } else if (rawSt === 'ISSUED') {
             status = 'completed';
           } else {
@@ -137,7 +144,9 @@ export function CourierDashboard() {
           operatorId: sh.operator_id,
           parcelCode: sh.shipment_number,
           clientName: type === 'pickup' ? sh.client_name : (sh.receiver_name || sh.client_name),
-          clientPhone: sh.door_to_door_phone || sh.receiver_phone || '',
+          clientPhone: type === 'pickup' 
+            ? (sh.door_to_door_phone || sh.sender_phone || '') 
+            : (sh.receiver_phone || sh.door_to_door_phone || ''),
           address: type === 'pickup' ? sh.pickup_address : sh.delivery_address,
           fullAddress: type === 'pickup' ? sh.pickup_address : sh.delivery_address,
           weight: parseFloat(sh.weight) || 0,
@@ -146,7 +155,9 @@ export function CourierDashboard() {
           destination: `${sh.from_station || ''} -> ${sh.to_station || ''}`,
           scheduledTime: t('readyStatus'),
           declaredValue: sh.cost || 0,
-          rawStatus: sh.shipment_status
+          rawStatus: sh.shipment_status,
+          receiverName: sh.receiver_name || '',
+          receiverPhone: sh.receiver_phone || '',
         };
       });
       // Filter out tasks assigned to OTHER couriers
@@ -197,7 +208,7 @@ export function CourierDashboard() {
   }, [user?.id, user?.station]);
 
   const pendingTasks = tasks.filter(t => t.status === 'pending');
-  const myTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'picked_up');
+  const myTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'picked_up' || t.status === 'delivery_assigned');
 
 
   const handleTaskClick = (task: DeliveryTask) => {
@@ -208,9 +219,13 @@ export function CourierDashboard() {
   const handleStartTask = async () => {
     if (!selectedTask) return;
     try {
-      const endpoint = selectedTask.type === 'pickup' 
-        ? `/api/shipments/${selectedTask.id}/pickup-start`
-        : `/api/shipments/${selectedTask.id}/courier-take`;
+      let endpoint: string;
+      if (selectedTask.type === 'pickup') {
+        endpoint = `/api/shipments/${selectedTask.id}/pickup-start`;
+      } else {
+        // Доставка: берём задачу через новый endpoint
+        endpoint = `/api/shipments/${selectedTask.id}/courier-take-delivery`;
+      }
         
       const resp = await fetch(withApiBase(endpoint), {
         method: 'POST',
@@ -218,7 +233,9 @@ export function CourierDashboard() {
       });
       if (resp.ok) {
         await loadTasks();
-        toast.success('Задание успешно взято');
+        toast.success(selectedTask.type === 'delivery' 
+          ? 'Задание на доставку взято. Заберите посылку из отделения.' 
+          : 'Задание успешно взято');
         setShowDetailsDialog(false);
         setActiveTab('my_tasks');
       } else {
@@ -437,6 +454,7 @@ export function CourierDashboard() {
                 <span className="text-sm text-gray-500">{selectedTask.parcelCode}</span>
               </div>
               <div className="p-4 overflow-y-auto space-y-4">
+                {/* QR для приемосдатчика — при сдаче посылки на склад (забор) */}
                 {selectedTask.status === 'picked_up' && selectedTask.type === 'pickup' && (
                   <div className="bg-white p-6 rounded-xl flex flex-col items-center border shadow-sm dark:border-gray-600 dark:bg-gray-800">
                     <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Покажите этот QR приемосдатчику</p>
@@ -445,8 +463,18 @@ export function CourierDashboard() {
                     </div>
                   </div>
                 )}
+                {/* QR для приемосдатчика — при забирании посылки из отделения (доставка) */}
+                {selectedTask.status === 'delivery_assigned' && selectedTask.type === 'delivery' && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-xl flex flex-col items-center border border-amber-200 dark:border-amber-800 shadow-sm">
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">1. Идите в отделение</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">Покажите QR приемосдатчику для подтверждения</p>
+                    <div className="bg-white p-2 rounded-lg">
+                      <QRCodeSVG value={selectedTask.parcelCode || selectedTask.id} size={200} level="H" />
+                    </div>
+                  </div>
+                )}
                 <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 font-medium mb-2"><User className="w-4 h-4"/> Клиент</div>
+                  <div className="flex items-center gap-2 font-medium mb-2"><User className="w-4 h-4"/> {selectedTask.type === 'delivery' ? 'Получатель' : 'Клиент'}</div>
                   <div className="text-sm font-semibold">{selectedTask.clientName}</div>
                   <div className="text-sm text-gray-600 mt-1">{selectedTask.clientPhone}</div>
                   <Button className="mt-2 w-full" variant="outline" onClick={() => window.location.href = `tel:${selectedTask.clientPhone}`}>
@@ -454,7 +482,7 @@ export function CourierDashboard() {
                   </Button>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-750 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 font-medium mb-2"><MapPin className="w-4 h-4"/> Адрес</div>
+                  <div className="flex items-center gap-2 font-medium mb-2"><MapPin className="w-4 h-4"/> Адрес доставки</div>
                   <div className="text-sm">{selectedTask.fullAddress || t('addressNotSpecified')}</div>
                   <Button className="mt-2 w-full bg-blue-600 hover:bg-blue-700" onClick={() => window.open(`https://2gis.kz/search/${encodeURIComponent(selectedTask.fullAddress)}`, '_blank')}>
                     <Navigation className="w-4 h-4 mr-2" /> Открыть в 2ГИС
@@ -467,29 +495,35 @@ export function CourierDashboard() {
                   <div>{t('cargoDescription')}: {selectedTask.contents || 'Нет'}</div>
                 </div>
               </div>
-              <div className="p-4 border-t dark:border-gray-700 flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setShowDetailsDialog(false)}>{t('close')}</Button>
+              <div className="p-4 border-t dark:border-gray-700 flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowDetailsDialog(false)}>{t('close')}</Button>
                 
-                {selectedTask.status === 'pending' && (
-                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleStartTask}>
-                    Взять задание
-                  </Button>
-                )}
+                  {selectedTask.status === 'pending' && (
+                    <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleStartTask}>
+                      {selectedTask.type === 'delivery' ? 'Взять доставку' : 'Взять задание'}
+                    </Button>
+                  )}
 
-                {selectedTask.status === 'in_progress' && selectedTask.type === 'pickup' && (
-                  <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleCompleteTask}>
-                    Забрал у клиента
-                  </Button>
-                )}
+                  {selectedTask.status === 'in_progress' && selectedTask.type === 'pickup' && (
+                    <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleCompleteTask}>
+                      Забрал у клиента
+                    </Button>
+                  )}
 
-                {selectedTask.status === 'in_progress' && selectedTask.type === 'delivery' && (
-                  <Button 
-                    className="flex-1 bg-green-600 hover:bg-green-700" 
-                    onClick={handleCompleteTask}
-                    disabled={selectedTask.rawStatus !== 'READY_FOR_ISSUE'}
-                  >
-                    Доставил получателю
-                  </Button>
+                  {selectedTask.status === 'delivery_assigned' && selectedTask.type === 'delivery' && (
+                    <Button 
+                      className="flex-1 bg-green-600 hover:bg-green-700" 
+                      onClick={handleCompleteTask}
+                    >
+                      Доставил получателю
+                    </Button>
+                  )}
+                </div>
+                {selectedTask.status === 'delivery_assigned' && selectedTask.type === 'delivery' && (
+                  <p className="text-xs text-center text-amber-600 dark:text-amber-400">
+                    Покажите QR приемосдатчику → заберите посылку → доставьте получателю
+                  </p>
                 )}
               </div>
             </div>

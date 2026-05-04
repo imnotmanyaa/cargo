@@ -1,6 +1,6 @@
 import { withApiBase } from "../lib/api-base";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Wallet, Package, FileText, MapPin, Download, TrendingUp, Plus, X, CreditCard } from 'lucide-react';
@@ -54,18 +54,20 @@ export function CorporateDashboard({ theme = 'light', onCreateShipment }: Corpor
 
   const getStatusLabel = (s: string) => {
     const status = s.toUpperCase();
-    if (status === 'ARRIVED' || status === 'READY_FOR_ISSUE') return t('arrived');
-    if (status === 'IN_TRANSIT') return t('inTransit');
-    if (status === 'LOADED') return t('loaded');
-    return t('statusRegistered');
+    if (status === 'ARRIVED' || status === 'READY_FOR_ISSUE' || status === 'DELIVERY_ASSIGNED') return t('arrived');
+    if (status === 'ISSUED') return t('statusIssued');
+    return status;
   };
 
-  const getProgress = (s: string) => {
-    const status = s.toUpperCase();
-    if (status === 'ARRIVED' || status === 'READY_FOR_ISSUE' || status === 'ISSUED') return 100;
+  const getProgress = (status: string) => {
+    if (status === 'CREATED' || status === 'CREATED_DOOR') return 10;
+    if (status === 'PAYMENT_PENDING') return 20;
+    if (status === 'PAID') return 30;
+    if (status === 'PICKUP_ASSIGNED' || status === 'PICKED_UP' || status === 'AT_STATION_INTAKE') return 40;
+    if (status === 'READY_FOR_LOADING') return 50;
+    if (status === 'LOADED') return 60;
     if (status === 'IN_TRANSIT') return 75;
-    if (status === 'LOADED') return 50;
-    if (status === 'READY_FOR_LOADING' || status === 'AT_STATION_INTAKE') return 25;
+    if (status === 'ARRIVED' || status === 'READY_FOR_ISSUE' || status === 'DELIVERY_ASSIGNED' || status === 'ISSUED') return 100;
     return 10;
   };
 

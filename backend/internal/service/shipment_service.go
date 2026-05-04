@@ -381,7 +381,7 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	if shipment.ShipmentStatus != model.ShipmentReadyForIssue && shipment.ShipmentStatus != model.ShipmentArrived {
+	if shipment.ShipmentStatus != model.ShipmentReadyForIssue && shipment.ShipmentStatus != model.ShipmentArrived && shipment.ShipmentStatus != model.ShipmentDeliveryAssigned {
 		return model.Shipment{}, ErrInvalidTransition
 	}
 	if shipment.PaymentRequired {
@@ -667,23 +667,24 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 
 func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 	allowed := map[model.ShipmentLifecycle][]model.ShipmentLifecycle{
-		model.ShipmentDraft:           {model.ShipmentCreated},
-		model.ShipmentCreatedDoor:     {model.ShipmentPaymentPending, model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentCancelled},
-		model.ShipmentPickupAssigned:  {model.ShipmentPickedUp, model.ShipmentCancelled},
-		model.ShipmentPickedUp:        {model.ShipmentAtStationIntake, model.ShipmentReadyForLoading, model.ShipmentCancelled},
-		model.ShipmentAtStationIntake: {model.ShipmentReadyForLoading, model.ShipmentPaymentPending, model.ShipmentCancelled},
-		model.ShipmentCreated:         {model.ShipmentPaymentPending, model.ShipmentReadyForLoading, model.ShipmentCancelled},
-		model.ShipmentPaymentPending:  {model.ShipmentPaid, model.ShipmentCancelled},
-		model.ShipmentPaid:            {model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentOnHold},
-		model.ShipmentReadyForLoading: {model.ShipmentLoaded, model.ShipmentOnHold},
-		model.ShipmentLoaded:          {model.ShipmentInTransit, model.ShipmentArrived, model.ShipmentDamaged, model.ShipmentReadyForLoading},
-		model.ShipmentInTransit:       {model.ShipmentArrived, model.ShipmentOnHold, model.ShipmentDamaged},
-		model.ShipmentArrived:         {model.ShipmentReadyForIssue, model.ShipmentDamaged},
-		model.ShipmentReadyForIssue:   {model.ShipmentIssued},
-		model.ShipmentIssued:          {model.ShipmentClosed},
-		model.ShipmentOnHold:          {model.ShipmentReadyForLoading, model.ShipmentInTransit, model.ShipmentArrived},
-		model.ShipmentDamaged:         {model.ShipmentOnHold, model.ShipmentClosed},
-		model.ShipmentCancelled:       {model.ShipmentDraft},
+		model.ShipmentDraft:             {model.ShipmentCreated},
+		model.ShipmentCreatedDoor:       {model.ShipmentPaymentPending, model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentCancelled},
+		model.ShipmentPickupAssigned:    {model.ShipmentPickedUp, model.ShipmentCancelled},
+		model.ShipmentPickedUp:          {model.ShipmentAtStationIntake, model.ShipmentReadyForLoading, model.ShipmentCancelled},
+		model.ShipmentAtStationIntake:   {model.ShipmentReadyForLoading, model.ShipmentPaymentPending, model.ShipmentCancelled},
+		model.ShipmentCreated:           {model.ShipmentPaymentPending, model.ShipmentReadyForLoading, model.ShipmentCancelled},
+		model.ShipmentPaymentPending:    {model.ShipmentPaid, model.ShipmentCancelled},
+		model.ShipmentPaid:              {model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentOnHold},
+		model.ShipmentReadyForLoading:   {model.ShipmentLoaded, model.ShipmentOnHold},
+		model.ShipmentLoaded:            {model.ShipmentInTransit, model.ShipmentArrived, model.ShipmentDamaged, model.ShipmentReadyForLoading},
+		model.ShipmentInTransit:         {model.ShipmentArrived, model.ShipmentOnHold, model.ShipmentDamaged},
+		model.ShipmentArrived:           {model.ShipmentReadyForIssue, model.ShipmentDamaged},
+		model.ShipmentReadyForIssue:     {model.ShipmentDeliveryAssigned, model.ShipmentIssued},
+		model.ShipmentDeliveryAssigned:  {model.ShipmentIssued, model.ShipmentReadyForIssue},
+		model.ShipmentIssued:            {model.ShipmentClosed},
+		model.ShipmentOnHold:            {model.ShipmentReadyForLoading, model.ShipmentInTransit, model.ShipmentArrived},
+		model.ShipmentDamaged:           {model.ShipmentOnHold, model.ShipmentClosed},
+		model.ShipmentCancelled:         {model.ShipmentDraft},
 	}
 	for _, a := range allowed[current] {
 		if a == next {
@@ -718,10 +719,10 @@ func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) 
 			}
 		}
 
-		// "Доставить": to_station = station + statuses
+		// "Доставить": to_station = station + statuses (полный цикл door-to-door)
 		if sh.ToStation == station {
 			switch sh.ShipmentStatus {
-			case model.ShipmentArrived, model.ShipmentReadyForIssue, model.ShipmentIssued:
+			case model.ShipmentArrived, model.ShipmentReadyForIssue, model.ShipmentDeliveryAssigned, model.ShipmentIssued:
 				out = append(out, sh)
 			}
 		}
@@ -766,6 +767,10 @@ func (s *ShipmentService) CourierDeliveryConfirm(ctx context.Context, id string,
 	if !shipment.IsDoorToDoor {
 		return model.Shipment{}, fmt.Errorf("%w: delivery confirmation is available only for door-to-door shipments", ErrValidation)
 	}
+	// Курьер может завершить доставку только если уже забрал посылку из отделения (DELIVERY_ASSIGNED)
+	if shipment.ShipmentStatus != model.ShipmentDeliveryAssigned {
+		return model.Shipment{}, fmt.Errorf("%w: сначала заберите посылку из отделения", ErrInvalidState)
+	}
 	return s.transition(ctx, id, model.ShipmentIssued, operatorID, operatorName, nil, "Courier delivery confirmed", nil)
 }
 
@@ -778,6 +783,51 @@ func (s *ShipmentService) CourierPickupConfirm(ctx context.Context, id string, o
 		return model.Shipment{}, fmt.Errorf("%w: pickup confirmation is available only for door-to-door shipments", ErrValidation)
 	}
 	return s.transition(ctx, id, model.ShipmentPickedUp, operatorID, operatorName, nil, "Courier pickup confirmed", nil)
+}
+
+// CourierTakeDeliveryTask — курьер берёт задачу на доставку в городе назначения.
+// Статус: READY_FOR_ISSUE → DELIVERY_ASSIGNED. Курьер должен прийти в отделение за посылкой.
+func (s *ShipmentService) CourierTakeDeliveryTask(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if !shipment.IsDoorToDoor {
+		return model.Shipment{}, fmt.Errorf("%w: задача доставки доступна только для door-to-door посылок", ErrValidation)
+	}
+	if shipment.ShipmentStatus != model.ShipmentReadyForIssue {
+		return model.Shipment{}, fmt.Errorf("%w: посылка должна быть в статусе «Готово к выдаче»", ErrInvalidState)
+	}
+	res, err := s.transition(ctx, id, model.ShipmentDeliveryAssigned, operatorID, operatorName, nil, "Courier took delivery task", nil)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	// Уведомляем получателя
+	if res.ReceiverPhone != nil && *res.ReceiverPhone != "" {
+		go func() {
+			_ = whatsapp.SendMessage(*res.ReceiverPhone,
+				fmt.Sprintf("🚚 Курьер скоро доставит ваш груз %s. Подготовьте PIN-код для получения.", res.ShipmentNumber))
+		}()
+	}
+	return res, nil
+}
+
+// CourierPickupFromBranch — приемосдатчик подтверждает выдачу посылки курьеру в отделении назначения.
+// Это подтверждение того, что курьер физически забрал посылку из отделения и может ехать к получателю.
+func (s *ShipmentService) CourierPickupFromBranch(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if !shipment.IsDoorToDoor {
+		return model.Shipment{}, fmt.Errorf("%w: доступно только для door-to-door посылок", ErrValidation)
+	}
+	if shipment.ShipmentStatus != model.ShipmentDeliveryAssigned {
+		return model.Shipment{}, fmt.Errorf("%w: посылка должна быть в статусе «Курьер забирает из отделения»", ErrInvalidState)
+	}
+	// Не меняем статус — курьер остаётся в DELIVERY_ASSIGNED, но записываем scan event
+	// что приемосдатчик подтвердил физическую выдачу посылки курьеру
+	return shipment, nil
 }
 
 func (s *ShipmentService) CourierPickupConfirmWithMeta(ctx context.Context, id string, operatorID, operatorName *string, confirmedAt time.Time, lat, lon *float64) (model.Shipment, error) {

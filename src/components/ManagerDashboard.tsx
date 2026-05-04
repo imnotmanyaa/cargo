@@ -112,6 +112,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       case 'IN_TRANSIT': return t('statusInTransit');
       case 'ARRIVED': return t('statusArrived');
       case 'READY_FOR_ISSUE': return t('statusReadyForIssue');
+      case 'DELIVERY_ASSIGNED': return 'Курьер забирает из отделения';
       case 'ISSUED': return t('statusIssued');
       default: return status;
     }
@@ -142,7 +143,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
   const arrivalShipments = applySortAndFilter(s.filter(x => 
     x.to_station === myStation &&
-    ['ARRIVED', 'READY_FOR_ISSUE'].includes(x.shipment_status || x.status) &&
+    ['ARRIVED', 'READY_FOR_ISSUE', 'DELIVERY_ASSIGNED'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
 
@@ -426,8 +427,14 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                       </div>
                       <span className="text-sm font-medium">{s.client_name}</span>
                     </div>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded ${s.shipment_status === 'READY_FOR_ISSUE' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                      {s.shipment_status === 'READY_FOR_ISSUE' ? t('statusReadyForIssue') : t('statusArrived')}
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                      s.shipment_status === 'READY_FOR_ISSUE' ? 'bg-green-100 text-green-800' : 
+                      s.shipment_status === 'DELIVERY_ASSIGNED' ? 'bg-amber-100 text-amber-800' : 
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {s.shipment_status === 'READY_FOR_ISSUE' ? t('statusReadyForIssue') : 
+                       s.shipment_status === 'DELIVERY_ASSIGNED' ? 'Курьер забирает' : 
+                       t('statusArrived')}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 mb-3">{s.from_station} → {s.to_station} ({s.quantity_places} {t('pcs')}, {s.weight} {t('kg')})</div>
@@ -442,7 +449,12 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                     );
                     if (st === 'READY_FOR_ISSUE') return (
                       <div className={`text-xs mb-2 px-2 py-1 rounded-lg ${isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
-                        Курьер едет к получателю
+                        Ожидает курьера
+                      </div>
+                    );
+                    if (st === 'DELIVERY_ASSIGNED') return (
+                      <div className={`text-xs mb-2 px-2 py-1 rounded-lg ${isDark ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
+                        🚚 Курьер забирает из отделения → едет к получателю
                       </div>
                     );
                     return null;

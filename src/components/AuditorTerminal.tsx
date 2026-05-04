@@ -46,19 +46,19 @@ const STATUS_LABELS: Record<string, Record<string, string>> = {
   ru: {
     CREATED: 'Создан', PAYMENT_PENDING: 'Ожидает оплаты', PAID: 'Оплачен',
     READY_FOR_LOADING: 'Готов к погрузке', LOADED: 'Погружен', IN_TRANSIT: 'В пути',
-    ARRIVED: 'Прибыл', READY_FOR_ISSUE: 'Готов к выдаче', ISSUED: 'Выдан',
+    ARRIVED: 'Прибыл', READY_FOR_ISSUE: 'Готов к выдаче', DELIVERY_ASSIGNED: 'Курьер забирает', ISSUED: 'Выдан',
     CLOSED: 'Закрыт', CANCELLED: 'Отменён',
   },
   en: {
     CREATED: 'Created', PAYMENT_PENDING: 'Payment pending', PAID: 'Paid',
     READY_FOR_LOADING: 'Ready for loading', LOADED: 'Loaded', IN_TRANSIT: 'In transit',
-    ARRIVED: 'Arrived', READY_FOR_ISSUE: 'Ready for issue', ISSUED: 'Issued',
+    ARRIVED: 'Arrived', READY_FOR_ISSUE: 'Ready for issue', DELIVERY_ASSIGNED: 'Courier picking up', ISSUED: 'Issued',
     CLOSED: 'Closed', CANCELLED: 'Cancelled',
   },
   kk: {
     CREATED: 'Жасалды', PAYMENT_PENDING: 'Төлем күтілуде', PAID: 'Төленді',
     READY_FOR_LOADING: 'Тиеуге дайын', LOADED: 'Тиелді', IN_TRANSIT: 'Жолда',
-    ARRIVED: 'Келді', READY_FOR_ISSUE: 'Беруге дайын', ISSUED: 'Берілді',
+    ARRIVED: 'Келді', READY_FOR_ISSUE: 'Беруге дайын', DELIVERY_ASSIGNED: 'Курьер алуда', ISSUED: 'Берілді',
     CLOSED: 'Жабылды', CANCELLED: 'Болдырылмады',
   },
 };

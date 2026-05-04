@@ -57,8 +57,9 @@ const (
 	ShipmentLoaded          ShipmentLifecycle = "LOADED"
 	ShipmentInTransit       ShipmentLifecycle = "IN_TRANSIT"
 	ShipmentArrived         ShipmentLifecycle = "ARRIVED"
-	ShipmentReadyForIssue   ShipmentLifecycle = "READY_FOR_ISSUE"
-	ShipmentIssued          ShipmentLifecycle = "ISSUED"
+	ShipmentReadyForIssue    ShipmentLifecycle = "READY_FOR_ISSUE"
+	ShipmentDeliveryAssigned ShipmentLifecycle = "DELIVERY_ASSIGNED" // Курьер взял задачу на доставку (ещё не забрал из отделения)
+	ShipmentIssued           ShipmentLifecycle = "ISSUED"
 	ShipmentClosed          ShipmentLifecycle = "CLOSED"
 	ShipmentCancelled       ShipmentLifecycle = "CANCELLED"
 	ShipmentOnHold          ShipmentLifecycle = "ON_HOLD"

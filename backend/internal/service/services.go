@@ -148,6 +148,8 @@ func legacyStatusForLifecycle(state model.ShipmentLifecycle) string {
 		return "Прибыл"
 	case model.ShipmentReadyForIssue:
 		return "Готов к выдаче"
+	case model.ShipmentDeliveryAssigned:
+		return "Курьер забирает из отделения"
 	case model.ShipmentIssued:
 		return "Выдан"
 	case model.ShipmentClosed:

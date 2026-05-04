@@ -76,6 +76,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
     if (s === 'IN_TRANSIT') return t('statusInTransit');
     if (s === 'ARRIVED') return t('statusArrived');
     if (s === 'READY_FOR_ISSUE') return t('statusReadyForIssue');
+    if (s === 'DELIVERY_ASSIGNED') return 'Курьер везёт к вам';
     if (s === 'ISSUED') return t('statusIssued');
     if (s === 'CANCELLED') return t('cancel');
     return shipment.status || t('statusRegistered');

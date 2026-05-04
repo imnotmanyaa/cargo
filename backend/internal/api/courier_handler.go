@@ -15,6 +15,8 @@ func (s *Server) mountCourierRoutes(r chi.Router) {
 	r.Post("/shipments/{id}/pickup-confirm", s.handleCourierPickupConfirm)
 	r.Post("/shipments/{id}/courier-handover", s.handleCourierHandover)
 	r.Post("/shipments/{id}/courier-take", s.handleCourierTakeTask)
+	r.Post("/shipments/{id}/courier-take-delivery", s.handleCourierTakeDeliveryTask)
+	r.Post("/shipments/{id}/courier-branch-pickup", s.handleCourierBranchPickup)
 	r.Post("/shipments/{id}/delivery-confirm", s.handleCourierDeliveryConfirm)
 }
 
@@ -188,4 +190,49 @@ func (s *Server) handleCourierDeliveryConfirm(w http.ResponseWriter, r *http.Req
 		return
 	}
 	writeJSON(w, http.StatusOK, updated)
+}
+
+// handleCourierTakeDeliveryTask — курьер берёт задачу на доставку в городе назначения.
+// READY_FOR_ISSUE → DELIVERY_ASSIGNED
+func (s *Server) handleCourierTakeDeliveryTask(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleCourier); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	updated, err := s.services.Shipments.CourierTakeDeliveryTask(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	s.socket.BroadcastToRoom("/", "station:"+updated.ToStation, "shipment-updated", updated)
+	writeJSON(w, http.StatusOK, updated)
+}
+
+// handleCourierBranchPickup — приемосдатчик подтверждает выдачу посылки курьеру в отделении назначения.
+func (s *Server) handleCourierBranchPickup(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleReceiver, model.RoleManager, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	shipmentID := chi.URLParam(r, "id")
+	shipment, err := s.services.Shipments.CourierPickupFromBranch(r.Context(), shipmentID, &user.ID, &user.Name)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	// Создаём scan event для подтверждения
+	s.services.Tracking.Scan(r.Context(), shipmentID, "BRANCH_PICKUP", &user.Station, nil, &user.ID, nil)
+	s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "shipment-updated", shipment)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"shipment": shipment,
+		"message":  "Посылка " + shipment.ShipmentNumber + " передана курьеру для доставки ✓",
+	})
 }

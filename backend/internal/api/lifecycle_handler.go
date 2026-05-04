@@ -441,6 +441,27 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			"message":  "Груз " + current.ShipmentNumber + " отсканирован перед выдачей ✓",
 		})
 
+	// Курьер взял задачу на доставку — приемосдатчик сканирует для подтверждения выдачи курьеру
+	case model.ShipmentDeliveryAssigned:
+		if station != current.ToStation {
+			writeError(w, http.StatusForbidden,
+				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
+			return
+		}
+		// Создаем scan event подтверждения выдачи посылки курьеру
+		_, err := s.services.Tracking.Scan(r.Context(), shipmentID, "BRANCH_PICKUP", &station, nil, &user.ID, nil)
+		if err != nil {
+			handleServiceError(w, err)
+			return
+		}
+		s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", current)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"shipment":       current,
+			"action":         "BRANCH_PICKUP",
+			"message":        "Груз " + current.ShipmentNumber + " передан курьеру для доставки ✓",
+			"branch_pickup":  true,
+		})
+
 	case model.ShipmentReadyForLoading:
 		writeError(w, http.StatusConflict, "Груз уже на складе — ожидает погрузки")
 	case model.ShipmentIssued:

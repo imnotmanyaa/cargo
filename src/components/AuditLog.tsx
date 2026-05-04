@@ -59,6 +59,7 @@ const STATUS_LABELS: Record<string, string> = {
   IN_TRANSIT:         'В транзите',
   ARRIVED:            'Прибыла',
   READY_FOR_ISSUE:    'Готова к выдаче',
+  DELIVERY_ASSIGNED:  'Курьер забирает из отделения',
   ISSUED:             'Выдана',
   CLOSED:             'Закрыта',
   CANCELLED:          'Отменена',
