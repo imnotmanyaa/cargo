@@ -323,6 +323,7 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 	if err != nil {
 		return model.Shipment{}, nil, err
 	}
+
 	if strings.TrimSpace(strings.ToLower(station)) != strings.TrimSpace(strings.ToLower(shipment.ToStation)) {
 		return model.Shipment{}, nil, ErrForbidden
 	}
@@ -595,8 +596,11 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 	}
 	shipment.UpdatedAt = time.Now().UTC()
 	shipment.LastUpdatedAt = shipment.UpdatedAt
-	if next == model.ShipmentArrived {
-		shipment.NextStation = nil
+	if next == model.ShipmentArrived || next == model.ShipmentReadyForIssue {
+		if next == model.ShipmentArrived {
+			shipment.NextStation = nil
+		}
+		shipment.CourierID = nil // Clear courier so local ones can take it
 	}
 	if strings.HasPrefix(action, "Courier") && operatorID != nil {
 		shipment.CourierID = operatorID
