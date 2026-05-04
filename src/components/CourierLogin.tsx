@@ -3,13 +3,13 @@ import { Bike, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function CourierLogin() {
-  const { login } = useAuth();
-  const [login, setEmail] = useState('');
+  const { login: authLogin } = useAuth();
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(login, password, 'courier');
+    await authLogin(login, password, 'courier');
   };
 
   return (
@@ -24,10 +24,10 @@ export function CourierLogin() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
-            type="login"
-            placeholder="Login"
+            type="text"
+            placeholder="Логин"
             value={login}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setLogin(e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
