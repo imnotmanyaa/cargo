@@ -1,7 +1,6 @@
 import { ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { calculateShipmentCost } from '../../lib/tariff';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface CargoDetailsProps {
   data: any;
@@ -13,9 +12,7 @@ interface CargoDetailsProps {
 
 export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }: CargoDetailsProps) {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const isDark = theme === 'dark';
-  const isStaff = user?.role === 'manager' || user?.role === 'admin' || user?.role === 'receiver';
 
   const price = calculateShipmentCost({
     fromStation: data.fromStation,
@@ -38,22 +35,6 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
       <h2 className={`text-xl font-semibold mb-6 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('cargoDetailsTitle')}</h2>
 
       <div className="space-y-6">
-        {/* Номер отправки (только для сотрудников) */}
-        {isStaff && (
-          <div>
-            <label className={label}>
-              {t('shipmentNumber')} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={data.customShipmentNumber || ''}
-              onChange={(e) => onUpdate({ customShipmentNumber: e.target.value.toUpperCase() })}
-              placeholder="SH-XXXXXX"
-              className={input}
-            />
-          </div>
-        )}
-
         {/* Билет Mobius */}
         <div>
           <label className={label}>{t('mobiusTicket')}</label>
@@ -210,7 +191,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
           </button>
           <button
             onClick={onNext}
-            disabled={!data.weight || !data.quantityPlaces || !data.packaging || (isStaff && !data.customShipmentNumber)}
+            disabled={!data.weight || !data.quantityPlaces || !data.packaging}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}

@@ -359,7 +359,7 @@ export function ClientInfo({
         {data.clientType === 'individual' && (
            <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              {t('phone')}
+              {t('phone')} {user?.role === 'manager' || user?.role === 'admin' ? <span className="text-red-500">*</span> : ''}
             </label>
             <input
               type="tel"
@@ -602,7 +602,7 @@ export function ClientInfo({
         <div className="flex justify-end pt-4">
           <button
             onClick={onNext}
-            disabled={!data.clientName || !data.fromStation || !data.toStation || sameFromTo}
+            disabled={!data.clientName || !data.fromStation || !data.toStation || sameFromTo || ((user?.role === 'manager' || user?.role === 'admin') && !data.clientPhone)}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}
