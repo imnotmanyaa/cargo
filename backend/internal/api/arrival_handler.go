@@ -131,8 +131,14 @@ func (s *Server) handleNotifyArrival(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msg := fmt.Sprintf("✅ Ваша посылка %s прибыла в %s.\n\nПриходите за грузом в офис с паспортом или удостоверением личности.\nОтправитель: %s",
-		shipment.ShipmentNumber, shipment.ToStation, shipment.ClientName)
+	var msg string
+	if shipment.IsDoorToDoor {
+		msg = fmt.Sprintf("📦 Ваш груз %s прибыл в %s.\n\nКурьер скоро доставит его по указанному адресу. Ожидайте звонка!\nОтправитель: %s",
+			shipment.ShipmentNumber, shipment.ToStation, shipment.ClientName)
+	} else {
+		msg = fmt.Sprintf("✅ Ваша посылка %s прибыла в %s.\n\nПриходите за грузом в офис с паспортом или удостоверением личности.\nОтправитель: %s",
+			shipment.ShipmentNumber, shipment.ToStation, shipment.ClientName)
+	}
 
 	if err := whatsapp.SendMessage(phone, msg); err != nil {
 		writeError(w, http.StatusBadGateway, "Ошибка WhatsApp: "+err.Error())

@@ -327,7 +327,7 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 		return model.Shipment{}, nil, ErrForbidden
 	}
 	// Re-scan: if already arrived/issued at this station, return without error
-	if shipment.ShipmentStatus == model.ShipmentArrived || shipment.ShipmentStatus == model.ShipmentReadyForIssue || shipment.ShipmentStatus == model.ShipmentIssued {
+	if shipment.ShipmentStatus == model.ShipmentArrived || shipment.ShipmentStatus == model.ShipmentReadyForIssue || shipment.ShipmentStatus == model.ShipmentDeliveryAssigned || shipment.ShipmentStatus == model.ShipmentIssued {
 		return shipment, nil, nil
 	}
 	shipment, err = s.transition(ctx, id, model.ShipmentArrived, operatorID, operatorName, &station, "Shipment arrived", nil)
@@ -343,6 +343,9 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 		ConfirmedAsFinalArrival: true,
 	})
 	message := fmt.Sprintf("Ваш груз %s прибыл в пункт назначения %s", shipment.ShipmentNumber, station)
+	if shipment.IsDoorToDoor {
+		message = fmt.Sprintf("Ваш груз %s прибыл в %s. Курьер скоро доставит его по адресу.", shipment.ShipmentNumber, station)
+	}
 	notification, err := s.repo.CreateNotification(ctx, model.Notification{
 		UserID:    shipment.ClientID,
 		Message:   message,
@@ -355,14 +358,27 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 	}
 
 	if shipment.IsDoorToDoor {
+		// Автоматически переводим в READY_FOR_ISSUE, чтобы курьер увидел задачу
 		shipment, err = s.transition(ctx, id, model.ShipmentReadyForIssue, operatorID, operatorName, &station, "Ready for delivery task", nil)
 		if err != nil {
 			return model.Shipment{}, nil, err
 		}
-	}
-
+		// Для D2D НЕ отправляем PIN клиенту — PIN отправится когда курьер возьмёт задачу
+		// Вместо этого уведомляем получателя что скоро будет доставка
+		if shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
+			go func() {
+				_ = whatsapp.SendMessage(*shipment.ReceiverPhone,
+					fmt.Sprintf("📦 Ваш груз %s прибыл в %s. Курьер скоро заберёт его и доставит по адресу. Ожидайте звонка!", shipment.ShipmentNumber, station))
+			}()
+		}
+	} else {
+		// Обычная посылка — отправляем PIN-код для получения
 		if shipment.IssueCode != nil && shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
-		go whatsapp.SendMessage(*shipment.ReceiverPhone, "Груз "+shipment.ShipmentNumber+" прибыл. Ваш PIN-код для получения: "+*shipment.IssueCode)
+			go func() {
+				_ = whatsapp.SendMessage(*shipment.ReceiverPhone,
+					"Груз "+shipment.ShipmentNumber+" прибыл. Ваш PIN-код для получения: "+*shipment.IssueCode)
+			}()
+		}
 	}
 
 	return shipment, &notification, nil
