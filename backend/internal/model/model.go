@@ -59,6 +59,7 @@ const (
 	ShipmentArrived         ShipmentLifecycle = "ARRIVED"
 	ShipmentReadyForIssue    ShipmentLifecycle = "READY_FOR_ISSUE"
 	ShipmentDeliveryAssigned ShipmentLifecycle = "DELIVERY_ASSIGNED" // Курьер взял задачу на доставку (ещё не забрал из отделения)
+	ShipmentOutForDelivery   ShipmentLifecycle = "OUT_FOR_DELIVERY"   // Курьер физически забрал посылку из отделения и везёт клиенту
 	ShipmentIssued           ShipmentLifecycle = "ISSUED"
 	ShipmentClosed          ShipmentLifecycle = "CLOSED"
 	ShipmentCancelled       ShipmentLifecycle = "CANCELLED"

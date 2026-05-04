@@ -448,17 +448,17 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
 			return
 		}
-		// Создаем scan event подтверждения выдачи посылки курьеру
-		_, err := s.services.Tracking.Scan(r.Context(), shipmentID, "BRANCH_PICKUP", &station, nil, &user.ID, nil)
+		// Переводим в статус OUT_FOR_DELIVERY (курьер забрал посылку со склада)
+		shipment, err := s.services.Shipments.OutForDelivery(r.Context(), shipmentID, &user.ID, &user.Name)
 		if err != nil {
 			handleServiceError(w, err)
 			return
 		}
-		s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", current)
+		s.socket.BroadcastToRoom("/", s.stationRoom(station), "shipment-updated", shipment)
 		writeJSON(w, http.StatusOK, map[string]any{
-			"shipment":       current,
+			"shipment":       shipment,
 			"action":         "BRANCH_PICKUP",
-			"message":        "Груз " + current.ShipmentNumber + " передан курьеру для доставки ✓",
+			"message":        "Груз " + shipment.ShipmentNumber + " передан курьер для доставки ✓",
 			"branch_pickup":  true,
 		})
 

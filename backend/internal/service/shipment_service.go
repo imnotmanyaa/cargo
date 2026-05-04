@@ -401,6 +401,14 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 	return s.transition(ctx, id, model.ShipmentIssued, operatorID, operatorName, nil, "Issued to receiver", nil)
 }
 
+func (s *ShipmentService) TakeDelivery(ctx context.Context, id string, operatorID, operatorName string) (model.Shipment, error) {
+	return s.transition(ctx, id, model.ShipmentDeliveryAssigned, &operatorID, &operatorName, nil, "Courier taking delivery task", nil)
+}
+
+func (s *ShipmentService) OutForDelivery(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
+	return s.transition(ctx, id, model.ShipmentOutForDelivery, operatorID, operatorName, nil, "Courier picked up from branch", nil)
+}
+
 func (s *ShipmentService) Close(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
 	return s.transition(ctx, id, model.ShipmentClosed, operatorID, operatorName, nil, "Shipment closed", nil)
 }
@@ -676,6 +684,14 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 				}
 				msg = fmt.Sprintf("✅ Груз %s готов к выдаче на станции %s!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
 			}
+		case model.ShipmentOutForDelivery:
+			if s.IsDoorToDoor {
+				issueCode := ""
+				if s.IssueCode != nil {
+					issueCode = *s.IssueCode
+				}
+				msg = fmt.Sprintf("🚚 Курьер забрал ваш заказ %s и направляется к вам! Ожидайте звонка.\nКод для получения: *%s*", s.ShipmentNumber, issueCode)
+			}
 		case model.ShipmentIssued:
 			msg = fmt.Sprintf("🎉 Груз %s успешно выдан. Спасибо, что воспользовались нашими услугами!", s.ShipmentNumber)
 		case model.ShipmentPickedUp:
@@ -703,7 +719,8 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 		model.ShipmentInTransit:         {model.ShipmentArrived, model.ShipmentOnHold, model.ShipmentDamaged},
 		model.ShipmentArrived:           {model.ShipmentReadyForIssue, model.ShipmentDamaged},
 		model.ShipmentReadyForIssue:     {model.ShipmentDeliveryAssigned, model.ShipmentIssued},
-		model.ShipmentDeliveryAssigned:  {model.ShipmentIssued, model.ShipmentReadyForIssue},
+		model.ShipmentDeliveryAssigned:  {model.ShipmentOutForDelivery, model.ShipmentReadyForIssue},
+		model.ShipmentOutForDelivery:    {model.ShipmentIssued, model.ShipmentReadyForIssue},
 		model.ShipmentIssued:            {model.ShipmentClosed},
 		model.ShipmentOnHold:            {model.ShipmentReadyForLoading, model.ShipmentInTransit, model.ShipmentArrived},
 		model.ShipmentDamaged:           {model.ShipmentOnHold, model.ShipmentClosed},

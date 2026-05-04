@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 interface DeliveryTask {
   id: string;
   type: 'pickup' | 'delivery';
-  status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled' | 'delivery_assigned';
+  status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled' | 'delivery_assigned' | 'out_for_delivery';
   parcelCode: string;
   clientName: string;
   clientPhone: string;
@@ -64,13 +64,14 @@ export function CourierDashboard() {
       'CREATED': 'Оформлено',
       'PAYMENT_PENDING': 'Ожидает оплаты',
       'PAID': 'Оплачено',
-      'PICKUP_ASSIGNED': 'Еду к клиенту',
-      'PICKED_UP': 'Груз забран',
+      'PICKUP_ASSIGNED': 'Назначен забор',
+      'PICKED_UP': 'Забрано курьером',
       'AT_STATION_INTAKE': 'Сдано на склад — Завершено',
       'READY_FOR_LOADING': 'На складе',
-      'READY_FOR_ISSUE': 'Готово к доставке',
-      'DELIVERY_ASSIGNED': 'Заберите из отделения',
-      'ISSUED': 'Доставлено',
+      'READY_FOR_ISSUE': 'Готово к выдаче',
+      'DELIVERY_ASSIGNED': 'Ожидает забора из отделения',
+      'OUT_FOR_DELIVERY': 'Доставляется',
+      'ISSUED': 'Выдано',
       'LOADED': 'В вагоне',
       'IN_TRANSIT': 'В пути',
       'ARRIVED': 'Прибыло',
@@ -133,6 +134,9 @@ export function CourierDashboard() {
           } else if (rawSt === 'DELIVERY_ASSIGNED') {
             // Курьер взял задачу, должен забрать из отделения
             status = opId === myId || !opId ? 'delivery_assigned' : 'cancelled';
+          } else if (rawSt === 'OUT_FOR_DELIVERY') {
+            // Курьер забрал из отделения, везёт клиенту
+            status = opId === myId || !opId ? 'in_progress' : 'cancelled';
           } else if (rawSt === 'ISSUED') {
             status = 'completed';
           } else {
@@ -212,7 +216,7 @@ export function CourierDashboard() {
   }, [user?.id, user?.station]);
 
   const pendingTasks = tasks.filter(t => t.status === 'pending');
-  const myTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'picked_up' || t.status === 'delivery_assigned');
+  const myTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'picked_up' || t.status === 'delivery_assigned' || t.status === 'out_for_delivery');
 
 
   const handleTaskClick = (task: DeliveryTask) => {
