@@ -38,6 +38,7 @@ type CreateShipmentRequest struct {
 	DeliveryAddress *string
 	DoorToDoorPhone *string
 	SenderPhone     *string
+	ShipmentNumber  *string
 }
 
 type CorrectionRequest struct {
@@ -98,6 +99,13 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		nextStation = &route[1]
 	}
 	number := "SH-" + fmt.Sprintf("%06d", now.UnixNano()%1000000)
+	if req.ShipmentNumber != nil && *req.ShipmentNumber != "" {
+		number = strings.TrimSpace(*req.ShipmentNumber)
+		// Check for duplicates
+		if _, err := s.repo.GetShipmentByTrackingCode(ctx, number); err == nil {
+			return model.Shipment{}, fmt.Errorf("%w: shipment number %s already exists", ErrInvalidTransition, number)
+		}
+	}
 	pickupCode := fmt.Sprintf("%04d", rand.Intn(10000))
 	issueCode := fmt.Sprintf("%04d", rand.Intn(10000))
 	shipment := model.Shipment{

@@ -54,6 +54,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     pickupAddress: '',
     deliveryAddress: '',
     doorToDoorPhone: '',
+    customShipmentNumber: '',
   });
 
   // Sync user data when auth loads
@@ -131,7 +132,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           pickup_address: shipmentData.isDoorToDoor ? shipmentData.pickupAddress : null,
           delivery_address: shipmentData.isDoorToDoor ? shipmentData.deliveryAddress : null,
           door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null,
-          sender_phone: shipmentData.clientPhone || null
+          sender_phone: shipmentData.clientPhone || null,
+          shipment_number: shipmentData.customShipmentNumber || null
         })
       });
 
