@@ -42,6 +42,7 @@ export function CourierDashboard() {
   const [activeTab, setActiveTab] = useState<'pending' | 'my_tasks'>('pending');
   const [showPinModal, setShowPinModal] = useState<{type: 'pickup'|'delivery', task: DeliveryTask} | null>(null);
   const [pinCode, setPinCode] = useState('');
+  const [successShipment, setSuccessShipment] = useState<DeliveryTask | null>(null);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
@@ -266,15 +267,16 @@ export function CourierDashboard() {
         body: JSON.stringify(payload)
       });
       if (resp.ok) {
+        const completedTask = showPinModal.task;
         await loadTasks();
-        toast.success('Успешно');
         setShowPinModal(null);
         setPinCode('');
         setShowDetailsDialog(false);
+        setSuccessShipment(completedTask);
+        toast.success('Доставка успешно завершена! 🎉');
       } else {
         const err = await resp.json().catch(() => ({ error: 'Неверный PIN-код' }));
         toast.error(err.error || 'Неверный PIN-код');
-        // Do not close modal here - let user retry
       }
     } catch(e) { 
       toast.error('Сетевая ошибка'); 
@@ -541,6 +543,46 @@ export function CourierDashboard() {
           </div>
         )}
       </div>
+      {/* Success Modal */}
+      {successShipment && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className={`${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300`}>
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500">
+                <Package className="w-10 h-10 animate-bounce" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Доставлено!</h2>
+              <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                Груз <span className="font-mono font-bold text-blue-500">{successShipment.parcelCode}</span> успешно передан получателю
+              </p>
+              
+              <div className={`${isDark ? 'bg-gray-800' : 'bg-gray-50'} rounded-2xl p-4 mb-6 text-left`}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-semibold">{successShipment.receiverName || successShipment.clientName}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs text-gray-400 truncate">{successShipment.address}</span>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => setSuccessShipment(null)}
+                className="w-full h-14 rounded-2xl text-lg font-bold bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20 transition-all active:scale-95"
+              >
+                Отлично
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Language Toggle or other footer stuff if needed */}
     </div>
   );
 }

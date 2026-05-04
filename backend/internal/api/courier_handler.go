@@ -189,6 +189,9 @@ func (s *Server) handleCourierDeliveryConfirm(w http.ResponseWriter, r *http.Req
 		handleServiceError(w, err)
 		return
 	}
+	// Record final delivery scan
+	s.services.Tracking.Scan(r.Context(), updated.ID, "DELIVERED", updated.Station, nil, &user.ID, nil)
+	
 	writeJSON(w, http.StatusOK, updated)
 }
 
