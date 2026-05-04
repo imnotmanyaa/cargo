@@ -349,6 +349,8 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 			ConfirmedAsFinalArrival: true,
 		})
 	}
+
+	// Internal notification (app-only, not SMS)
 	message := fmt.Sprintf("Ваш груз %s прибыл в пункт назначения %s", shipment.ShipmentNumber, station)
 	if shipment.IsDoorToDoor {
 		message = fmt.Sprintf("Ваш груз %s прибыл в %s. Курьер скоро доставит его по адресу.", shipment.ShipmentNumber, station)
@@ -364,27 +366,12 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 		return shipment, nil, nil
 	}
 
-	if shipment.IsDoorToDoor {
+	if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentArrived {
 		// Автоматически переводим в READY_FOR_ISSUE, чтобы курьер увидел задачу
+		// Сообщение в WhatsApp отправится автоматически внутри transition()
 		shipment, err = s.transition(ctx, id, model.ShipmentReadyForIssue, operatorID, operatorName, &station, "Ready for delivery task", nil)
 		if err != nil {
 			return model.Shipment{}, nil, err
-		}
-		// Для D2D НЕ отправляем PIN клиенту — PIN отправится когда курьер возьмёт задачу
-		// Вместо этого уведомляем получателя что скоро будет доставка
-		if shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
-			go func() {
-				_ = whatsapp.SendMessage(*shipment.ReceiverPhone,
-					fmt.Sprintf("📦 Ваш груз %s прибыл в %s. Курьер скоро заберёт его и доставит по адресу. Ожидайте звонка!", shipment.ShipmentNumber, station))
-			}()
-		}
-	} else {
-		// Обычная посылка — отправляем PIN-код для получения
-		if shipment.IssueCode != nil && shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
-			go func() {
-				_ = whatsapp.SendMessage(*shipment.ReceiverPhone,
-					"Груз "+shipment.ShipmentNumber+" прибыл. Ваш PIN-код для получения: "+*shipment.IssueCode)
-			}()
 		}
 	}
 
@@ -676,9 +663,8 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 			}
 		case model.ShipmentReadyForIssue:
 			if s.IsDoorToDoor {
-				// Для D2D в этом статусе мы уже отправили сообщение выше или отправим при DELIVERY_ASSIGNED
-				// Либо можно продублировать, что курьер назначен
-				msg = fmt.Sprintf("🚚 Посылка %s готова к доставке в %s. Наш курьер свяжется с вами в ближайшее время.", s.ShipmentNumber, s.CurrentStation)
+				// Пропускаем дубликат, так как для D2D сообщение уже отправлено в статусе ARRIVED
+				return
 			} else {
 				issueCode := ""
 				if s.IssueCode != nil {
@@ -745,7 +731,7 @@ func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) 
 		}
 		
 		// "Забрать": from_station = station + statuses
-		if sh.FromStation == station {
+		if strings.EqualFold(strings.TrimSpace(sh.FromStation), station) {
 			switch sh.ShipmentStatus {
 			case model.ShipmentCreatedDoor, model.ShipmentPaymentPending, model.ShipmentPaid, model.ShipmentPickupAssigned, model.ShipmentPickedUp, model.ShipmentReadyForLoading:
 				out = append(out, sh)
@@ -754,7 +740,7 @@ func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) 
 		}
 
 		// "Доставить": to_station = station + statuses (полный цикл door-to-door)
-		if sh.ToStation == station {
+		if strings.EqualFold(strings.TrimSpace(sh.ToStation), station) {
 			switch sh.ShipmentStatus {
 			case model.ShipmentArrived, model.ShipmentReadyForIssue, model.ShipmentDeliveryAssigned, model.ShipmentIssued:
 				out = append(out, sh)

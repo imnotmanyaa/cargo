@@ -365,16 +365,16 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 		if notification != nil {
 			s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
 		}
-		s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+		s.socket.BroadcastToRoom("/", s.stationRoom(shipment.CurrentStation), "shipment-updated", shipment)
 		
 		if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentReadyForIssue {
-			s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "courier:new-task", shipment)
+			s.socket.BroadcastToRoom("/", s.stationRoom(shipment.ToStation), "courier:new-task", shipment)
 			courierNotif := model.Notification{
 				Message:   "Новая задача доставки: посылка " + shipment.ShipmentNumber + " прибыла в " + shipment.ToStation,
 				Type:      "courier_new_task",
 				CreatedAt: time.Now().UTC(),
 			}
-			s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "notification:new", courierNotif)
+			s.socket.BroadcastToRoom("/", s.stationRoom(shipment.ToStation), "notification:new", courierNotif)
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -398,16 +398,16 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 		if notification != nil {
 			s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
 		}
-		s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+		s.socket.BroadcastToRoom("/", s.stationRoom(shipment.CurrentStation), "shipment-updated", shipment)
 		
 		if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentReadyForIssue {
-			s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "courier:new-task", shipment)
+			s.socket.BroadcastToRoom("/", s.stationRoom(shipment.ToStation), "courier:new-task", shipment)
 			courierNotif := model.Notification{
 				Message:   "Новая задача доставки: посылка " + shipment.ShipmentNumber + " прибыла в " + shipment.ToStation,
 				Type:      "courier_new_task",
 				CreatedAt: time.Now().UTC(),
 			}
-			s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "notification:new", courierNotif)
+			s.socket.BroadcastToRoom("/", s.stationRoom(shipment.ToStation), "notification:new", courierNotif)
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -432,7 +432,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 				handleServiceError(w, err)
 				return
 			}
-			s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", shipment)
+			s.socket.BroadcastToRoom("/", s.stationRoom(station), "shipment-updated", shipment)
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{

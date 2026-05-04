@@ -188,7 +188,8 @@ export function CourierDashboard() {
         socket.send(JSON.stringify({ action: 'join-user', room: user.id.toString() }));
       }
       if (user?.station) {
-        socket.send(JSON.stringify({ action: 'join-station', room: user.station }));
+        const normalizedStation = user.station.trim().toLowerCase();
+        socket.send(JSON.stringify({ action: 'join-station', room: normalizedStation }));
       }
     };
 

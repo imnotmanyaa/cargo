@@ -153,10 +153,14 @@ func (s *Server) rateLimiter(next http.Handler) http.Handler {
 	})
 }
 
+func (s *Server) stationRoom(station string) string {
+	return "station:" + strings.ToLower(strings.TrimSpace(station))
+}
+
 func (s *Server) setupSocket() {
 	s.socket.OnConnect("/", func(conn socketio.Conn) error { return nil })
 	s.socket.OnEvent("/", "join-station", func(conn socketio.Conn, station string) {
-		conn.Join("station:" + station)
+		conn.Join(s.stationRoom(station))
 	})
 	s.socket.OnEvent("/", "join-user", func(conn socketio.Conn, userID string) {
 		conn.Join("user:" + userID)

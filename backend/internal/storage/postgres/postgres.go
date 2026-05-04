@@ -384,7 +384,8 @@ func (r *Repository) ListShipments(ctx context.Context, filter model.ShipmentFil
 }
 
 func (r *Repository) ListShipmentsByOriginStation(ctx context.Context, station string) ([]model.Shipment, error) {
-	rows, err := r.pool.Query(ctx, shipmentSelect+` WHERE from_station = $1 OR to_station = $1 OR current_station = $1 OR next_station = $1 ORDER BY created_at DESC`, station)
+	station = strings.TrimSpace(strings.ToLower(station))
+	rows, err := r.pool.Query(ctx, shipmentSelect+` WHERE LOWER(TRIM(from_station)) = $1 OR LOWER(TRIM(to_station)) = $1 OR LOWER(TRIM(current_station)) = $1 OR LOWER(TRIM(next_station)) = $1 ORDER BY created_at DESC`, station)
 	if err != nil {
 		return nil, err
 	}
