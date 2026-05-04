@@ -323,25 +323,32 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 	if err != nil {
 		return model.Shipment{}, nil, err
 	}
-	if station != shipment.ToStation {
+	if strings.TrimSpace(strings.ToLower(station)) != strings.TrimSpace(strings.ToLower(shipment.ToStation)) {
 		return model.Shipment{}, nil, ErrForbidden
 	}
-	// Re-scan: if already arrived/issued at this station, return without error
-	if shipment.ShipmentStatus == model.ShipmentArrived || shipment.ShipmentStatus == model.ShipmentReadyForIssue || shipment.ShipmentStatus == model.ShipmentDeliveryAssigned || shipment.ShipmentStatus == model.ShipmentIssued {
-		return shipment, nil, nil
+	// Re-scan: if already reached final statuses, handle early return but still check for D2D transition if stuck in ARRIVED
+	if shipment.ShipmentStatus == model.ShipmentArrived || shipment.ShipmentStatus == model.ShipmentReadyForIssue || shipment.ShipmentStatus == model.ShipmentIssued {
+		if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentArrived {
+			// Continue to D2D transition below
+		} else {
+			return shipment, nil, nil
+		}
 	}
-	shipment, err = s.transition(ctx, id, model.ShipmentArrived, operatorID, operatorName, &station, "Shipment arrived", nil)
-	if err != nil {
-		return model.Shipment{}, nil, err
+
+	if shipment.ShipmentStatus != model.ShipmentArrived && shipment.ShipmentStatus != model.ShipmentReadyForIssue && shipment.ShipmentStatus != model.ShipmentIssued {
+		shipment, err = s.transition(ctx, id, model.ShipmentArrived, operatorID, operatorName, &station, "Shipment arrived", nil)
+		if err != nil {
+			return model.Shipment{}, nil, err
+		}
+		_, _ = s.repo.CreateArrivalEvent(ctx, model.ArrivalEvent{
+			ID:                      uuid.NewString(),
+			ShipmentID:              shipment.ID,
+			StationID:               station,
+			UserID:                  operatorID,
+			EventTime:               time.Now().UTC(),
+			ConfirmedAsFinalArrival: true,
+		})
 	}
-	_, _ = s.repo.CreateArrivalEvent(ctx, model.ArrivalEvent{
-		ID:                      uuid.NewString(),
-		ShipmentID:              shipment.ID,
-		StationID:               station,
-		UserID:                  operatorID,
-		EventTime:               time.Now().UTC(),
-		ConfirmedAsFinalArrival: true,
-	})
 	message := fmt.Sprintf("Ваш груз %s прибыл в пункт назначения %s", shipment.ShipmentNumber, station)
 	if shipment.IsDoorToDoor {
 		message = fmt.Sprintf("Ваш груз %s прибыл в %s. Курьер скоро доставит его по адресу.", shipment.ShipmentNumber, station)
@@ -658,17 +665,27 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 		case model.ShipmentInTransit:
 			msg = fmt.Sprintf("🚂 Груз %s в пути. Маршрут: %s → %s.", s.ShipmentNumber, s.FromStation, s.ToStation)
 		case model.ShipmentArrived:
-			issueCode := ""
-			if s.IssueCode != nil {
-				issueCode = *s.IssueCode
+			if s.IsDoorToDoor {
+				msg = fmt.Sprintf("✅ Ваш груз %s прибыл в %s. Курьер скоро заберёт его и доставит по адресу. Ожидайте звонка!", s.ShipmentNumber, s.CurrentStation)
+			} else {
+				issueCode := ""
+				if s.IssueCode != nil {
+					issueCode = *s.IssueCode
+				}
+				msg = fmt.Sprintf("✅ Груз %s прибыл на станцию %s и ожидает получения!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
 			}
-			msg = fmt.Sprintf("✅ Груз %s прибыл на станцию %s и ожидает получения!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
 		case model.ShipmentReadyForIssue:
-			issueCode := ""
-			if s.IssueCode != nil {
-				issueCode = *s.IssueCode
+			if s.IsDoorToDoor {
+				// Для D2D в этом статусе мы уже отправили сообщение выше или отправим при DELIVERY_ASSIGNED
+				// Либо можно продублировать, что курьер назначен
+				msg = fmt.Sprintf("🚚 Посылка %s готова к доставке в %s. Наш курьер свяжется с вами в ближайшее время.", s.ShipmentNumber, s.CurrentStation)
+			} else {
+				issueCode := ""
+				if s.IssueCode != nil {
+					issueCode = *s.IssueCode
+				}
+				msg = fmt.Sprintf("✅ Груз %s готов к выдаче на станции %s!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
 			}
-			msg = fmt.Sprintf("✅ Груз %s готов к выдаче на станции %s!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
 		case model.ShipmentIssued:
 			msg = fmt.Sprintf("🎉 Груз %s успешно выдан. Спасибо, что воспользовались нашими услугами!", s.ShipmentNumber)
 		case model.ShipmentPickedUp:
@@ -716,6 +733,7 @@ func (s *ShipmentService) ListLoadedForTransit(ctx context.Context, delay time.D
 }
 
 func (s *ShipmentService) ListCourierTasks(ctx context.Context, station string) ([]model.Shipment, error) {
+	station = strings.TrimSpace(station)
 	items, err := s.repo.ListShipmentsByOriginStation(ctx, station)
 	if err != nil {
 		return nil, err

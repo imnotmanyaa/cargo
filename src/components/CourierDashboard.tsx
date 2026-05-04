@@ -95,7 +95,10 @@ export function CourierDashboard() {
         let status: 'pending' | 'in_progress' | 'picked_up' | 'completed' | 'cancelled' | 'delivery_assigned' = 'pending';
         
         // Determine type based on station matching
-        if (sh.to_station === user?.station) {
+        const shToStation = (sh.to_station || '').trim().toLowerCase();
+        const userStation = (user?.station || '').trim().toLowerCase();
+
+        if (shToStation === userStation) {
           type = 'delivery';
         } else {
           type = 'pickup';
