@@ -143,7 +143,9 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "Неверный PIN-код")
 		return
 	}
-	shipment, err := s.services.Shipments.IssueWithVerification(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name, service.IssueRequest{})
+	shipment, err := s.services.Shipments.IssueWithVerification(r.Context(), chi.URLParam(r, "id"), &user.ID, &user.Name, service.IssueRequest{
+		VerificationPin: req.Code,
+	})
 	if err != nil {
 		if errors.Is(err, service.ErrPaymentRequired) {
 			writeError(w, http.StatusPaymentRequired, fmt.Sprintf("Выдача заблокирована: требуется доплата %.0f тг", current.ExtraCharge))

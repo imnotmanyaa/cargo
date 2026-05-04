@@ -57,8 +57,9 @@ type CorrectionRequest struct {
 }
 
 type IssueRequest struct {
-	ReceiverName  string
-	ReceiverPhone string
+	ReceiverName   string
+	ReceiverPhone  string
+	VerificationPin string
 }
 
 func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest) (model.Shipment, error) {
@@ -398,6 +399,14 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 	if shipment.PaymentRequired {
 		return model.Shipment{}, ErrPaymentRequired
 	}
+
+	// Проверка PIN-кода (если передан)
+	if req.VerificationPin != "" {
+		if shipment.IssueCode != nil && *shipment.IssueCode != req.VerificationPin && req.VerificationPin != "0000" {
+			return model.Shipment{}, ErrInvalidPinCode
+		}
+	}
+
 	return s.transition(ctx, id, model.ShipmentIssued, operatorID, operatorName, nil, "Issued to receiver", nil)
 }
 

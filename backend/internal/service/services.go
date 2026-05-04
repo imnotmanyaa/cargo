@@ -21,6 +21,7 @@ var (
 	ErrStationMismatch    = errors.New("station mismatch")
 	ErrInvalidTransition  = errors.New("invalid status transition")
 	ErrInvalidState       = errors.New("invalid state")
+	ErrInvalidPinCode     = errors.New("неверный PIN-код для получения")
 	ErrInsufficientFunds  = errors.New("недостаточно средств на депозите")
 	ErrPaymentRequired    = errors.New("требуется доплата за перевес")
 	ErrValidation         = errors.New("validation error")
