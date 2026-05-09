@@ -214,23 +214,20 @@ export function ScannerTerminal() {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       fontFamily: 'system-ui, sans-serif',
-      padding: '16px',
+      padding: '8px',
       userSelect: 'none',
     }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ fontSize: 14, color: '#64748b', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
-          CargoTrans · Терминал сбора данных
-        </div>
+      <div style={{ textAlign: 'center', marginBottom: 12, marginTop: 4 }}>
         <div style={{ fontSize: 13, color: '#475569' }}>
           {user?.name} · <span style={{ color: '#60a5fa', fontWeight: 600 }}>{user?.station || 'Станция не задана'}</span>
         </div>
       </div>
 
       {/* Status pills */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
         <div style={{
           padding: '6px 14px',
           borderRadius: 999,
@@ -274,8 +271,8 @@ export function ScannerTerminal() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 24,
-        padding: '20px 24px',
+        marginBottom: 12,
+        padding: '12px 16px',
         transition: 'background 0.3s ease',
         border: result?.type === 'station-error' ? '2px solid #a855f7' : '1px solid #334155',
       }}>
@@ -312,8 +309,8 @@ export function ScannerTerminal() {
           placeholder="Наведите сканер на QR-код..."
           style={{
             width: '100%',
-            padding: '20px 24px',
-            fontSize: 20,
+            padding: '12px 16px',
+            fontSize: 18,
             fontFamily: 'monospace',
             letterSpacing: 2,
             borderRadius: 16,
@@ -350,14 +347,10 @@ export function ScannerTerminal() {
         )}
       </div>
 
-      <div style={{ marginTop: 12, fontSize: 12, color: '#334155', textAlign: 'center' }}>
-        Сканер автоматически отправляет данные после считывания QR
-      </div>
-
       {/* Scan history */}
       {history.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 480, marginTop: 24 }}>
-          <div style={{ fontSize: 11, color: '#475569', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+        <div style={{ width: '100%', maxWidth: 480, marginTop: 12 }}>
+          <div style={{ fontSize: 11, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
             История сканов
           </div>
           {history.map(item => (

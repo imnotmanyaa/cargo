@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Package, UserPlus } from 'lucide-react';
+import { LogIn, Package, UserPlus, QrCode } from 'lucide-react';
 import { Register } from './Register';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -213,6 +213,14 @@ export function Login() {
                 <p className="text-xs text-center text-gray-500 mt-4">
                   {t('forIndividualAndCorporate') || 'Для физических и корпоративных клиентов'}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/qr-login'}
+                  className="w-full mt-4 flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium transition-all"
+                >
+                  <QrCode className="w-5 h-5" />
+                  Вход по QR (Сотрудники)
+                </button>
               </div>
             </>
           )}
