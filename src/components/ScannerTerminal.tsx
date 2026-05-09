@@ -98,7 +98,7 @@ export function ScannerTerminal() {
       id: Math.random().toString(36).slice(2),
       time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     };
-    setHistory(prev => [entry, ...prev].slice(0, 2));
+    setHistory(prev => [entry, ...prev].slice(0, 5));
   };
 
   const handleScan = useCallback(async (value: string) => {

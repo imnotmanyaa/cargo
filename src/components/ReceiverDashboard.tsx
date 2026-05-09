@@ -284,7 +284,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         </div>
       ) : (
         /* ── MAIN SCAN VIEW ── */
-        <div className="flex-1 flex flex-col items-center justify-center p-4 max-w-lg w-full mx-auto">
+        <div className="flex-1 flex flex-col items-center justify-start mt-2 p-4 max-w-lg w-full mx-auto">
 
           {/* Scan or Weight Input */}
           {weightMode ? (
