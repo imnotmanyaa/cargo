@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { withApiBase } from '../lib/api-base';
-import { QrCode } from 'lucide-react';
+import { QrCode, Package } from 'lucide-react';
 
 export function QrLogin() {
-  const [message, setMessage] = useState('Ожидание сканирования бейджа...');
+  const [message, setMessage] = useState('Наведите сканер на ваш бейдж');
   const [isError, setIsError] = useState(false);
   const [isWaitingForScan, setIsWaitingForScan] = useState(false);
   const [scanValue, setScanValue] = useState('');
@@ -123,74 +123,79 @@ export function QrLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 font-sans text-white">
-      <div className="w-full max-w-sm text-center">
-        
-        <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg border border-gray-700">
-          {isError ? (
-            <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : isWaitingForScan ? (
-            <QrCode className="w-10 h-10 text-blue-400" />
-          ) : (
-            <svg className="w-10 h-10 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-            </svg>
-          )}
-        </div>
-        
-        <h1 className="text-2xl font-bold text-gray-100 mb-2">Авторизация ТСД</h1>
-        <p className={`text-sm mb-8 ${isError ? 'text-red-400' : 'text-gray-400'}`}>{message}</p>
-
-        {isWaitingForScan && (
-          <div className="relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={scanValue}
-              onChange={(e) => setScanValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={!isWaitingForScan}
-              className="w-full px-4 py-4 bg-gray-800 border-2 border-blue-500 rounded-xl text-center text-lg text-white font-mono focus:outline-none focus:ring-0 focus:border-blue-400 transition-colors shadow-inner"
-              placeholder="СКАНИРУЙТЕ БЕЙДЖ..."
-              autoFocus
-            />
-            {scanValue && (
-              <button
-                onClick={() => performLogin(scanValue.trim())}
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-bold shadow"
-              >
-                ВХОД
-              </button>
-            )}
-            <p className="mt-4 text-xs text-gray-500">
-              Нажмите жёлтую кнопку на терминале Zebra для сканирования QR-кода на вашей ID-карте
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
+            <Package className="w-10 h-10 text-white" />
           </div>
-        )}
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">CargoTrans</h1>
+          <p className="text-gray-600">Система управления грузоперевозками</p>
+        </div>
 
-        {(!isWaitingForScan && isError) && (
-          <button
-            onClick={() => {
-              setIsError(false);
-              setMessage('Ожидание сканирования бейджа...');
-              setScanValue('');
-              setIsWaitingForScan(true);
-            }}
-            className="mt-6 px-6 py-3 bg-gray-800 border border-gray-600 text-white rounded-xl text-sm font-medium hover:bg-gray-700 w-full transition-colors"
-          >
-            СКАНИРОВАТЬ СНОВА
-          </button>
-        )}
-        
-        <button
-          onClick={() => window.location.href = '/'}
-          className="mt-6 px-4 py-2 text-gray-500 hover:text-gray-300 text-sm underline underline-offset-4"
-        >
-          Вернуться на главную
-        </button>
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-center relative overflow-hidden">
+          
+          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            {isError ? (
+              <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : isWaitingForScan ? (
+              <QrCode className="w-10 h-10 text-blue-600" />
+            ) : (
+              <svg className="w-10 h-10 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            )}
+          </div>
+          
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Авторизация ТСД</h2>
+          <p className={`text-sm mb-6 ${isError ? 'text-red-600 font-medium' : 'text-gray-500'}`}>{message}</p>
+
+          {isWaitingForScan && (
+            <div className="relative mb-6">
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="none" 
+                value={scanValue}
+                onChange={(e) => setScanValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={!isWaitingForScan}
+                className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl text-center text-gray-700 font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="СКАНИРУЙТЕ БЕЙДЖ..."
+                autoFocus
+              />
+              <p className="mt-4 text-xs text-gray-500">
+                Нажмите жёлтую кнопку на терминале Zebra для считывания QR-кода
+              </p>
+            </div>
+          )}
+
+          {(!isWaitingForScan && isError) && (
+            <button
+              onClick={() => {
+                setIsError(false);
+                setMessage('Наведите сканер на ваш бейдж');
+                setScanValue('');
+                setIsWaitingForScan(true);
+              }}
+              className="mt-2 px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 w-full transition-colors"
+            >
+              СКАНИРОВАТЬ СНОВА
+            </button>
+          )}
+          
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <button
+              onClick={() => window.location.href = '/'}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+            >
+              Вернуться на главную
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
