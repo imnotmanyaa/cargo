@@ -216,46 +216,46 @@ export function ScannerTerminal() {
       alignItems: 'center',
       justifyContent: 'flex-start',
       fontFamily: 'system-ui, sans-serif',
-      padding: '8px',
+      padding: '4px 8px',
       userSelect: 'none',
     }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 12, marginTop: 4 }}>
-        <div style={{ fontSize: 13, color: '#475569' }}>
+      <div style={{ textAlign: 'center', marginBottom: 4, marginTop: 2 }}>
+        <div style={{ fontSize: 12, color: '#475569' }}>
           {user?.name} · <span style={{ color: '#60a5fa', fontWeight: 600 }}>{user?.station || 'Станция не задана'}</span>
         </div>
       </div>
 
       {/* Status pills */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
         <div style={{
-          padding: '6px 14px',
+          padding: '2px 8px',
           borderRadius: 999,
           background: isOnline ? '#14532d' : '#7c2d12',
           color: isOnline ? '#86efac' : '#fca5a5',
-          fontSize: 13,
+          fontSize: 11,
           fontWeight: 600,
         }}>
           {isOnline ? 'Онлайн' : 'Оффлайн'}
         </div>
         {pendingCount > 0 && (
           <div style={{
-            padding: '6px 14px',
+            padding: '2px 8px',
             borderRadius: 999,
             background: '#78350f',
             color: '#fde68a',
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: 600,
           }}>
             Ожидает синхронизации: {pendingCount}
           </div>
         )}
         <div style={{
-          padding: '6px 14px',
+          padding: '2px 8px',
           borderRadius: 999,
           background: '#1e3a5f',
           color: '#93c5fd',
-          fontSize: 13,
+          fontSize: 11,
         }}>
           Сканов за смену: {scanCount}
         </div>
@@ -265,30 +265,30 @@ export function ScannerTerminal() {
       <div style={{
         width: '100%',
         maxWidth: 480,
-        minHeight: 80,
-        borderRadius: 16,
+        minHeight: 50,
+        borderRadius: 12,
         background: result ? resultBg : '#1e293b',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 12,
-        padding: '12px 16px',
+        marginBottom: 6,
+        padding: '8px 12px',
         transition: 'background 0.3s ease',
         border: result?.type === 'station-error' ? '2px solid #a855f7' : '1px solid #334155',
       }}>
         {result ? (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: result.type === 'station-error' ? 16 : 22, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
+            <div style={{ fontSize: result.type === 'station-error' ? 14 : 18, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
               {result.message}
             </div>
             {result.status && (
-              <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
                 Статус: {result.status}
               </div>
             )}
           </div>
         ) : (
-          <div style={{ fontSize: 16, color: '#475569', textAlign: 'center' }}>
+          <div style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
             {isProcessing ? 'Обрабатывается...' : 'Ожидание сканирования...'}
           </div>
         )}
@@ -309,11 +309,11 @@ export function ScannerTerminal() {
           placeholder="Наведите сканер на QR-код..."
           style={{
             width: '100%',
-            padding: '12px 16px',
-            fontSize: 18,
+            padding: '8px 12px',
+            fontSize: 15,
             fontFamily: 'monospace',
-            letterSpacing: 2,
-            borderRadius: 16,
+            letterSpacing: 1,
+            borderRadius: 12,
             border: '2px solid',
             borderColor: isProcessing ? '#334155' : '#3b82f6',
             background: '#1e293b',
@@ -349,8 +349,8 @@ export function ScannerTerminal() {
 
       {/* Scan history */}
       {history.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 480, marginTop: 12 }}>
-          <div style={{ fontSize: 11, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
+        <div style={{ width: '100%', maxWidth: 480, marginTop: 8 }}>
+          <div style={{ fontSize: 10, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
             История сканов
           </div>
           {history.map(item => (
@@ -358,14 +358,14 @@ export function ScannerTerminal() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '8px 12px',
-              borderRadius: 8,
+              padding: '4px 8px',
+              borderRadius: 6,
               background: '#1e293b',
-              marginBottom: 4,
+              marginBottom: 2,
               borderLeft: `3px solid ${historyColor(item.type)}`,
             }}>
-              <span style={{ fontSize: 13, color: '#94a3b8', fontFamily: 'monospace' }}>{item.shipmentId}</span>
-              <span style={{ fontSize: 11, color: '#475569' }}>{item.time}</span>
+              <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{item.shipmentId}</span>
+              <span style={{ fontSize: 10, color: '#475569' }}>{item.time}</span>
             </div>
           ))}
         </div>
