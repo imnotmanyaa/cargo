@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"cargo/backend/internal/config"
 	"cargo/backend/internal/model"
@@ -33,18 +34,22 @@ type Server struct {
 	services service.Services
 	router   chi.Router
 	socket   *socketio.Server
+	pool     *pgxpool.Pool
 
 	clients map[string]*rate.Limiter
 	mu      sync.Mutex
 }
 
-func NewServer(cfg config.Config, services service.Services) (*Server, error) {
+func NewServer(cfg config.Config, services service.Services, pool ...*pgxpool.Pool) (*Server, error) {
 	socket := socketio.NewServer(nil)
 	s := &Server{
 		cfg:      cfg,
 		services: services,
 		socket:   socket,
 		clients:  make(map[string]*rate.Limiter),
+	}
+	if len(pool) > 0 {
+		s.pool = pool[0]
 	}
 	s.setupSocket()
 	s.router = s.routes()
@@ -115,6 +120,8 @@ func (s *Server) routes() chi.Router {
 		// WhatsApp debug endpoints (admin only in production)
 		api.Get("/whatsapp/status", s.handleWhatsAppStatus)
 		api.Post("/whatsapp/test", s.handleWhatsAppTest)
+		// Admin: database cleanup
+		api.Post("/admin/cleanup", s.handleAdminCleanup)
 	})
 	return r
 }

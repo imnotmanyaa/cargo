@@ -27,7 +27,7 @@ func main() {
 	repo := postgres.NewRepository(db.Pool())
 	ctx := context.Background()
 	services := service.NewServices(repo, cfg.JWTSecret)
-	server, err := api.NewServer(cfg, services)
+	server, err := api.NewServer(cfg, services, db.Pool())
 	if err != nil {
 		log.Fatalf("create server: %v", err)
 	}
