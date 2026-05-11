@@ -233,13 +233,12 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
               )}
               {shipment.payment_required && (
                 <div className={`mt-4 p-4 rounded-xl border ${isDark ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-100'}`}>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <span className={`text-sm font-semibold ${isDark ? 'text-red-400' : 'text-red-700'}`}>Требуется доплата за перевес</span>
                     <span className={`text-lg font-bold ${isDark ? 'text-red-300' : 'text-red-800'}`}>{shipment.extra_charge} ₸</span>
                   </div>
                   <button
                     onClick={async () => {
-                      if (!window.confirm('Оплатить доплату с вашего баланса?')) return;
                       try {
                         const token = localStorage.getItem('token');
                         const res = await fetch(withApiBase(`/api/shipments/${shipment.id}/clear-payment`), {
@@ -250,14 +249,14 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
                           alert('Доплата успешно произведена!');
                           onPaymentSuccess?.();
                         } else {
-                          const err = await res.json();
+                          const err = await res.json().catch(() => ({}));
                           alert(err.error || 'Ошибка оплаты');
                         }
                       } catch {
                         alert('Ошибка сети');
                       }
                     }}
-                    className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-red-600/20"
+                    className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors"
                   >
                     Оплатить сейчас
                   </button>
