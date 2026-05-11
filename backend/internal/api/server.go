@@ -122,6 +122,7 @@ func (s *Server) routes() chi.Router {
 		api.Post("/whatsapp/test", s.handleWhatsAppTest)
 		// Admin: database cleanup
 		api.Post("/admin/cleanup", s.handleAdminCleanup)
+		api.Post("/admin/force-cleanup", s.handleAdminForceCleanup)
 	})
 	return r
 }
