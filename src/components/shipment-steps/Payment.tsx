@@ -27,8 +27,8 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
 
   const total = calculateShipmentCost({
     ...data,
-    isFragile: data.value?.toLowerCase().includes('хрупк') || data.description?.toLowerCase().includes('хрупк'),
-    isOversized: data.value?.toLowerCase().includes('негабарит') || data.description?.toLowerCase().includes('негабарит')
+    isFragile: data.isFragile,
+    isOversized: data.isOversized
   }) || 0;
   const isLegal = data.clientType === 'legal';
   const isManagerFlow = user?.role === 'manager' || user?.role === 'admin';

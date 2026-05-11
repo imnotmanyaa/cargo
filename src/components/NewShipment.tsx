@@ -79,8 +79,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       fromStation: shipmentData.fromStation,
       toStation: shipmentData.toStation,
       weight: shipmentData.weight,
-      isFragile: shipmentData.value?.toLowerCase().includes('хрупк') || shipmentData.description?.toLowerCase().includes('хрупк'),
-      isOversized: shipmentData.value?.toLowerCase().includes('негабарит') || shipmentData.description?.toLowerCase().includes('негабарит'),
+      isFragile: shipmentData.isFragile,
+      isOversized: shipmentData.isOversized,
       hasTicket: false, // Currently not asked on single page form, left default
       isDoorToDoor: shipmentData.isDoorToDoor,
       clientType: shipmentData.clientType
@@ -97,6 +97,10 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     if (isSubmitting) return; // prevent double submission
     if (sameFromTo) {
       alert(t('errorSameStation') || 'Пункты отправления и назначения не могут совпадать.');
+      return;
+    }
+    if (parseFloat(shipmentData.weight || '0') > 50) {
+      alert('Максимальный вес посылки — 50 кг');
       return;
     }
     setIsSubmitting(true);
@@ -120,7 +124,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           departure_date: new Date().toISOString(),
           weight: shipmentData.weight,
           dimensions: '',
-          description: shipmentData.description,
+          description: `${shipmentData.description}${shipmentData.isFragile ? ' [Хрупкий]' : ''}${shipmentData.isOversized ? ' [Негабаритный]' : ''}`,
           value: shipmentData.value,
           cost: calculateCost(),
           quantity_places: shipmentData.quantityPlaces || 1,

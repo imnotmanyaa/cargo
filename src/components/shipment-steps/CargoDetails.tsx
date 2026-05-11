@@ -18,11 +18,14 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
     fromStation: data.fromStation,
     toStation: data.toStation,
     weight: data.weight,
-    isFragile: data.value?.toLowerCase().includes('хрупк') || data.description?.toLowerCase().includes('хрупк'),
-    isOversized: data.value?.toLowerCase().includes('негабарит') || data.description?.toLowerCase().includes('негабарит'),
+    isFragile: data.isFragile,
+    isOversized: data.isOversized,
     isDoorToDoor: data.isDoorToDoor,
     clientType: data.clientType
   });
+
+  const weightNum = parseFloat(data.weight || '0');
+  const isOverweight = weightNum > 50;
 
   const input = `w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
     isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'
@@ -74,11 +77,18 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
               type="number"
               value={data.weight}
               onChange={(e) => onUpdate({ weight: e.target.value })}
-              className={input}
+              className={`${input} ${isOverweight ? 'border-red-500 focus:ring-red-500' : ''}`}
               placeholder="0"
               min="0"
+              max="50"
               step="0.1"
             />
+            {isOverweight && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-red-600">
+                <AlertCircle className="w-4 h-4" />
+                <span>Максимальный вес — 50 кг</span>
+              </div>
+            )}
           </div>
           <div>
             <label className={label}>{t('quantityPlaces')}</label>
@@ -191,7 +201,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
           </button>
           <button
             onClick={onNext}
-            disabled={!data.weight || !data.quantityPlaces || !data.packaging}
+            disabled={!data.weight || !data.quantityPlaces || !data.packaging || isOverweight}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}
