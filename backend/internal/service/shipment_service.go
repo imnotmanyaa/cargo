@@ -163,17 +163,23 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		NewValue:     ptr(string(created.ShipmentStatus)),
 		CreatedAt:    now,
 	})
-	// Notify receiver immediately with their issue PIN code
-	if created.ReceiverPhone != nil && *created.ReceiverPhone != "" && created.IssueCode != nil {
-		go whatsapp.SendMessage(*created.ReceiverPhone,
-			fmt.Sprintf("Для вас создана посылка %s (от %s до %s).\nПри получении назовите PIN-код: *%s*\nНомер для отслеживания: %s",
-				created.ShipmentNumber, created.FromStation, created.ToStation, *created.IssueCode, created.ShipmentNumber))
-	}
-	// For door-to-door: notify sender with their pickup PIN code
-	if created.IsDoorToDoor && created.DoorToDoorPhone != nil && *created.DoorToDoorPhone != "" && created.PickupCode != nil {
-		go whatsapp.SendMessage(*created.DoorToDoorPhone,
-			fmt.Sprintf("Оформлен забор груза %s. Курьер скоро свяжется с вами.\nДля передачи груза курьеру назовите PIN-код: *%s*",
-				created.ShipmentNumber, *created.PickupCode))
+	// Уведомление отправителю при создании (без PIN-кода)
+	if created.IsDoorToDoor {
+		senderPhone := ""
+		if created.DoorToDoorPhone != nil && *created.DoorToDoorPhone != "" {
+			senderPhone = *created.DoorToDoorPhone
+		} else if created.SenderPhone != nil && *created.SenderPhone != "" {
+			senderPhone = *created.SenderPhone
+		}
+		if senderPhone != "" {
+			receiverInfo := ""
+			if created.ReceiverName != nil && *created.ReceiverName != "" {
+				receiverInfo = fmt.Sprintf("\nПолучатель: %s", *created.ReceiverName)
+			}
+			go whatsapp.SendMessage(senderPhone,
+				fmt.Sprintf("Ваша посылка %s оформлена.\nМаршрут: %s → %s%s\nОжидайте курьера для забора груза.",
+					created.ShipmentNumber, created.FromStation, created.ToStation, receiverInfo))
+		}
 	}
 	return created, nil
 }
@@ -368,9 +374,15 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 		return shipment, nil, nil
 	}
 
+	// WhatsApp уведомление получателю о прибытии (без PIN — PIN придёт когда курьер возьмёт задание)
+	if shipment.IsDoorToDoor && shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
+		go whatsapp.SendMessage(*shipment.ReceiverPhone,
+			fmt.Sprintf("Ваш груз %s прибыл в город %s. Курьер скоро свяжется с вами для доставки.",
+				shipment.ShipmentNumber, station))
+	}
+
 	if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentArrived {
 		// Автоматически переводим в READY_FOR_ISSUE, чтобы курьер увидел задачу
-		// Сообщение в WhatsApp отправится автоматически внутри transition()
 		shipment, err = s.transition(ctx, id, model.ShipmentReadyForIssue, operatorID, operatorName, &station, "Ready for delivery task", nil)
 		if err != nil {
 			return model.Shipment{}, nil, err
@@ -804,7 +816,9 @@ func (s *ShipmentService) CourierTakeTask(ctx context.Context, id string, operat
 	}
 	res, err := s.transition(ctx, id, nextStatus, operatorID, operatorName, nil, "Courier took task", nil)
 	if err == nil && res.PickupCode != nil && res.DoorToDoorPhone != nil && *res.DoorToDoorPhone != "" {
-		go whatsapp.SendMessage(*res.DoorToDoorPhone, "К вам выехал курьер за грузом "+res.ShipmentNumber+". Ваш PIN-код для передачи груза: "+*res.PickupCode)
+		go whatsapp.SendMessage(*res.DoorToDoorPhone,
+			fmt.Sprintf("🚚 К вам выехал курьер за грузом %s.\nКогда он приедет, назовите ему код: *%s*",
+				res.ShipmentNumber, *res.PickupCode))
 	}
 	return res, err
 }
@@ -852,11 +866,12 @@ func (s *ShipmentService) CourierTakeDeliveryTask(ctx context.Context, id string
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	// Уведомляем получателя
-	if res.ReceiverPhone != nil && *res.ReceiverPhone != "" {
+	// Уведомляем получателя с PIN-кодом для получения
+	if res.ReceiverPhone != nil && *res.ReceiverPhone != "" && res.IssueCode != nil {
 		go func() {
 			_ = whatsapp.SendMessage(*res.ReceiverPhone,
-				fmt.Sprintf("🚚 Курьер скоро доставит ваш груз %s. Подготовьте PIN-код для получения.", res.ShipmentNumber))
+				fmt.Sprintf("🚚 Курьер едет к вам с грузом %s.\nНазовите ему код: *%s*",
+					res.ShipmentNumber, *res.IssueCode))
 		}()
 	}
 	return res, nil
@@ -1117,6 +1132,20 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 	case req.QuantityPlaces <= 0:
 		return fmt.Errorf("%w: quantity_places must be greater than zero", ErrValidation)
 	}
+
+	// Получатель обязателен для всех клиентов
+	if req.ReceiverName == nil || strings.TrimSpace(*req.ReceiverName) == "" {
+		return fmt.Errorf("%w: имя получателя обязательно к заполнению", ErrValidation)
+	}
+	if req.ReceiverPhone == nil || strings.TrimSpace(*req.ReceiverPhone) == "" {
+		return fmt.Errorf("%w: телефон получателя обязателен к заполнению", ErrValidation)
+	}
+
+	// Максимальный вес — 50 кг
+	if w := parseWeightKg(req.Weight); w > 50 {
+		return fmt.Errorf("%w: максимальный вес посылки — 50 кг", ErrValidation)
+	}
+
 	return nil
 }
 
