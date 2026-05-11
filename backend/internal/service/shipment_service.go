@@ -145,6 +145,13 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	if err != nil {
 		return model.Shipment{}, err
 	}
+
+	// Уведомляем отправителя о создании
+	if created.SenderPhone != nil && *created.SenderPhone != "" {
+		go func(p, num string) {
+			_ = whatsapp.SendMessage(p, fmt.Sprintf("✅ Ваш груз %s успешно оформлен. Статус: %s", num, string(created.ShipmentStatus)))
+		}(*created.SenderPhone, created.ShipmentNumber)
+	}
 	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{
 		ShipmentID: created.ID,
 		Action:     "Created",
@@ -754,9 +761,50 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 			msg = fmt.Sprintf("🎉 Груз %s успешно выдан. Спасибо, что воспользовались нашими услугами!", s.ShipmentNumber)
 		case model.ShipmentPickedUp:
 			msg = fmt.Sprintf("📬 Курьер забрал ваш груз %s. Он скоро поступит на склад для отправки.", s.ShipmentNumber)
+		case model.ShipmentPickupAssigned:
+			// Уведомление для отправителя о выезде курьера за грузом
+			issueCode := ""
+			if s.PickupCode != nil {
+				issueCode = *s.PickupCode
+			}
+			msg = fmt.Sprintf("🚚 К вам выехал курьер за грузом %s.\nКогда он приедет, назовите ему код: *%s*", s.ShipmentNumber, issueCode)
+		case model.ShipmentDeliveryAssigned:
+			// Уведомление для получателя о выезде курьера для доставки
+			issueCode := ""
+			if s.IssueCode != nil {
+				issueCode = *s.IssueCode
+			}
+			msg = fmt.Sprintf("🚚 Курьер едет к вам с грузом %s.\nНазовите ему код: *%s*", s.ShipmentNumber, issueCode)
 		}
 		if msg != "" {
-			_ = whatsapp.SendMessage(phone, msg)
+			// ОПРЕДЕЛЯЕМ КОМУ ОТПРАВЛЯТЬ
+			targetPhone := ""
+			if newStatus == model.ShipmentPickupAssigned {
+				// Отправителю
+				if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
+					targetPhone = *s.DoorToDoorPhone
+				} else if s.SenderPhone != nil && *s.SenderPhone != "" {
+					targetPhone = *s.SenderPhone
+				}
+			} else if newStatus == model.ShipmentDeliveryAssigned || newStatus == model.ShipmentArrived || newStatus == model.ShipmentReadyForIssue || newStatus == model.ShipmentOutForDelivery {
+				// Получателю
+				if s.ReceiverPhone != nil && *s.ReceiverPhone != "" {
+					targetPhone = *s.ReceiverPhone
+				} else if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
+					targetPhone = *s.DoorToDoorPhone
+				}
+			} else {
+				// По умолчанию (например, статус Создано или Выдано) — отправителю
+				if s.SenderPhone != nil && *s.SenderPhone != "" {
+					targetPhone = *s.SenderPhone
+				} else if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
+					targetPhone = *s.DoorToDoorPhone
+				}
+			}
+
+			if targetPhone != "" {
+				_ = whatsapp.SendMessage(targetPhone, msg)
+			}
 		}
 	}(updated, next)
 	return updated, nil
@@ -851,13 +899,7 @@ func (s *ShipmentService) CourierTakeTask(ctx context.Context, id string, operat
 		// If already assigned (e.g. PAID), keep as pickup assigned by force through history only
 		return s.transition(ctx, id, shipment.ShipmentStatus, operatorID, operatorName, nil, "Courier took task", nil)
 	}
-	res, err := s.transition(ctx, id, nextStatus, operatorID, operatorName, nil, "Courier took task", nil)
-	if err == nil && res.PickupCode != nil && res.DoorToDoorPhone != nil && *res.DoorToDoorPhone != "" {
-		go whatsapp.SendMessage(*res.DoorToDoorPhone,
-			fmt.Sprintf("🚚 К вам выехал курьер за грузом %s.\nКогда он приедет, назовите ему код: *%s*",
-				res.ShipmentNumber, *res.PickupCode))
-	}
-	return res, err
+	return s.transition(ctx, id, nextStatus, operatorID, operatorName, nil, "Courier took task", nil)
 }
 
 func (s *ShipmentService) CourierDeliveryConfirm(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
@@ -899,19 +941,7 @@ func (s *ShipmentService) CourierTakeDeliveryTask(ctx context.Context, id string
 	if shipment.ShipmentStatus != model.ShipmentReadyForIssue {
 		return model.Shipment{}, fmt.Errorf("%w: посылка должна быть в статусе «Готово к выдаче»", ErrInvalidState)
 	}
-	res, err := s.transition(ctx, id, model.ShipmentDeliveryAssigned, operatorID, operatorName, nil, "Courier took delivery task", nil)
-	if err != nil {
-		return model.Shipment{}, err
-	}
-	// Уведомляем получателя с PIN-кодом для получения
-	if res.ReceiverPhone != nil && *res.ReceiverPhone != "" && res.IssueCode != nil {
-		go func() {
-			_ = whatsapp.SendMessage(*res.ReceiverPhone,
-				fmt.Sprintf("🚚 Курьер едет к вам с грузом %s.\nНазовите ему код: *%s*",
-					res.ShipmentNumber, *res.IssueCode))
-		}()
-	}
-	return res, nil
+	return s.transition(ctx, id, model.ShipmentDeliveryAssigned, operatorID, operatorName, nil, "Courier took delivery task", nil)
 }
 
 // CourierPickupFromBranch — приемосдатчик подтверждает выдачу посылки курьеру в отделении назначения.
