@@ -1,6 +1,7 @@
 import { ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { calculateShipmentCost } from '../../lib/tariff';
+import { useMemo } from 'react';
 
 interface CargoDetailsProps {
   data: any;
@@ -14,7 +15,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
   const { t } = useLanguage();
   const isDark = theme === 'dark';
 
-  const price = calculateShipmentCost({
+  const price = useMemo(() => calculateShipmentCost({
     fromStation: data.fromStation,
     toStation: data.toStation,
     weight: data.weight,
@@ -22,7 +23,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
     isOversized: data.isOversized,
     isDoorToDoor: data.isDoorToDoor,
     clientType: data.clientType
-  });
+  }), [data.fromStation, data.toStation, data.weight, data.isFragile, data.isOversized, data.isDoorToDoor, data.clientType]);
 
   const weightNum = parseFloat(data.weight || '0');
   const isOverweight = weightNum > 50;

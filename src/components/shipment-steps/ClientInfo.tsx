@@ -41,11 +41,11 @@ export function ClientInfo({
   const { t } = useLanguage();
   const { user } = useAuth();
   const [isReceiverDifferent, setIsReceiverDifferent] = useState(() => !!data.receiverName || !!data.receiverPhone);
-  const [isDoorToDoor, setIsDoorToDoor] = useState(() => !!data.isDoorToDoor);
   const [corporateClients, setCorporateClients] = useState<CorporateClient[]>([]);
   const [frequentClients, setFrequentClients] = useState<FrequentClient[]>([]);
 
   const normalizeStation = (v: string) => v.trim().toLowerCase();
+  const effectivelyDoorToDoor = data.isDoorToDoor || user?.role === 'individual';
   const sameFromTo =
     Boolean(data.fromStation) &&
     Boolean(data.toStation) &&
@@ -109,7 +109,6 @@ export function ClientInfo({
       updates.clientPhone = user.phone || '';
       updates.clientSource = 'direct';
       updates.isDoorToDoor = true;
-      setIsDoorToDoor(true);
     } else if (user.role === 'corporate') {
       updates.clientId = user.id;
       updates.clientType = 'legal';
@@ -480,12 +479,11 @@ export function ClientInfo({
             <label className="flex items-center mb-4">
               <input
                 type="checkbox"
-                checked={user?.role === 'individual' ? true : isDoorToDoor}
+                checked={effectivelyDoorToDoor}
                 disabled={user?.role === 'individual'}
                 onChange={(e) => {
                   if (user?.role === 'individual') return;
-                  setIsDoorToDoor(e.target.checked);
-                  onUpdate({ isDoorToDoor: e.target.checked, pickupAddress: '', deliveryAddress: '', doorToDoorPhone: '' });
+                  onUpdate({ isDoorToDoor: e.target.checked });
                 }}
                 className={`w-4 h-4 rounded ${user?.role === 'individual' ? 'text-blue-400 bg-gray-100 cursor-not-allowed' : 'text-blue-600'}`}
               />
@@ -497,44 +495,47 @@ export function ClientInfo({
               </span>
             </label>
 
-            {(user?.role === 'individual' || isDoorToDoor) && (
+            {(effectivelyDoorToDoor) && (
               <div className={`p-4 rounded-lg border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                 <div className="grid gap-4">
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {t('pickupAddress')}
+                      {t('pickupAddress')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                        value={data.pickupAddress || ''}
                       onChange={(e) => onUpdate({ pickupAddress: e.target.value })}
                       placeholder={t('pickupPlaceholder') || "Например: ул. Абая 12, кв. 5"}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'} ${effectivelyDoorToDoor && !data.pickupAddress ? 'border-red-500' : ''}`}
                     />
+                    {effectivelyDoorToDoor && !data.pickupAddress && <p className="mt-1 text-xs text-red-500">Адрес забора обязателен</p>}
                   </div>
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {t('deliveryAddress')}
+                      {t('deliveryAddress')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                        value={data.deliveryAddress || ''}
                       onChange={(e) => onUpdate({ deliveryAddress: e.target.value })}
                       placeholder={t('deliveryPlaceholder') || "Например: пр. Достык 88, офис 301"}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'} ${effectivelyDoorToDoor && !data.deliveryAddress ? 'border-red-500' : ''}`}
                     />
+                    {effectivelyDoorToDoor && !data.deliveryAddress && <p className="mt-1 text-xs text-red-500">Адрес доставки обязателен</p>}
                   </div>
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {t('courierPhone')}
+                      {t('courierPhone')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
                       value={data.doorToDoorPhone || ''}
                       onChange={(e) => onUpdate({ doorToDoorPhone: e.target.value })}
                       placeholder="+7 ___ ___ ____"
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'} ${effectivelyDoorToDoor && !data.doorToDoorPhone ? 'border-red-500' : ''}`}
                     />
+                    {effectivelyDoorToDoor && !data.doorToDoorPhone && <p className="mt-1 text-xs text-red-500">Телефон для связи обязателен</p>}
                   </div>
                 </div>
               </div>
@@ -602,7 +603,14 @@ export function ClientInfo({
         <div className="flex justify-end pt-4">
           <button
             onClick={onNext}
-            disabled={!data.clientName || !data.fromStation || !data.toStation || sameFromTo || ((user?.role === 'manager' || user?.role === 'admin') && !data.clientPhone)}
+            disabled={
+              !data.clientName || 
+              !data.fromStation || 
+              !data.toStation || 
+              sameFromTo || 
+              ((user?.role === 'manager' || user?.role === 'admin') && !data.clientPhone) ||
+              (effectivelyDoorToDoor && (!data.pickupAddress?.trim() || !data.deliveryAddress?.trim() || !data.doorToDoorPhone?.trim()))
+            }
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}
