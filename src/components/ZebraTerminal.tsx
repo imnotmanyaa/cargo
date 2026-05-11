@@ -242,9 +242,20 @@ export function ZebraTerminal() {
       <input
         ref={inputRef}
         type="text"
+        inputMode="none"
         value={scanValue}
-        onChange={(e) => setScanValue(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter' && scanValue.trim()) doScan(scanValue); }}
+        onChange={(e) => {
+          const val = e.target.value;
+          setScanValue(val);
+          // Auto-submit after short pause (hardware scanners type fast then stop)
+          if (val.trim().length > 5) {
+            clearTimeout((inputRef.current as any)?._autoTimer);
+            (inputRef.current as any)._autoTimer = setTimeout(() => {
+              if (val.trim()) doScan(val);
+            }, 300);
+          }
+        }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && scanValue.trim()) { clearTimeout((inputRef.current as any)?._autoTimer); doScan(scanValue); } }}
         placeholder={t('mobileGroupScanPlaceholder')}
         disabled={isLoading}
         style={s.inputBox}
