@@ -251,7 +251,15 @@ func (s *ShipmentService) CourierHandover(ctx context.Context, id string, operat
 }
 
 func (s *ShipmentService) ReadyForLoading(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
-	return s.transition(ctx, id, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading", nil)
+	res, err := s.transition(ctx, id, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading", nil)
+	if err != nil {
+		return res, err
+	}
+	// WhatsApp: уведомление обоим клиентам — посылка принята в багажное отделение
+	go s.notifyBothClients(res,
+		fmt.Sprintf("📦 Ваша посылка %s принята в багажное отделение на станции %s.", res.ShipmentNumber, res.FromStation),
+		fmt.Sprintf("📦 Посылка %s для вас принята в багажное отделение. Маршрут: %s → %s.", res.ShipmentNumber, res.FromStation, res.ToStation))
+	return res, nil
 }
 
 func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, operatorName, station, transportUnitID *string) (model.Shipment, error) {
@@ -277,7 +285,15 @@ func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, opera
 }
 
 func (s *ShipmentService) Dispatch(ctx context.Context, id string, operatorID, operatorName, station *string) (model.Shipment, error) {
-	return s.transition(ctx, id, model.ShipmentInTransit, operatorID, operatorName, station, "Shipment dispatched", nil)
+	res, err := s.transition(ctx, id, model.ShipmentInTransit, operatorID, operatorName, station, "Shipment dispatched", nil)
+	if err != nil {
+		return res, err
+	}
+	// WhatsApp: уведомление обоим клиентам — посылка в пути
+	go s.notifyBothClients(res,
+		fmt.Sprintf("🚂 Ваша посылка %s отправлена и находится в пути. Маршрут: %s → %s.", res.ShipmentNumber, res.FromStation, res.ToStation),
+		fmt.Sprintf("🚂 Посылка %s для вас отправлена и находится в пути (%s → %s).", res.ShipmentNumber, res.FromStation, res.ToStation))
+	return res, nil
 }
 
 func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station string, operatorID, operatorName *string) (model.Shipment, error) {
@@ -374,12 +390,10 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 		return shipment, nil, nil
 	}
 
-	// WhatsApp уведомление получателю о прибытии (без PIN — PIN придёт когда курьер возьмёт задание)
-	if shipment.IsDoorToDoor && shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
-		go whatsapp.SendMessage(*shipment.ReceiverPhone,
-			fmt.Sprintf("Ваш груз %s прибыл в город %s. Курьер скоро свяжется с вами для доставки.",
-				shipment.ShipmentNumber, station))
-	}
+	// WhatsApp уведомление обоим клиентам о прибытии
+	go s.notifyBothClients(shipment,
+		fmt.Sprintf("✅ Ваша посылка %s прибыла в город %s.", shipment.ShipmentNumber, station),
+		fmt.Sprintf("✅ Посылка %s для вас прибыла в город %s.", shipment.ShipmentNumber, station))
 
 	if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentArrived {
 		// Автоматически переводим в READY_FOR_ISSUE, чтобы курьер увидел задачу
@@ -606,6 +620,29 @@ func (s *ShipmentService) LastTransitAtStation(ctx context.Context, shipmentID, 
 	return nil, nil
 }
 
+// notifyBothClients отправляет WhatsApp-уведомления и отправителю, и получателю посылки.
+// senderMsg — текст для отправителя, receiverMsg — текст для получателя.
+func (s *ShipmentService) notifyBothClients(shipment model.Shipment, senderMsg, receiverMsg string) {
+	// Отправитель: DoorToDoorPhone или SenderPhone
+	senderPhone := ""
+	if shipment.DoorToDoorPhone != nil && *shipment.DoorToDoorPhone != "" {
+		senderPhone = *shipment.DoorToDoorPhone
+	} else if shipment.SenderPhone != nil && *shipment.SenderPhone != "" {
+		senderPhone = *shipment.SenderPhone
+	}
+	if senderPhone != "" {
+		_ = whatsapp.SendMessage(senderPhone, senderMsg)
+	}
+
+	// Получатель: ReceiverPhone
+	if shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
+		receiverPhone := *shipment.ReceiverPhone
+		// Не дублировать, если отправитель и получатель — один человек
+		if receiverPhone != senderPhone {
+			_ = whatsapp.SendMessage(receiverPhone, receiverMsg)
+		}
+	}
+}
 func (s *ShipmentService) transition(ctx context.Context, id string, next model.ShipmentLifecycle, operatorID, operatorName, station *string, action string, transportUnitID *string, reason ...*string) (model.Shipment, error) {
 	shipment, err := s.Get(ctx, id)
 	if err != nil {
