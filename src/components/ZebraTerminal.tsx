@@ -230,6 +230,11 @@ export function ZebraTerminal() {
         <div style={s.statCapsule('#dcfce7', '#166534')}>{t('mobileGroupApproved')}: {stats.ok}</div>
         <div style={s.statCapsule('#fee2e2', '#991b1b')}>{t('mobileGroupRejected')}: {stats.fail}</div>
         <div style={s.statCapsule('#fef3c7', '#92400e')}>{t('mobileGroupMismatch')}: {stats.mismatch}</div>
+        {result?.match === false && result?.currentStation && (
+          <div style={{...s.statCapsule('#fee2e2', '#b91c1c'), marginTop: 5, width: '100%', textAlign: 'center', fontSize: '11px', borderRadius: '10px', padding: '4px'}}>
+             Груз сейчас на станции: {result.currentStation}
+          </div>
+        )}
       </div>
 
       {/* Карточка статуса */}

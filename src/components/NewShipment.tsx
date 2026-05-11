@@ -333,6 +333,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
             onNext={handleCreateShipment}
             onBack={() => setCurrentStep('cargo')}
             theme={theme}
+            isSubmitting={isSubmitting}
           />
         );
       case 'documents':

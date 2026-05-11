@@ -17,12 +17,25 @@ import (
 
 func (s *AuthService) Register(ctx context.Context, name, login, password string, role model.Role, company, phone *string) (model.User, string, error) {
 	login = normalizeLogin(login)
+	// Check login
 	_, err := s.repo.GetUserByEmail(ctx, login)
 	if err == nil {
 		return model.User{}, "", ErrDuplicateLogin
 	}
 	if !errors.Is(err, ErrNotFound) {
 		return model.User{}, "", err
+	}
+
+	// Check phone if provided
+	if phone != nil && *phone != "" {
+		normalizedPhone := normalizeLogin(*phone)
+		_, err := s.repo.GetUserByEmail(ctx, normalizedPhone)
+		if err == nil {
+			return model.User{}, "", fmt.Errorf("пользователь с таким номером телефона уже существует")
+		}
+		if !errors.Is(err, ErrNotFound) {
+			return model.User{}, "", err
+		}
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {

@@ -9,9 +9,10 @@ interface PaymentProps {
   onNext: () => void;
   onBack: () => void;
   theme?: 'light' | 'dark';
+  isSubmitting?: boolean;
 }
 
-export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: PaymentProps) {
+export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSubmitting = false }: PaymentProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const isDark = theme === 'dark';
@@ -186,10 +187,10 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light' }: Pay
             onNext();
           }}
           className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400"
-          disabled={isLegal && paymentMethod === 'deposit' && !canUseDeposit}
+          disabled={isSubmitting}
         >
           <CreditCard className="w-5 h-5" />
-          {paymentMethod === 'deposit' ? 'Списать с депозита' : t('payButton')} {total.toLocaleString()} ₸
+          {isSubmitting ? 'Обработка...' : (paymentMethod === 'deposit' ? 'Списать с депозита' : t('payButton'))} {total.toLocaleString()} ₸
         </button>
 
         <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>

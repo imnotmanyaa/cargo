@@ -23,8 +23,11 @@ interface ActiveShipmentDetailsProps {
     delivery_address?: string;
     door_to_door_phone?: string;
     statusColor?: string;
+    payment_required?: boolean;
+    extra_charge?: number;
   };
   onClose: () => void;
+  onRefresh?: () => void;
   theme?: 'light' | 'dark';
 }
 
@@ -245,6 +248,40 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
               <div className="mt-6">
                 <p className={label}>{t('description')}</p>
                 <p className={`mt-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{shipment.description}</p>
+              </div>
+            )}
+
+            {shipment.payment_required && (
+              <div className={`mt-6 p-4 rounded-xl border ${isDark ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-100'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-sm font-semibold ${isDark ? 'text-red-400' : 'text-red-700'}`}>Требуется доплата за перевес</span>
+                  <span className={`text-lg font-bold ${isDark ? 'text-red-300' : 'text-red-800'}`}>{shipment.extra_charge} ₸</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('Подтвердить получение оплаты наличными/картой?')) return;
+                    try {
+                      const token = localStorage.getItem('token');
+                      const res = await fetch(withApiBase(`/api/shipments/${shipment.id}/clear-payment`), {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+                      if (res.ok) {
+                        alert('Оплата подтверждена!');
+                        onRefresh?.();
+                        onClose();
+                      } else {
+                        const err = await res.json();
+                        alert(err.error || 'Ошибка');
+                      }
+                    } catch {
+                      alert('Ошибка сети');
+                    }
+                  }}
+                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-red-600/20"
+                >
+                  Подтвердить оплату
+                </button>
               </div>
             )}
           </div>

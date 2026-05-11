@@ -113,6 +113,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       case 'ARRIVED': return t('statusArrived');
       case 'READY_FOR_ISSUE': return t('statusReadyForIssue');
       case 'DELIVERY_ASSIGNED': return 'Курьер забирает из отделения';
+      case 'OUT_FOR_DELIVERY': return 'Доставляется курьером';
       case 'ISSUED': return t('statusIssued');
       default: return status;
     }
@@ -143,7 +144,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
   const arrivalShipments = applySortAndFilter(s.filter(x => 
     x.to_station === myStation &&
-    ['ARRIVED', 'READY_FOR_ISSUE', 'DELIVERY_ASSIGNED'].includes(x.shipment_status || x.status) &&
+    ['ARRIVED', 'READY_FOR_ISSUE', 'DELIVERY_ASSIGNED', 'OUT_FOR_DELIVERY'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
 
@@ -251,7 +252,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   };
 
   if (selectedShipment) {
-    return <ActiveShipmentDetails shipment={selectedShipment} onClose={() => setSelectedShipment(null)} theme={theme} />;
+    return <ActiveShipmentDetails shipment={selectedShipment} onClose={() => setSelectedShipment(null)} onRefresh={fetchShipments} theme={theme} />;
   }
 
   const renderTabButton = (id: typeof activeTab, label: string, count: number) => (
@@ -430,10 +431,12 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                     <span className={`text-xs font-semibold px-2 py-1 rounded ${
                       s.shipment_status === 'READY_FOR_ISSUE' ? 'bg-green-100 text-green-800' : 
                       s.shipment_status === 'DELIVERY_ASSIGNED' ? 'bg-amber-100 text-amber-800' : 
-                      'bg-blue-100 text-blue-800'
+                      s.shipment_status === 'OUT_FOR_DELIVERY' ? 'bg-blue-100 text-blue-800' : 
+                      'bg-gray-100 text-gray-800'
                     }`}>
                       {s.shipment_status === 'READY_FOR_ISSUE' ? t('statusReadyForIssue') : 
                        s.shipment_status === 'DELIVERY_ASSIGNED' ? 'Курьер забирает' : 
+                       s.shipment_status === 'OUT_FOR_DELIVERY' ? 'В пути к клиенту' :
                        t('statusArrived')}
                     </span>
                   </div>

@@ -169,14 +169,18 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	// Проверка: ожидаемся ли груз на этой станции
+	// Проверка: ожидается ли груз на этой станции в данный момент.
+	// station_match должен быть истинным только если сканер находится на CurrentStation груза,
+	// и при этом груз ещё не выдан.
 	queriedStation := r.URL.Query().Get("station")
 	if queriedStation == "" {
 		queriedStation = user.Station
 	}
-	stationMatch := shipment.CurrentStation == queriedStation ||
-		shipment.FromStation == queriedStation ||
-		shipment.ToStation == queriedStation
+	
+	stationMatch := strings.EqualFold(strings.TrimSpace(shipment.CurrentStation), strings.TrimSpace(queriedStation)) &&
+		shipment.ShipmentStatus != model.ShipmentIssued &&
+		shipment.ShipmentStatus != model.ShipmentClosed &&
+		shipment.ShipmentStatus != model.ShipmentCancelled
 
 	checkedAt := time.Now().UTC()
 	alreadyScannedAtStation := false

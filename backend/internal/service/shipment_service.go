@@ -149,7 +149,7 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	// Уведомляем отправителя о создании
 	if created.SenderPhone != nil && *created.SenderPhone != "" {
 		go func(p, num string) {
-			_ = whatsapp.SendMessage(p, fmt.Sprintf("✅ Ваш груз %s успешно оформлен. Статус: %s", num, string(created.ShipmentStatus)))
+			_ = whatsapp.SendMessage(p, fmt.Sprintf("✅ Ваш груз %s успешно оформлен. Спасибо, что выбрали нас!", num))
 		}(*created.SenderPhone, created.ShipmentNumber)
 	}
 	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{
@@ -761,6 +761,8 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 			msg = fmt.Sprintf("🎉 Груз %s успешно выдан. Спасибо, что воспользовались нашими услугами!", s.ShipmentNumber)
 		case model.ShipmentPickedUp:
 			msg = fmt.Sprintf("📬 Курьер забрал ваш груз %s. Он скоро поступит на склад для отправки.", s.ShipmentNumber)
+		case model.ShipmentReadyForLoading, model.ShipmentAtStationIntake:
+			msg = fmt.Sprintf("📦 Груз %s успешно принят на склад станции %s и ожидает погрузки в вагон.", s.ShipmentNumber, s.CurrentStation)
 		case model.ShipmentPickupAssigned:
 			// Уведомление для отправителя о выезде курьера за грузом
 			issueCode := ""
@@ -911,8 +913,11 @@ func (s *ShipmentService) CourierDeliveryConfirm(ctx context.Context, id string,
 		return model.Shipment{}, fmt.Errorf("%w: delivery confirmation is available only for door-to-door shipments", ErrValidation)
 	}
 	// Курьер может завершить доставку только если уже забрал посылку из отделения (DELIVERY_ASSIGNED)
-	if shipment.ShipmentStatus != model.ShipmentDeliveryAssigned {
+	if shipment.ShipmentStatus != model.ShipmentDeliveryAssigned && shipment.ShipmentStatus != model.ShipmentOutForDelivery {
 		return model.Shipment{}, fmt.Errorf("%w: сначала заберите посылку из отделения", ErrInvalidState)
+	}
+	if shipment.PaymentRequired {
+		return model.Shipment{}, fmt.Errorf("%w: сначала необходимо получить доплату за перевес (%v тг)", ErrPaymentRequired, shipment.ExtraCharge)
 	}
 	return s.transition(ctx, id, model.ShipmentIssued, operatorID, operatorName, nil, "Courier delivery confirmed", nil)
 }

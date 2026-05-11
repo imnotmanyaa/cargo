@@ -537,12 +537,21 @@ func (s *Server) handleClearPayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleManager, model.RoleAdmin); err != nil {
+	shipmentID := chi.URLParam(r, "id")
+	current, err := s.services.Shipments.Get(r.Context(), shipmentID)
+	if err != nil {
 		handleServiceError(w, err)
 		return
 	}
 
-	shipmentID := chi.URLParam(r, "id")
+	isOwner := (user.Role == model.RoleIndividual || user.Role == model.RoleCorporate) && current.ClientID == user.ID
+	isEmployee := user.Role == model.RoleManager || user.Role == model.RoleAdmin
+
+	if !isOwner && !isEmployee {
+		handleServiceError(w, service.ErrForbidden)
+		return
+	}
+
 	shipment, err := s.services.Shipments.ClearPayment(r.Context(), shipmentID)
 	if err != nil {
 		handleServiceError(w, err)

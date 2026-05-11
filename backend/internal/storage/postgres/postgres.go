@@ -120,7 +120,7 @@ func (r *Repository) UpdateUserPassword(ctx context.Context, id, passwordHash st
 }
 
 func (r *Repository) GetUserByEmail(ctx context.Context, login string) (model.User, error) {
-	return scanUser(r.pool.QueryRow(ctx, userSelect+` WHERE login = $1`, login))
+	return scanUser(r.pool.QueryRow(ctx, userSelect+` WHERE login = $1 OR phone = $1`, login))
 }
 
 func (r *Repository) GetUserByID(ctx context.Context, id string) (model.User, error) {
@@ -355,7 +355,16 @@ func (r *Repository) ListShipments(ctx context.Context, filter model.ShipmentFil
 		conditions = append(conditions, fmt.Sprintf("current_station = $%d AND shipment_status IN ('READY_FOR_LOADING','LOADED','IN_TRANSIT')", len(args)))
 	case "arrived":
 		args = append(args, filter.Station)
-		conditions = append(conditions, fmt.Sprintf("current_station = $%d AND shipment_status IN ('ARRIVED', 'READY_FOR_ISSUE')", len(args)))
+		conditions = append(conditions, fmt.Sprintf("current_station = $%d AND shipment_status IN ('ARRIVED', 'READY_FOR_ISSUE', 'DELIVERY_ASSIGNED')", len(args)))
+	case "archived":
+		conditions = append(conditions, "shipment_status IN ('ISSUED', 'CLOSED', 'CANCELLED')")
+		// No station filter for archive - managers see all completed shipments
+	}
+
+	// General station filter if not already handled by Type-specific logic
+	if filter.Station != "" && filter.Type != "incoming" && filter.Type != "outgoing" && filter.Type != "arrived" && filter.Type != "archived" {
+		args = append(args, filter.Station)
+		conditions = append(conditions, fmt.Sprintf("(from_station = $%d OR to_station = $%d OR current_station = $%d OR next_station = $%d)", len(args), len(args), len(args), len(args)))
 	}
 
 	if filter.ClientID != "" && filter.ClientPhone != "" {

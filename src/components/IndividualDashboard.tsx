@@ -23,10 +23,11 @@ interface Shipment {
   value?: string;
   receiver_name?: string;
   receiver_phone?: string;
-  pickup_address?: string;
   delivery_address?: string;
   door_to_door_phone?: string;
   cost: number;
+  payment_required?: boolean;
+  extra_charge?: number;
 }
 
 interface IndividualDashboardProps {
@@ -43,24 +44,25 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    const fetchShipments = async () => {
-      if (!user?.id) return;
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(withApiBase(`/api/shipments?client_id=${user.id}`), {
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setShipments(Array.isArray(data) ? data : []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch shipments', error);
-      } finally {
-        setLoading(false);
+  const fetchShipments = async () => {
+    if (!user?.id) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(withApiBase(`/api/shipments?client_id=${user.id}`), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setShipments(Array.isArray(data) ? data : []);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch shipments', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchShipments();
   }, [user?.id]);
 
@@ -128,9 +130,15 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
             value: selectedShipment.value || '',
             receiver_name: selectedShipment.receiver_name,
             receiver_phone: selectedShipment.receiver_phone,
-            pickup_address: selectedShipment.pickup_address,
+            pickup_address: (selectedShipment as any).pickup_address,
             delivery_address: selectedShipment.delivery_address,
             door_to_door_phone: selectedShipment.door_to_door_phone,
+            payment_required: selectedShipment.payment_required,
+            extra_charge: selectedShipment.extra_charge,
+          }}
+          onPaymentSuccess={() => {
+            fetchShipments();
+            setSelectedShipment(null);
           }}
         />
       )}

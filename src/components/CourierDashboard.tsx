@@ -268,12 +268,12 @@ export function CourierDashboard() {
       });
       if (resp.ok) {
         const completedTask = showPinModal.task;
-        await loadTasks();
         setShowPinModal(null);
         setPinCode('');
         setShowDetailsDialog(false);
         setSuccessShipment(completedTask);
         toast.success('Доставка успешно завершена! 🎉');
+        setTimeout(() => loadTasks(), 500);
       } else {
         const err = await resp.json().catch(() => ({ error: 'Неверный PIN-код' }));
         toast.error(err.error || 'Неверный PIN-код');
@@ -518,18 +518,12 @@ export function CourierDashboard() {
                     </Button>
                   )}
 
-                  {selectedTask.status === 'in_progress' && selectedTask.type === 'pickup' && (
-                    <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleCompleteTask}>
-                      Забрал у клиента
-                    </Button>
-                  )}
-
-                  {selectedTask.status === 'delivery_assigned' && selectedTask.type === 'delivery' && (
+                  {(selectedTask.status === 'in_progress' || selectedTask.status === 'delivery_assigned' || selectedTask.status === 'out_for_delivery') && (
                     <Button 
-                      className="flex-1 bg-green-600 hover:bg-green-700" 
+                      className="flex-1 bg-green-600 hover:bg-green-700 font-bold" 
                       onClick={handleCompleteTask}
                     >
-                      Доставил получателю
+                      {selectedTask.type === 'pickup' ? 'Забрал у клиента' : 'Доставил получателю'}
                     </Button>
                   )}
                 </div>

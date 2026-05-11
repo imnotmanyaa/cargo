@@ -13,18 +13,18 @@ import (
 var stationsOrder = []string{"Шымкент", "Алматы-1", "Қарағанды", "Астана Нұрлы Жол", "Ақтөбе", "Атырау"}
 
 var (
-	ErrUnauthorized       = errors.New("unauthorized")
-	ErrForbidden          = errors.New("forbidden")
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrDuplicateLogin     = errors.New("login already exists")
-	ErrNotFound           = errors.New("not found")
-	ErrStationMismatch    = errors.New("station mismatch")
-	ErrInvalidTransition  = errors.New("invalid status transition")
-	ErrInvalidState       = errors.New("invalid state")
+	ErrUnauthorized       = errors.New("необходима авторизация")
+	ErrForbidden          = errors.New("доступ запрещен")
+	ErrInvalidCredentials = errors.New("неверный логин или пароль")
+	ErrDuplicateLogin     = errors.New("пользователь с таким логином уже существует")
+	ErrNotFound           = errors.New("не найдено")
+	ErrStationMismatch    = errors.New("ошибка привязки станции")
+	ErrInvalidTransition  = errors.New("недопустимый переход статуса")
+	ErrInvalidState       = errors.New("некорректное состояние груза")
 	ErrInvalidPinCode     = errors.New("неверный PIN-код для получения")
 	ErrInsufficientFunds  = errors.New("недостаточно средств на депозите")
 	ErrPaymentRequired    = errors.New("требуется доплата за перевес")
-	ErrValidation         = errors.New("validation error")
+	ErrValidation         = errors.New("ошибка валидации данных")
 )
 
 type Services struct {
@@ -114,7 +114,38 @@ func indexOf(items []string, target string) int {
 }
 
 func normalizeLogin(login string) string {
-	return strings.ToLower(strings.TrimSpace(login))
+	login = strings.ToLower(strings.TrimSpace(login))
+	
+	// If it looks like a phone number (digits, plus, parens, dashes)
+	// we normalize it to a clean digit string
+	isPhone := true
+	var digits strings.Builder
+	for _, r := range login {
+		if r >= '0' && r <= '9' {
+			digits.WriteRune(r)
+			continue
+		}
+		if r == '+' || r == '(' || r == ')' || r == '-' || r == ' ' {
+			continue
+		}
+		// Found a non-phone character (like a letter in an email)
+		isPhone = false
+		break
+	}
+
+	if isPhone && digits.Len() >= 10 {
+		phone := digits.String()
+		// Normalize 8XXXXXXXXXX to 7XXXXXXXXXX
+		if len(phone) == 11 && phone[0] == '8' {
+			phone = "7" + phone[1:]
+		}
+		// Normalize missing country code (7XXXXXXXXX -> 77XXXXXXXXX)
+		// But only if it's 10 digits and starts with 7
+		// Actually most common case in KZ is 11 digits starting with 7
+		return phone
+	}
+
+	return login
 }
 
 func ptr[T any](value T) *T {
