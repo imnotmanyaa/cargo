@@ -41,6 +41,12 @@ func (s *AuthService) Register(ctx context.Context, name, login, password string
 	if err != nil {
 		return model.User{}, "", err
 	}
+	// Normalize phone before storing
+	var normalizedPhone *string
+	if phone != nil && *phone != "" {
+		np := normalizeLogin(*phone)
+		normalizedPhone = &np
+	}
 	user := model.User{
 		ID:             uuid.NewString(),
 		Name:           name,
@@ -49,7 +55,7 @@ func (s *AuthService) Register(ctx context.Context, name, login, password string
 		Role:           role,
 		ClientSegment:  model.ClientSegmentForRole(role),
 		Company:        company,
-		Phone:          phone,
+		Phone:          normalizedPhone,
 		IsActive:       true,
 		CreatedAt:      time.Now().UTC(),
 	}
