@@ -450,8 +450,10 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
 			return
 		}
-		// Переводим в статус OUT_FOR_DELIVERY (курьер забрал посылку со склада)
-		shipment, err := s.services.Shipments.OutForDelivery(r.Context(), shipmentID, &user.ID, &user.Name)
+		// Переводим в статус OUT_FOR_DELIVERY, но сохраняем operator_id курьера (а не приемосдатчика)
+		courierOpID := current.OperatorID
+		courierOpName := current.OperatorName
+		shipment, err := s.services.Shipments.OutForDelivery(r.Context(), shipmentID, courierOpID, courierOpName)
 		if err != nil {
 			handleServiceError(w, err)
 			return

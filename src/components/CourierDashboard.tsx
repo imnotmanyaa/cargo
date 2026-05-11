@@ -47,6 +47,7 @@ export function CourierDashboard() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
   });
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
