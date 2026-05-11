@@ -538,15 +538,18 @@ export function CourierDashboard() {
       </div>
       {/* Success Modal */}
       {successShipment && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className={`${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300`}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden`}>
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500">
-                <Package className="w-10 h-10 animate-bounce" />
+                <Package className="w-10 h-10" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">Доставлено!</h2>
+              <h2 className="text-2xl font-bold mb-2">
+                {successShipment.type === 'pickup' ? 'Забрано!' : 'Доставлено!'}
+              </h2>
               <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Груз <span className="font-mono font-bold text-blue-500">{successShipment.parcelCode}</span> успешно передан получателю
+                Груз <span className="font-mono font-bold text-blue-500">{successShipment.parcelCode || '—'}</span>
+                {successShipment.type === 'pickup' ? ' забран у клиента' : ' передан получателю'}
               </p>
               
               <div className={`${isDark ? 'bg-gray-800' : 'bg-gray-50'} rounded-2xl p-4 mb-6 text-left`}>
@@ -554,13 +557,13 @@ export function CourierDashboard() {
                   <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
                     <User className="w-4 h-4" />
                   </div>
-                  <span className="text-sm font-semibold">{successShipment.receiverName || successShipment.clientName}</span>
+                  <span className="text-sm font-semibold">{successShipment.receiverName || successShipment.clientName || '—'}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
                     <MapPin className="w-4 h-4" />
                   </div>
-                  <span className="text-xs text-gray-400 truncate">{successShipment.address}</span>
+                  <span className="text-xs text-gray-400 truncate">{successShipment.address || successShipment.fullAddress || '—'}</span>
                 </div>
               </div>
 
