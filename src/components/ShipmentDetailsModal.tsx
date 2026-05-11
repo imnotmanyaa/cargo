@@ -241,19 +241,24 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
                     onClick={async () => {
                       try {
                         const token = localStorage.getItem('token');
-                        const res = await fetch(withApiBase(`/api/shipments/${shipment.id}/clear-payment`), {
+                        if (!token) { alert('Вы не авторизованы. Войдите в систему.'); return; }
+                        const url = `/api/shipments/${shipment.id}/clear-payment`;
+                        const res = await fetch(url, {
                           method: 'POST',
-                          headers: { 'Authorization': `Bearer ${token}` }
+                          headers: { 
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                          }
                         });
                         if (res.ok) {
                           alert('Доплата успешно произведена!');
-                          onPaymentSuccess?.();
+                          window.location.reload();
                         } else {
                           const err = await res.json().catch(() => ({}));
-                          alert(err.error || 'Ошибка оплаты');
+                          alert(err.error || `Ошибка оплаты (код ${res.status})`);
                         }
-                      } catch {
-                        alert('Ошибка сети');
+                      } catch (e: any) {
+                        alert('Ошибка сети: ' + (e?.message || 'проверьте подключение'));
                       }
                     }}
                     className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors"
