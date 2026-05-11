@@ -1139,7 +1139,7 @@ func (s *ShipmentService) ConfirmIntake(ctx context.Context, id, actualWeight, s
 	// Уведомление клиенту о доплате
 	var notification *model.Notification
 	if requiresPayment {
-		msg := fmt.Sprintf("Фактический вес вашей посылки %s изменён: %s → %s. Доплата: %.0f тг",
+		msg := fmt.Sprintf("Фактический вес вашей посылки %s изменён: %s → %s. Доплата: %.0f тг. Оплатите в личном кабинете — нажмите «Подробнее» на посылке.",
 			updated.ShipmentNumber, oldWeightStr, actualWeight, extraCharge)
 		n, err := s.repo.CreateNotification(ctx, model.Notification{
 			UserID:    updated.ClientID,
@@ -1160,7 +1160,7 @@ func (s *ShipmentService) ConfirmIntake(ctx context.Context, id, actualWeight, s
 		}
 		if clientPhone != "" {
 			go whatsapp.SendMessage(clientPhone, fmt.Sprintf(
-				"⚠️ Доплата за посылку %s\n\nФактический вес: %s (заявлено: %s)\nСумма доплаты: %.0f тг\n\nДоплатите в офисе для получения груза.",
+				"⚠️ Доплата за посылку %s\n\nФактический вес: %s (заявлено: %s)\nСумма доплаты: %.0f тг\n\n💳 Оплатить можно в личном кабинете:\n1. Войдите в систему\n2. Нажмите «Подробнее» на вашей посылке\n3. Нажмите кнопку «Оплатить сейчас»\n\nБез оплаты выдача груза невозможна.",
 				updated.ShipmentNumber, actualWeight, oldWeightStr, extraCharge,
 			))
 		}
