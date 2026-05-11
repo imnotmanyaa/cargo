@@ -451,9 +451,8 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Переводим в статус OUT_FOR_DELIVERY, но сохраняем operator_id курьера (а не приемосдатчика)
-		courierOpID := current.OperatorID
-		courierOpName := current.OperatorName
-		shipment, err := s.services.Shipments.OutForDelivery(r.Context(), shipmentID, courierOpID, courierOpName)
+		courierOpID := current.CourierID
+		shipment, err := s.services.Shipments.OutForDelivery(r.Context(), shipmentID, courierOpID, nil)
 		if err != nil {
 			handleServiceError(w, err)
 			return
