@@ -272,14 +272,13 @@ export function CourierDashboard() {
         setPinCode('');
         setShowDetailsDialog(false);
         setSuccessShipment(completedTask);
-        toast.success('Доставка успешно завершена! 🎉');
-        setTimeout(() => loadTasks(), 500);
+        loadTasks();
       } else {
-        const err = await resp.json().catch(() => ({ error: 'Неверный PIN-код' }));
-        toast.error(err.error || 'Неверный PIN-код');
+        const err = await resp.json().catch(() => ({ error: 'Ошибка' }));
+        alert(err.error || 'Неверный PIN-код');
       }
     } catch(e) { 
-      toast.error('Сетевая ошибка'); 
+      alert('Сетевая ошибка'); 
     }
   };
 

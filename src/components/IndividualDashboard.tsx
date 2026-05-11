@@ -79,6 +79,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
     if (s === 'ARRIVED') return t('statusArrived');
     if (s === 'READY_FOR_ISSUE') return t('statusReadyForIssue');
     if (s === 'DELIVERY_ASSIGNED') return 'Курьер везёт к вам';
+    if (s === 'OUT_FOR_DELIVERY') return 'Курьер в пути к вам';
     if (s === 'ISSUED') return t('statusIssued');
     if (s === 'CANCELLED') return t('cancel');
     return shipment.status || t('statusRegistered');
@@ -91,7 +92,7 @@ export function IndividualDashboard({ theme = 'light', onCreateShipment }: Indiv
     if (status === t('statusReadyForIssue') || status === t('statusArrived')) return 'bg-green-100 text-green-700';
     if (status === t('statusInTransit')) return 'bg-blue-100 text-blue-700';
     if (status === t('statusLoaded')) return 'bg-purple-100 text-purple-700';
-    if (status === t('courierStatusAssigned')) return 'bg-orange-100 text-orange-700';
+    if (status === t('courierStatusAssigned') || status === 'Курьер везёт к вам' || status === 'Курьер в пути к вам') return 'bg-orange-100 text-orange-700';
     if (status === t('courierStatusPickedUp') || status === t('atStation')) return 'bg-teal-100 text-teal-700';
     if (status === t('cancel')) return 'bg-red-100 text-red-700';
     return 'bg-yellow-100 text-yellow-700';
