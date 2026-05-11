@@ -222,45 +222,49 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
           </div>
 
           {/* Payment */}
-            {shipment.value && (
-              <div className="flex items-center justify-between">
-                <span className={label}>{t('declaredValue')}:</span>
-                <span className={value}>{shipment.value} ₸</span>
-              </div>
-            )}
-            {shipment.payment_required && (
-              <div className={`mt-4 p-4 rounded-xl border ${isDark ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-100'}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-sm font-semibold ${isDark ? 'text-red-400' : 'text-red-700'}`}>Требуется доплата за перевес</span>
-                  <span className={`text-lg font-bold ${isDark ? 'text-red-300' : 'text-red-800'}`}>{shipment.extra_charge} ₸</span>
+          {(shipment.value || shipment.payment_required) && (
+            <div className={card}>
+              <h3 className={sectionTitle}>{t('payment')}</h3>
+              {shipment.value && (
+                <div className="flex items-center justify-between">
+                  <span className={label}>{t('declaredValue')}:</span>
+                  <span className={value}>{shipment.value} ₸</span>
                 </div>
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Оплатить доплату с вашего баланса?')) return;
-                    try {
-                      const token = localStorage.getItem('token');
-                      const res = await fetch(withApiBase(`/api/shipments/${shipment.id}/clear-payment`), {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` }
-                      });
-                      if (res.ok) {
-                        alert('Доплата успешно произведена!');
-                        onPaymentSuccess?.();
-                      } else {
-                        const err = await res.json();
-                        alert(err.error || 'Ошибка оплаты');
+              )}
+              {shipment.payment_required && (
+                <div className={`mt-4 p-4 rounded-xl border ${isDark ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-100'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-sm font-semibold ${isDark ? 'text-red-400' : 'text-red-700'}`}>Требуется доплата за перевес</span>
+                    <span className={`text-lg font-bold ${isDark ? 'text-red-300' : 'text-red-800'}`}>{shipment.extra_charge} ₸</span>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm('Оплатить доплату с вашего баланса?')) return;
+                      try {
+                        const token = localStorage.getItem('token');
+                        const res = await fetch(withApiBase(`/api/shipments/${shipment.id}/clear-payment`), {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                          alert('Доплата успешно произведена!');
+                          onPaymentSuccess?.();
+                        } else {
+                          const err = await res.json();
+                          alert(err.error || 'Ошибка оплаты');
+                        }
+                      } catch {
+                        alert('Ошибка сети');
                       }
-                    } catch {
-                      alert('Ошибка сети');
-                    }
-                  }}
-                  className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-red-600/20"
-                >
-                  Оплатить сейчас
-                </button>
-              </div>
-            )}
-          </div>
+                    }}
+                    className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors shadow-lg shadow-red-600/20"
+                  >
+                    Оплатить сейчас
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* QR Code */}
           <div className={`${card} flex flex-col items-center`}>
