@@ -360,17 +360,22 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
 
       {/* Full-screen result overlay */}
       {result && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center ${resultOverlayBg} animate-in fade-in zoom-in duration-200`}>
+        <div 
+          className={`fixed inset-0 z-50 flex items-center justify-center ${resultOverlayBg}`}
+          onClick={() => setResult(null)}
+        >
           <div className="text-center p-6 w-full max-w-lg">
             <div className="mb-4 flex justify-center">
               {result.type === 'found' ? (
-                <CheckCircle className="w-24 h-24 text-white animate-bounce" />
+                <CheckCircle className="w-28 h-28 text-white" />
+              ) : result.type === 'already-scanned' ? (
+                <AlertTriangle className="w-28 h-28 text-white" />
               ) : (
-                <QrCode className="w-24 h-24 text-white animate-pulse" />
+                <QrCode className="w-28 h-28 text-white" />
               )}
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-              {result.type === 'found' || result.type === 'already-scanned' ? t('mobileGroupSuccess') : t('mobileGroupError')}
+            <h2 className="text-4xl md:text-6xl font-bold text-white mb-4">
+              {result.type === 'found' ? '✓ ОК' : result.type === 'already-scanned' ? '⚠ УЖЕ ПРИНЯТ' : result.type === 'station-mismatch' ? '⚠ НЕ ТА СТАНЦИЯ' : '✗ НЕ НАЙДЕН'}
             </h2>
             <div className="text-xl md:text-2xl font-bold text-white mb-6">
               {result.message}
@@ -391,6 +396,7 @@ export function AuditorTerminal({ theme = 'light' }: AuditorTerminalProps) {
                 </div>
               </div>
             )}
+            <p className="text-white/60 text-sm mt-6">Нажмите чтобы закрыть</p>
           </div>
         </div>
       )}
