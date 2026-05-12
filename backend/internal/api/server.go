@@ -56,10 +56,10 @@ func NewServer(cfg config.Config, services service.Services, pool ...*pgxpool.Po
 
 	delayMins, err := strconv.Atoi(os.Getenv("AUTO_TRANSIT_DELAY_MINUTES"))
 	if err != nil || delayMins <= 0 {
-		delayMins = 60
+		delayMins = 1
 	}
 	delay := time.Duration(delayMins) * time.Minute
-	go worker.StartTransitWorker(context.Background(), s.services.Shipments, delay)
+	go worker.StartTransitWorker(context.Background(), s.services.Shipments, delay, s.socket, s.services.Shipments.Repo())
 
 	return s, nil
 }

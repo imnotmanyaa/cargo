@@ -79,6 +79,8 @@ type ReportService struct{ repo Repository }
 type AuditService struct{ repo Repository }
 type ShipmentService struct{ repo Repository }
 
+func (s *ShipmentService) Repo() Repository { return s.repo }
+
 type AuthenticatedUser struct {
 	ID      string
 	Login   string
